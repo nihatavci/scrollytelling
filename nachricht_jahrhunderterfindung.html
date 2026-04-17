@@ -72,8 +72,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);ove
 .viz-wrap svg{display:block;width:100%;height:auto;max-height:70vh}
 
 /* Fixed visualization panel - appears above scrolly sections */
-.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:5;pointer-events:none;opacity:0;background:var(--bg)}
-.viz-panel.is-visible{opacity:1;pointer-events:auto}
+.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:none;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:5;pointer-events:none;background:var(--bg)}
+.viz-panel.is-visible{display:flex;pointer-events:auto}
 
 .scrolly__steps{position:relative;z-index:10;width:320px;margin-left:auto;margin-right:1.5vw;pointer-events:none}
 .step{min-height:100vh;display:flex;align-items:center;padding:2rem 0;pointer-events:auto}
