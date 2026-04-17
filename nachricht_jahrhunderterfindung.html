@@ -72,7 +72,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);ove
 .viz-wrap svg{display:block;width:100%;height:auto;max-height:70vh}
 
 /* Fixed visualization panel - appears above scrolly sections */
-.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:5;pointer-events:none;opacity:0;transition:opacity .5s ease;background:var(--bg)}
+.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:5;pointer-events:none;opacity:0;background:var(--bg)}
 .viz-panel.is-visible{opacity:1;pointer-events:auto}
 
 .scrolly__steps{position:relative;z-index:10;width:320px;margin-left:auto;margin-right:1.5vw;pointer-events:none}
@@ -901,39 +901,35 @@ function drawState(idx){
   if(idx===0){
     // Draw inverted pyramid with 4 colored layers
     const layers=[
-      {y:30,topW:650,botW:480,color:C.gold,label:'Das Wichtigste',sub:'Das Neueste (noch sehr allgemein)'},
-      {y:140,topW:480,botW:320,color:C.orange,label:'Unterstützende Details',sub:''},
-      {y:250,topW:320,botW:170,color:C.purple,label:'Hintergrund',sub:''},
-      {y:360,topW:170,botW:70,color:C.blue,label:'Schlusszitat',sub:''}
+      {y:20,topW:720,botW:540,color:C.gold,label:'Das Wichtigste',sub:'Das Neueste (noch sehr allgemein)'},
+      {y:130,topW:540,botW:370,color:C.orange,label:'Unterstützende Details',sub:''},
+      {y:240,topW:370,botW:210,color:C.purple,label:'Hintergrund',sub:''},
+      {y:350,topW:210,botW:90,color:C.blue,label:'Schlusszitat',sub:''}
     ];
-    const cx=400,h=100;
+    const cx=400,h=105;
     layers.forEach((l,i)=>{
       const x1=cx-l.topW/2,x2=cx+l.topW/2,x3=cx+l.botW/2,x4=cx-l.botW/2;
       g.append('polygon')
         .attr('points',`${x1},${l.y} ${x2},${l.y} ${x3},${l.y+h} ${x4},${l.y+h}`)
-        .attr('fill',l.color).attr('opacity',0)
-        .transition().duration(600).delay(i*150).attr('opacity',.85);
+        .attr('fill',l.color).attr('opacity',.85);
       g.append('text').attr('x',cx).attr('y',l.y+h/2-2)
         .attr('text-anchor','middle').attr('fill','#fff').attr('font-size','14')
         .attr('font-weight','600').attr('font-family','DM Sans')
-        .text(l.label).attr('opacity',0)
-        .transition().duration(500).delay(i*150+200).attr('opacity',1);
+        .text(l.label).attr('opacity',1);
       if(l.sub){
         g.append('text').attr('x',cx).attr('y',l.y+h/2+16)
           .attr('text-anchor','middle').attr('fill','rgba(255,255,255,.6)').attr('font-size','11')
-          .attr('font-family','DM Sans').text(l.sub).attr('opacity',0)
-          .transition().duration(500).delay(i*150+300).attr('opacity',1);
+          .attr('font-family','DM Sans').text(l.sub).attr('opacity',1);
       }
     });
     // Arrow on left
-    const arrowG=g.append('g').attr('opacity',0);
+    const arrowG=g.append('g').attr('opacity',1);
     arrowG.append('line').attr('x1',52).attr('y1',75).attr('x2',52).attr('y2',400)
       .attr('stroke',C.muted).attr('stroke-width',1.5).attr('marker-end','url(#arr1)');
     arrowG.append('text').attr('x',42).attr('y',220).attr('text-anchor','end')
       .attr('fill',C.muted).attr('font-size','11').attr('font-family','DM Sans').attr('font-style','italic')
       .selectAll('tspan').data(['Immer','weniger','wichtig']).enter().append('tspan')
       .attr('x',42).attr('dy',(d,i)=>i?15:0).text(d=>d);
-    arrowG.transition().duration(600).delay(600).attr('opacity',1);
     // Arrow marker (append to g, not svg, so it gets cleaned up)
     g.append('defs').append('marker').attr('id','arr1').attr('viewBox','0 0 10 10')
       .attr('refX',5).attr('refY',5).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
@@ -944,32 +940,31 @@ function drawState(idx){
     const cx=400,topY=50,botY=440,w=580;
     g.append('polygon')
       .attr('points',`${cx-w/2},${topY} ${cx+w/2},${topY} ${cx},${botY}`)
-      .attr('fill',C.green).attr('opacity',0)
-      .transition().duration(700).attr('opacity',.88);
+      .attr('fill',C.green).attr('opacity',.88);
     // Main title
     g.append('text').attr('x',cx).attr('y',150).attr('text-anchor','middle')
       .attr('fill','#fff').attr('font-size','24').attr('font-weight','700')
       .attr('font-family','Source Serif 4,serif').text('Das Wichtigste:')
-      .attr('opacity',0).transition().duration(500).delay(300).attr('opacity',1);
+      .attr('opacity',1);
     // W-questions — primary row
     const wqs=['Wer?','Was?','Wann?','Wo?'];
     g.append('text').attr('x',cx).attr('y',200).attr('text-anchor','middle')
       .attr('fill','rgba(255,255,255,.95)').attr('font-size','18').attr('font-weight','600')
       .attr('font-family','DM Sans').text(wqs.join('   '))
-      .attr('opacity',0).transition().duration(500).delay(500).attr('opacity',1);
+      .attr('opacity',1);
     // W-questions — secondary row
     const wqs2=['Warum?','Wie?'];
     g.append('text').attr('x',cx).attr('y',245).attr('text-anchor','middle')
       .attr('fill','rgba(255,255,255,.7)').attr('font-size','15').attr('font-weight','400')
       .attr('font-family','DM Sans').text(wqs2.join('    '))
-      .attr('opacity',0).transition().duration(500).delay(650).attr('opacity',1);
+      .attr('opacity',1);
     // Subtle inner structure lines (inside the triangle, not floating outside)
     [0.45, 0.65, 0.82].forEach((frac, i) => {
       const y = topY + (botY - topY) * frac;
       const hw = (w/2) * (1 - frac) * 0.95;
       g.append('line').attr('x1',cx-hw).attr('y1',y).attr('x2',cx+hw).attr('y2',y)
         .attr('stroke','rgba(255,255,255,.2)').attr('stroke-width',1)
-        .attr('opacity',0).transition().duration(400).delay(700+i*100).attr('opacity',1);
+        .attr('opacity',1);
     });
 
   } else if(idx===2){
@@ -985,7 +980,7 @@ function drawState(idx){
     g.append('text').attr('x',midX).attr('y',40).attr('text-anchor','middle')
       .attr('fill',C.muted).attr('font-size','12').attr('font-weight','600')
       .attr('font-family','DM Sans').text('Canavilhas (2006)')
-      .attr('opacity',0).transition().duration(400).attr('opacity',1);
+      .attr('opacity',1);
 
     layers.forEach((l,i)=>{
       const y=y0+i*rowH;
@@ -997,11 +992,10 @@ function drawState(idx){
       g.append('text').attr('x',midX).attr('y',y+34).attr('text-anchor','middle')
         .attr('fill','#fff').attr('font-size','15').attr('font-weight','700')
         .attr('font-family','DM Sans').text(l.label)
-        .attr('opacity',0).transition().duration(400).delay(i*180+300).attr('opacity',1);
+        .attr('opacity',1);
       g.append('text').attr('x',midX).attr('y',y+56).attr('text-anchor','middle')
         .attr('fill','rgba(255,255,255,.65)').attr('font-size','11').attr('font-family','DM Sans')
-        .text(l.sub).attr('opacity',0)
-        .transition().duration(400).delay(i*180+400).attr('opacity',1);
+        .text(l.sub).attr('opacity',1);
     });
 
   } else if(idx===3){
@@ -1021,7 +1015,7 @@ function drawState(idx){
       .transition().duration(800).attr('r',160);
 
     blocks.forEach((b,i)=>{
-      const bg=g.append('g').attr('opacity',0);
+      const bg=g.append('g').attr('opacity',1);
       bg.append('rect').attr('x',b.x+3).attr('y',b.y+3).attr('width',b.w).attr('height',b.h)
         .attr('rx',8).attr('fill','rgba(0,0,0,.06)');
       bg.append('rect').attr('x',b.x).attr('y',b.y).attr('width',b.w).attr('height',b.h)
@@ -1029,25 +1023,23 @@ function drawState(idx){
       bg.append('text').attr('x',b.x+b.w/2).attr('y',b.y+b.h/2+5)
         .attr('text-anchor','middle').attr('fill','#fff').attr('font-size','14')
         .attr('font-weight','700').attr('font-family','DM Sans').text(b.label);
-      bg.transition().duration(500).delay(200+i*100).attr('opacity',1);
       g.append('line').attr('x1',b.x+b.w/2).attr('y1',b.y+b.h/2)
         .attr('x2',cx).attr('y2',cy)
         .attr('stroke',b.color).attr('stroke-width',1.5).attr('stroke-dasharray','4 3')
-        .attr('opacity',0).transition().duration(400).delay(300+i*100).attr('opacity',.2);
+        .attr('opacity',.2);
     });
     // Center block
-    const cg=g.append('g').attr('opacity',0);
+    const cg=g.append('g').attr('opacity',1);
     cg.append('rect').attr('x',cx-50).attr('y',cy-30).attr('width',100).attr('height',60)
       .attr('rx',10).attr('fill',C.accent);
     cg.append('text').attr('x',cx).attr('y',cy+6).attr('text-anchor','middle')
       .attr('fill','#fff').attr('font-size','15').attr('font-weight','700')
       .attr('font-family','DM Sans').text('CLIMAX');
-    cg.transition().duration(600).delay(800).attr('opacity',1);
     // Subtitle — well below all blocks
     g.append('text').attr('x',cx).attr('y',480).attr('text-anchor','middle')
       .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
       .attr('font-family','DM Sans').text('Verschiedene Einstiege, verschiedene Pfade durch die Information')
-      .attr('opacity',0).transition().duration(500).delay(1000).attr('opacity',1);
+      .attr('opacity',1);
 
   } else if(idx===4){
     // ── Timeline visualization ──
@@ -1079,7 +1071,7 @@ function drawState(idx){
       g.append('text').attr('x',170).attr('y',y+20).attr('text-anchor','end')
         .attr('fill',C.text).attr('font-size','11').attr('font-weight','500')
         .attr('font-family','DM Sans').text(p.name)
-        .attr('opacity',0).transition().duration(400).delay(i*80).attr('opacity',1);
+        .attr('opacity',1);
       g.append('rect').attr('x',x(p.start)).attr('y',y+8).attr('width',0).attr('height',18)
         .attr('rx',4).attr('fill',p.color).attr('opacity',.75)
         .transition().duration(600).delay(i*80+200)
@@ -1092,13 +1084,13 @@ function drawState(idx){
         g.append('text').attr('x',x(p.end2)+5).attr('y',y+22)
           .attr('fill',p.color).attr('font-size','10').attr('font-weight','600')
           .attr('font-family','DM Sans').text(p.sName)
-          .attr('opacity',0).transition().duration(300).delay(i*80+600).attr('opacity',.7);
+          .attr('opacity',.7);
       }
     });
     g.append('text').attr('x',750).attr('y',y0+papers.length*yStep+45).attr('text-anchor','end')
       .attr('fill',C.accent).attr('font-size','14').attr('font-weight','700')
       .attr('font-family','DM Sans').text('8.500+ Artikel analysiert')
-      .attr('opacity',0).transition().duration(500).delay(1000).attr('opacity',1);
+      .attr('opacity',1);
 
   } else if(idx===5){
     // ── NLP method visualization ──
@@ -1114,7 +1106,7 @@ function drawState(idx){
       .attr('font-family','DM Sans').text('Erste 300 Zeichen jedes Artikels → Automatische Analyse');
     methods.forEach((m,i)=>{
       const mx=startX+i*colW+i*15;
-      const mg=g.append('g').attr('opacity',0);
+      const mg=g.append('g').attr('opacity',1);
       mg.append('circle').attr('cx',mx+colW/2).attr('cy',y0+40).attr('r',32)
         .attr('fill',m.color).attr('opacity',.85);
       mg.append('text').attr('x',mx+colW/2).attr('y',y0+46).attr('text-anchor','middle')
@@ -1141,9 +1133,8 @@ function drawState(idx){
       mg.append('text').attr('x',mx+colW/2).attr('y',y0+250).attr('text-anchor','middle')
         .attr('fill',C.muted).attr('font-size','10').attr('font-style','italic')
         .attr('font-family','DM Sans').text(m.example);
-      mg.transition().duration(500).delay(i*200).attr('opacity',1);
     });
-    const rg=g.append('g').attr('opacity',0);
+    const rg=g.append('g').attr('opacity',1);
     rg.append('rect').attr('x',100).attr('y',360).attr('width',600).attr('height',55)
       .attr('rx',10).attr('fill',C.accent).attr('opacity',.12);
     rg.append('rect').attr('x',100).attr('y',360).attr('width',600).attr('height',55)
@@ -1154,7 +1145,6 @@ function drawState(idx){
     rg.append('text').attr('x',400).attr('y',403).attr('text-anchor','middle')
       .attr('fill',C.muted).attr('font-size','11')
       .attr('font-family','DM Sans').text('Mindestens 3 von 4 W-Fragen in den ersten 300 Zeichen beantwortet');
-    rg.transition().duration(500).delay(900).attr('opacity',1);
 
   } else if(idx===6){
     // ── Bar chart: Pyramid percentage over decades ──
@@ -1185,8 +1175,7 @@ function drawState(idx){
       cg.append('text').attr('x',xS(d.year)+xS.bandwidth()/2).attr('y',yS(d.val)-8)
         .attr('text-anchor','middle').attr('fill',isDecline?C.red:C.green)
         .attr('font-size','12').attr('font-weight','600').attr('font-family','DM Sans')
-        .text(d.val+'%').attr('opacity',0)
-        .transition().duration(400).delay(i*80+400).attr('opacity',1);
+        .text(d.val+'%').attr('opacity',1);
       cg.append('text').attr('x',xS(d.year)+xS.bandwidth()/2).attr('y',h+20)
         .attr('text-anchor','middle').attr('fill',C.muted)
         .attr('font-size','11').attr('font-family','DM Sans').text(d.year);
@@ -1194,11 +1183,11 @@ function drawState(idx){
     const x2004=xS(2004),xEnd=xS(2024)+xS.bandwidth();
     cg.append('rect').attr('x',x2004-5).attr('y',0).attr('width',xEnd-x2004+10).attr('height',h)
       .attr('fill','rgba(196,91,91,.05)').attr('rx',4)
-      .attr('opacity',0).transition().duration(400).delay(800).attr('opacity',1);
+      .attr('opacity',1);
     cg.append('text').attr('x',(x2004+xEnd)/2).attr('y',h+45).attr('text-anchor','middle')
       .attr('fill',C.red).attr('font-size','11').attr('font-weight','600')
       .attr('font-family','DM Sans').text('↑ Digitalisierung')
-      .attr('opacity',0).transition().duration(400).delay(1000).attr('opacity',1);
+      .attr('opacity',1);
     cg.append('line').attr('x1',0).attr('y1',h).attr('x2',w).attr('y2',h)
       .attr('stroke',C.text).attr('stroke-width',1.5);
 
@@ -1220,25 +1209,21 @@ function drawState(idx){
     const yS=d3.scaleLinear().domain([0,100]).range([h,0]);
     const adsArea=d3.area().x(d=>xS(d.yr)).y0(h).y1(d=>yS(d.ads)).curve(d3.curveMonotoneX);
     const totalArea=d3.area().x(d=>xS(d.yr)).y0(h).y1(d=>yS(d.ads+d.sales)).curve(d3.curveMonotoneX);
-    cg.append('path').datum(pts).attr('d',totalArea).attr('fill',C.blue).attr('opacity',0)
-      .transition().duration(800).attr('opacity',.5);
-    cg.append('path').datum(pts).attr('d',adsArea).attr('fill',C.orange).attr('opacity',0)
-      .transition().duration(800).delay(200).attr('opacity',.6);
+    cg.append('path').datum(pts).attr('d',totalArea).attr('fill',C.blue).attr('opacity',.5);
+    cg.append('path').datum(pts).attr('d',adsArea).attr('fill',C.orange).attr('opacity',.6);
     cg.append('text').attr('x',xS(1970)).attr('y',yS(85)).attr('fill','#fff')
       .attr('font-size','13').attr('font-weight','600').attr('font-family','DM Sans')
-      .text('Verkaufserlöse (≈⅓)').attr('opacity',0)
-      .transition().duration(400).delay(600).attr('opacity',.9);
+      .text('Verkaufserlöse (≈⅓)').attr('opacity',.9);
     cg.append('text').attr('x',xS(1970)).attr('y',yS(35)).attr('fill','#fff')
       .attr('font-size','13').attr('font-weight','600').attr('font-family','DM Sans')
-      .text('Anzeigenerlöse (≈⅔)').attr('opacity',0)
-      .transition().duration(400).delay(700).attr('opacity',.9);
+      .text('Anzeigenerlöse (≈⅔)').attr('opacity',.9);
     cg.append('rect').attr('x',xS(2000)).attr('y',0).attr('width',xS(2020)-xS(2000)).attr('height',h)
       .attr('fill','rgba(196,91,91,.08)').attr('rx',4)
-      .attr('opacity',0).transition().duration(400).delay(800).attr('opacity',1);
+      .attr('opacity',1);
     cg.append('text').attr('x',xS(2010)).attr('y',20).attr('text-anchor','middle')
       .attr('fill',C.red).attr('font-size','11').attr('font-weight','600')
       .attr('font-family','DM Sans').text('Digitale Disruption')
-      .attr('opacity',0).transition().duration(400).delay(900).attr('opacity',1);
+      .attr('opacity',1);
     cg.append('rect').attr('x',xS(1933)).attr('y',0).attr('width',xS(1945)-xS(1933)).attr('height',h)
       .attr('fill','rgba(196,91,91,.06)').attr('rx',4);
     cg.append('line').attr('x1',0).attr('y1',h).attr('x2',w).attr('y2',h)
@@ -1266,7 +1251,7 @@ function drawState(idx){
     const colW=220,startX=50,gap=25;
     cats.forEach((c,ci)=>{
       const cx2=startX+ci*(colW+gap);
-      const cg2=g.append('g').attr('opacity',0);
+      const cg2=g.append('g').attr('opacity',1);
       cg2.append('rect').attr('x',cx2).attr('y',50).attr('width',colW).attr('height',380)
         .attr('rx',12).attr('fill','#fff').attr('stroke',c.color).attr('stroke-width',2);
       cg2.append('rect').attr('x',cx2).attr('y',50).attr('width',colW).attr('height',75)
@@ -1295,12 +1280,11 @@ function drawState(idx){
           .attr('rx',14).attr('fill','none').attr('stroke',C.accent)
           .attr('stroke-width',2.5).attr('stroke-dasharray','6 3');
       }
-      cg2.transition().duration(500).delay(ci*200).attr('opacity',1);
     });
     g.append('text').attr('x',400).attr('y',465).attr('text-anchor','middle')
       .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
       .attr('font-family','DM Sans').text('+ Interview als spezielle Darstellungsform')
-      .attr('opacity',0).transition().duration(400).delay(700).attr('opacity',1);
+      .attr('opacity',1);
 
   } else if(idx===9){
     // ── Meier 4-dimensional radial diagram ──
@@ -1315,9 +1299,9 @@ function drawState(idx){
     [outerR,outerR-40,innerR+20].forEach((r,i)=>{
       g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',r)
         .attr('fill','none').attr('stroke','#e6e1da').attr('stroke-width',1)
-        .attr('opacity',0).transition().duration(400).delay(i*100).attr('opacity',.5);
+        .attr('opacity',.5);
     });
-    const cg2=g.append('g').attr('opacity',0);
+    const cg2=g.append('g').attr('opacity',1);
     cg2.append('circle').attr('cx',cx).attr('cy',cy).attr('r',innerR)
       .attr('fill',C.accent).attr('opacity',.85);
     cg2.append('text').attr('x',cx).attr('y',cy-5).attr('text-anchor','middle')
@@ -1326,11 +1310,10 @@ function drawState(idx){
     cg2.append('text').attr('x',cx).attr('y',cy+12).attr('text-anchor','middle')
       .attr('fill','#fff').attr('font-size','11').attr('font-weight','600')
       .attr('font-family','DM Sans').text('Medienrealität');
-    cg2.transition().duration(500).delay(200).attr('opacity',1);
     dims.forEach((d,di)=>{
       const rad=d.angle*Math.PI/180;
       const dx=cx+outerR*Math.cos(rad),dy=cy+outerR*Math.sin(rad);
-      const dg=g.append('g').attr('opacity',0);
+      const dg=g.append('g').attr('opacity',1);
       dg.append('line').attr('x1',cx+innerR*Math.cos(rad)*1.1).attr('y1',cy+innerR*Math.sin(rad)*1.1)
         .attr('x2',dx-dimR*0.7*Math.cos(rad)).attr('y2',dy-dimR*0.7*Math.sin(rad))
         .attr('stroke',d.color).attr('stroke-width',2).attr('opacity',.4);
@@ -1361,7 +1344,6 @@ function drawState(idx){
           .attr('fill',d.color).attr('font-size','9').attr('font-weight','500')
           .attr('font-family','DM Sans').text(item);
       });
-      dg.transition().duration(500).delay(400+di*200).attr('opacity',1);
     });
 
   } else if(idx===10){
@@ -1379,7 +1361,7 @@ function drawState(idx){
     factors.forEach((f,i)=>{
       const col=i%cols,row=Math.floor(i/cols);
       const fx=startX+col*(tileW+15),fy=startY+row*(tileH+15);
-      const fg=g.append('g').attr('opacity',0);
+      const fg=g.append('g').attr('opacity',1);
       fg.append('rect').attr('x',fx).attr('y',fy).attr('width',tileW).attr('height',tileH)
         .attr('rx',8).attr('fill',catColors[f.cat]).attr('fill-opacity',.12)
         .attr('stroke',catColors[f.cat]).attr('stroke-width',1.5);
@@ -1388,12 +1370,11 @@ function drawState(idx){
         .attr('font-family','DM Sans').text(f.num);
       fg.append('text').attr('x',fx+tileW/2).attr('y',fy+52).attr('text-anchor','middle')
         .attr('font-size','11').attr('fill',C.muted).attr('font-family','DM Sans').text(f.name);
-      fg.transition().duration(350).delay(i*70).attr('opacity',1);
     });
     g.append('text').attr('x',400).attr('y',478).attr('text-anchor','middle')
       .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
       .attr('font-family','DM Sans').text('"News and truth are not the same thing." — Lippmann (1922)')
-      .attr('opacity',0).transition().duration(400).delay(900).attr('opacity',1);
+      .attr('opacity',1);
 
   } else if(idx===11){
     // ── Paywall models cards ──
@@ -1403,7 +1384,7 @@ function drawState(idx){
       {x:540,title:'Metered',icon:'📊',color:C.green,desc:'X Artikel frei,\ndann Bezahlschranke'}
     ];
     models.forEach((m,i)=>{
-      const mg=g.append('g').attr('opacity',0);
+      const mg=g.append('g').attr('opacity',1);
       mg.append('rect').attr('x',m.x).attr('y',60).attr('width',200).attr('height',220)
         .attr('rx',12).attr('fill',m.color).attr('fill-opacity',.08)
         .attr('stroke',m.color).attr('stroke-width',2);
@@ -1417,12 +1398,11 @@ function drawState(idx){
         mg.append('text').attr('x',m.x+100).attr('y',195+li*16).attr('text-anchor','middle')
           .attr('font-size','11').attr('fill',C.muted).attr('font-family','DM Sans').text(ln);
       });
-      mg.transition().duration(400).delay(i*150).attr('opacity',1);
     });
     g.append('text').attr('x',400).attr('y',340).attr('text-anchor','middle')
       .attr('font-size','12').attr('font-weight','600').attr('fill',C.red)
       .attr('font-family','DM Sans').text('Klickzahlen und Verweildauer sind die neuen Währungen.')
-      .attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+      .attr('opacity',1);
 
   } else if(idx===12){
     // ── Canavilhas→Trillo comparison ──
@@ -1434,35 +1414,34 @@ function drawState(idx){
     g.append('text').attr('x',pyrX).attr('y',pyrY-15).attr('text-anchor','middle')
       .attr('font-size','12').attr('font-weight','700').attr('fill',C.text)
       .attr('font-family','DM Sans').text('Canavilhas (2006)')
-      .attr('opacity',0).transition().duration(400).attr('opacity',1);
+      .attr('opacity',1);
     pyrLayers.forEach((l,i)=>{
       const lh=70,ly=pyrY+i*(lh+6),lx=pyrX-l.w/2;
       g.append('rect').attr('x',lx).attr('y',ly).attr('width',l.w).attr('height',lh)
         .attr('rx',4).attr('fill',C.blue).attr('fill-opacity',l.op).attr('stroke',C.blue).attr('stroke-width',1)
-        .attr('opacity',0).transition().duration(350).delay(i*100).attr('opacity',1);
+        .attr('opacity',1);
       g.append('text').attr('x',pyrX).attr('y',ly+lh/2+5).attr('text-anchor','middle')
         .attr('font-size','12').attr('fill','#fff').attr('font-weight','600')
         .attr('font-family','DM Sans').text(l.label)
-        .attr('opacity',0).transition().duration(350).delay(i*100+50).attr('opacity',1);
+        .attr('opacity',1);
     });
     g.append('line').attr('x1',355).attr('y1',220).attr('x2',420).attr('y2',220)
       .attr('stroke',C.accent).attr('stroke-width',2.5)
-      .attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+      .attr('opacity',1);
     g.append('polygon').attr('points','418,213 432,220 418,227')
-      .attr('fill',C.accent).attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+      .attr('fill',C.accent).attr('opacity',1);
     const cubeX=580,cubeY=220,cubeR=40;
     g.append('text').attr('x',cubeX).attr('y',45).attr('text-anchor','middle')
       .attr('font-size','12').attr('font-weight','700').attr('fill',C.text)
       .attr('font-family','DM Sans').text('Trillo-Domínguez (2017)')
-      .attr('opacity',0).transition().duration(400).delay(400).attr('opacity',1);
+      .attr('opacity',1);
     g.append('rect').attr('x',cubeX-cubeR).attr('y',cubeY-cubeR)
       .attr('width',cubeR*2).attr('height',cubeR*2).attr('rx',10)
-      .attr('fill',C.accent).attr('opacity',0)
-      .transition().duration(500).delay(400).attr('opacity',.85);
+      .attr('fill',C.accent).attr('opacity',.85);
     g.append('text').attr('x',cubeX).attr('y',cubeY+6).attr('text-anchor','middle')
       .attr('fill','#fff').attr('font-size','14').attr('font-weight','700')
       .attr('font-family','DM Sans').text('CLIMAX')
-      .attr('opacity',0).transition().duration(500).delay(500).attr('opacity',1);
+      .attr('opacity',1);
     const dims4=[
       {label:'WHY',x:cubeX-110,y:cubeY-70},{label:'WHO',x:cubeX+110,y:cubeY-70},
       {label:'WHAT',x:cubeX-110,y:cubeY+70},{label:'WHERE',x:cubeX+110,y:cubeY+70},
@@ -1471,20 +1450,20 @@ function drawState(idx){
     dims4.forEach((d,i)=>{
       g.append('line').attr('x1',d.x).attr('y1',d.y).attr('x2',cubeX).attr('y2',cubeY)
         .attr('stroke',C.gold).attr('stroke-width',1.5).attr('stroke-dasharray','4 3')
-        .attr('opacity',0).transition().duration(300).delay(600+i*80).attr('opacity',.25);
+        .attr('opacity',.25);
       g.append('rect').attr('x',d.x-32).attr('y',d.y-15).attr('width',64).attr('height',30)
         .attr('rx',6).attr('fill',C.gold).attr('fill-opacity',.2)
         .attr('stroke',C.gold).attr('stroke-width',1.5)
-        .attr('opacity',0).transition().duration(300).delay(600+i*80).attr('opacity',1);
+        .attr('opacity',1);
       g.append('text').attr('x',d.x).attr('y',d.y+4).attr('text-anchor','middle')
         .attr('font-size','11').attr('font-weight','700').attr('fill',C.text)
         .attr('font-family','DM Sans').text(d.label)
-        .attr('opacity',0).transition().duration(300).delay(600+i*80).attr('opacity',1);
+        .attr('opacity',1);
     });
     g.append('text').attr('x',400).attr('y',490).attr('text-anchor','middle')
       .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
       .attr('font-family','DM Sans').text('Verschiedene Einstiege, verschiedene Pfade durch die Information')
-      .attr('opacity',0).transition().duration(400).delay(1000).attr('opacity',1);
+      .attr('opacity',1);
 
   } else if(idx===13){
     // ── Journalist circles by generation/age ──
@@ -1509,16 +1488,15 @@ function drawState(idx){
     // Generation zone backgrounds
     [{label:'Veteran (60+)',x:80,w:230,color:C.blue},{label:'Mitte (40–59)',x:310,w:220,color:C.orange},{label:'Jung (25–39)',x:540,w:220,color:C.green}].forEach((z,i)=>{
       g.append('rect').attr('x',z.x).attr('y',80).attr('width',z.w).attr('height',310)
-        .attr('rx',12).attr('fill',z.color).attr('opacity',0)
-        .transition().duration(400).delay(i*100).attr('opacity',.04);
+        .attr('rx',12).attr('fill',z.color).attr('opacity',.04);
       g.append('text').attr('x',z.x+z.w/2).attr('y',70).attr('text-anchor','middle')
         .attr('fill',z.color).attr('font-size','11').attr('font-weight','600')
         .attr('font-family','DM Sans').text(z.label)
-        .attr('opacity',0).transition().duration(400).delay(i*100).attr('opacity',.7);
+        .attr('opacity',.7);
     });
     journalists.forEach((j,i)=>{
       const r=j.medium.includes('Social')?22:j.medium.includes('Online')?18:15;
-      const jg=g.append('g').attr('opacity',0);
+      const jg=g.append('g').attr('opacity',1);
       jg.append('circle').attr('cx',j.x).attr('cy',j.y).attr('r',r)
         .attr('fill',genColors[j.gen]).attr('opacity',.7)
         .attr('stroke',j.sex==='f'?'#fff':'none').attr('stroke-width',j.sex==='f'?2:0)
@@ -1526,7 +1504,6 @@ function drawState(idx){
       jg.append('text').attr('x',j.x).attr('y',j.y+4).attr('text-anchor','middle')
         .attr('fill','#fff').attr('font-size','9').attr('font-weight','600')
         .attr('font-family','DM Sans').text(j.age);
-      jg.transition().duration(400).delay(200+i*60).attr('opacity',1);
     });
     // Legend
     const legY=440;
@@ -1544,7 +1521,7 @@ function drawState(idx){
     ];
     const cardY=60,cardH=340;
     concepts.forEach((c,i)=>{
-      const cg3=g.append('g').attr('opacity',0);
+      const cg3=g.append('g').attr('opacity',1);
       cg3.append('rect').attr('x',c.x).attr('y',cardY).attr('width',210).attr('height',cardH)
         .attr('rx',10).attr('fill',c.color).attr('fill-opacity',.06)
         .attr('stroke',c.highlight?C.accent:c.color).attr('stroke-width',c.highlight?3:2)
@@ -1574,7 +1551,6 @@ function drawState(idx){
           .attr('font-size','11').attr('fill',C.accent).attr('font-weight','600')
           .attr('font-family','DM Sans').text('→ „Kern des Journalismus"');
       }
-      cg3.transition().duration(400).delay(i*180).attr('opacity',1);
     });
 
   } else if(idx===15){
@@ -1588,35 +1564,35 @@ function drawState(idx){
       const lh=60,ly=pyrY+i*lh,lx=pyrX-l.w/2;
       g.append('rect').attr('x',lx).attr('y',ly).attr('width',l.w).attr('height',lh)
         .attr('fill',C.blue).attr('fill-opacity',l.op).attr('stroke',C.blue).attr('stroke-width',1)
-        .attr('opacity',0).transition().duration(300).delay(i*100).attr('opacity',1);
+        .attr('opacity',1);
       g.append('text').attr('x',pyrX).attr('y',ly+35).attr('text-anchor','middle')
         .attr('font-size','11').attr('fill',i>1?'#fff':C.text).attr('font-weight','600')
         .attr('font-family','DM Sans').text(l.label)
-        .attr('opacity',0).transition().duration(300).delay(i*100).attr('opacity',1);
+        .attr('opacity',1);
     });
     g.append('text').attr('x',pyrX).attr('y',pyrY-15).attr('text-anchor','middle')
       .attr('font-size','11').attr('font-weight','600').attr('fill',C.muted)
       .attr('font-family','DM Sans').text('Klassisch')
-      .attr('opacity',0).transition().duration(400).attr('opacity',1);
+      .attr('opacity',1);
     // Arrow
     g.append('line').attr('x1',330).attr('y1',210).attr('x2',400).attr('y2',210)
       .attr('stroke',C.accent).attr('stroke-width',2.5)
-      .attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+      .attr('opacity',1);
     g.append('polygon').attr('points','398,203 412,210 398,217')
-      .attr('fill',C.accent).attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+      .attr('fill',C.accent).attr('opacity',1);
     g.append('text').attr('x',365).attr('y',195).attr('text-anchor','middle')
       .attr('font-size','10').attr('fill',C.accent).attr('font-family','DM Sans').text('Transformation')
-      .attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+      .attr('opacity',1);
     // Right: Hybrid pyramid with feature crown
     const hybX=560,hybY=70;
     g.append('rect').attr('x',hybX-110).attr('y',hybY).attr('width',220).attr('height',45)
       .attr('rx',8).attr('fill',C.gold).attr('fill-opacity',.3)
       .attr('stroke',C.gold).attr('stroke-width',2)
-      .attr('opacity',0).transition().duration(400).delay(450).attr('opacity',1);
+      .attr('opacity',1);
     g.append('text').attr('x',hybX).attr('y',hybY+28).attr('text-anchor','middle')
       .attr('font-size','12').attr('font-weight','700').attr('fill',C.text)
       .attr('font-family','DM Sans').text('✨ Feature Lead / Sahnehäubchen')
-      .attr('opacity',0).transition().duration(400).delay(450).attr('opacity',1);
+      .attr('opacity',1);
     const hybLayers=[
       {label:'Hintergrund',w:180,op:.2},{label:'Kontext',w:130,op:.35},
       {label:'Details',w:80,op:.55},{label:'Lead',w:40,op:.8}
@@ -1625,20 +1601,20 @@ function drawState(idx){
       const lh=50,ly=hybY+55+i*lh,lx=hybX-l.w/2;
       g.append('rect').attr('x',lx).attr('y',ly).attr('width',l.w).attr('height',lh)
         .attr('fill',C.blue).attr('fill-opacity',l.op).attr('stroke',C.blue).attr('stroke-width',1)
-        .attr('opacity',0).transition().duration(300).delay(500+i*100).attr('opacity',1);
+        .attr('opacity',1);
       g.append('text').attr('x',hybX).attr('y',ly+30).attr('text-anchor','middle')
         .attr('font-size','10').attr('fill',i>1?'#fff':C.text).attr('font-weight','600')
         .attr('font-family','DM Sans').text(l.label)
-        .attr('opacity',0).transition().duration(300).delay(500+i*100).attr('opacity',1);
+        .attr('opacity',1);
     });
     g.append('text').attr('x',hybX).attr('y',hybY-15).attr('text-anchor','middle')
       .attr('font-size','11').attr('font-weight','600').attr('fill',C.muted)
       .attr('font-family','DM Sans').text('Hybrid')
-      .attr('opacity',0).transition().duration(400).delay(400).attr('opacity',1);
+      .attr('opacity',1);
     g.append('text').attr('x',400).attr('y',460).attr('text-anchor','middle')
       .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
       .attr('font-family','DM Sans').text('„Die Pyramide verschwindet nicht — sie transformiert sich."')
-      .attr('opacity',0).transition().duration(400).delay(900).attr('opacity',1);
+      .attr('opacity',1);
   }
   layoutGuard(svg, 1200);
 }
