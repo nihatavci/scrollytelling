@@ -870,11 +870,9 @@ let curState=-1;
 
 function drawState(idx){
   if(idx===curState)return;curState=idx;
-  // Clean crossfade: fade out old content, then draw new
-  svg.selectAll('g.state').transition().duration(500).style('opacity',0).remove();
-  const g=svg.append('g').attr('class','state').style('opacity',0);
-  // Fade in new content after a brief pause
-  setTimeout(()=>{ g.transition().duration(600).style('opacity',1); }, 100);
+  // Instant swap: remove old, draw new immediately (no fade)
+  svg.selectAll('g.state').remove();
+  const g=svg.append('g').attr('class','state');
 
   // Title/subtitle/source metadata
   const titles=[
