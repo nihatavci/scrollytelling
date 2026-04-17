@@ -519,35 +519,39 @@ window.addEventListener('DOMContentLoaded', () => {
     }, 750);
   }
 
-  // ── PHASE 4: disruption — pyramid SCATTERS ──
+  // ── PHASE 4: disruption — pyramid DIMS & SHAKES gently ──
   function phase4() {
+    // Dim the pyramid outlines
     gOver.selectAll('.cin-pyr')
-      .transition().duration(500).delay(300)
-      .attr('opacity', 0.08)
-      .attr('stroke-dasharray', '3 18');
+      .transition().duration(700).delay(200)
+      .attr('opacity', 0.12)
+      .attr('stroke-dasharray', '4 10');
+    // Dim all particle labels gently (no scatter)
     nodes.forEach((d, i) => {
-      if (i >= 18 && d.tx != null) {
-        const rowOffset = i >= 24 ? 1.8 : 1.2;
-        const angle = Math.atan2(d.ty - H/2, d.tx - W/2);
-        const dist = (50 + Math.random() * 80) * rowOffset;
-        const nx = d.tx + Math.cos(angle) * dist + (Math.random()-0.5)*40;
-        const ny = d.ty + Math.sin(angle) * dist + Math.random()*30;
-        const delay = (i - 18) * 55;
-        d3.select(nodeGrps.nodes()[i])
-          .transition().duration(800).delay(delay).ease(d3.easeCubicIn)
-          .attr('transform', `translate(${nx},${ny})`);
+      if (d.tx != null) {
+        const delay = i * 30;
         d3.select(nodeGrps.nodes()[i]).select('text')
-          .transition().duration(600).delay(delay)
-          .attr('opacity', i >= 24 ? 0.0 : 0.12);
+          .transition().duration(700).delay(delay)
+          .attr('opacity', i < 12 ? 0.3 : 0.1)
+          .attr('fill', '#8c8078');
       }
     });
-    nodes.forEach((d, i) => {
-      if (i < 18 && d.tx != null) {
-        d3.select(nodeGrps.nodes()[i]).select('text')
-          .transition().duration(800).delay(200)
-          .attr('opacity', 0.28);
-      }
-    });
+    // Gentle shake on the overlay group to convey disruption
+    const gNode = gOver.node();
+    if (gNode) {
+      const origTransform = gNode.getAttribute('transform') || '';
+      let shakeCount = 0;
+      const shakeInterval = setInterval(() => {
+        const dx = (Math.random() - 0.5) * 4;
+        const dy = (Math.random() - 0.5) * 3;
+        gNode.setAttribute('transform', origTransform + ` translate(${dx},${dy})`);
+        shakeCount++;
+        if (shakeCount > 12) {
+          clearInterval(shakeInterval);
+          gNode.setAttribute('transform', origTransform);
+        }
+      }, 60);
+    }
   }
 
   // ── PHASE 5: data — sparkline dominates ──
