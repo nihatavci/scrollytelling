@@ -1,0 +1,1675 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Die Nachricht als Jahrhunderterfindung</title>
+<meta property="og:title" content="Die Nachricht als Jahrhunderterfindung">
+<meta property="og:description" content="Das Pyramidenprinzip im deutschen Journalismus seit 1924 — eine interaktive Scrollytelling-Erfahrung.">
+<meta name="description" content="Interaktive Visualisierung: 100 Jahre Pyramidenprinzip im deutschen Journalismus. 8.500+ Artikel analysiert.">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
+:root{--bg:#faf7f2;--text:#2a2320;--muted:#8c8078;--accent:#c06830;--card:rgba(255,255,255,.93)}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+.progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#c06830,#5d8fa8);z-index:999;transition:width .2s;border-radius:0 2px 2px 0;width:0}
+
+/* ── Language Switcher ── */
+.lang-sw{position:fixed;top:1rem;right:1.5rem;z-index:999;display:flex;gap:0;border-radius:20px;overflow:hidden;border:1.5px solid rgba(42,35,32,.15);background:rgba(250,247,242,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.04em}
+.lang-sw button{padding:.4rem .9rem;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .25s ease}
+.lang-sw button.active{background:var(--accent);color:#fff;border-radius:18px}
+
+/* ── Cinematic Intro ── */
+.cin-intro{position:relative;width:100%;height:100vh;overflow:hidden;background:var(--bg);z-index:10}
+/* Brand: starts big+centered, JS flies it to top small */
+.cin-brand{position:absolute;left:0;right:0;text-align:center;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.18em;text-transform:uppercase;opacity:0;z-index:5;top:50%;transform:translateY(-50%);font-size:clamp(.85rem,2vw,1.25rem);color:var(--text);transition:top .9s cubic-bezier(.4,0,.2,1),transform .9s cubic-bezier(.4,0,.2,1),font-size .9s ease,color .9s ease,opacity .7s ease}
+.cin-brand.settled{top:1.8rem;transform:translateY(0);font-size:.72rem;color:var(--muted)}
+/* SVG fills top 58% */
+.cin-svg-wrap{position:absolute;top:0;left:0;width:100%;height:58%;z-index:1}
+.cin-svg-wrap svg{width:100%;height:100%;display:block}
+/* Text zone: vertically centered in the 58%–90% band */
+.cin-text-layer{position:absolute;left:0;right:0;top:58%;height:32%;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.cin-line{font-family:'Source Serif 4',serif;color:var(--text);opacity:0;position:absolute;text-align:center;max-width:72vw;line-height:1.55}
+.cin-l1,.cin-l2{font-size:clamp(1.3rem,2.6vw,1.75rem);font-weight:400;color:var(--muted)}
+.cin-l3{font-size:clamp(1.35rem,2.8vw,1.9rem);font-weight:600;color:var(--text)}
+.cin-l4{font-size:clamp(1.2rem,2.4vw,1.6rem);font-weight:400;color:var(--muted)}
+.cin-l5{font-size:clamp(1.3rem,2.7vw,1.85rem);font-weight:600;color:var(--text)}
+.cin-l6{font-size:clamp(1.45rem,3.2vw,2.2rem);font-weight:700;color:#3d7a4a;letter-spacing:-.01em}
+/* Title: full-screen overlay, shown last */
+.cin-title-layer{position:absolute;top:0;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 2rem;opacity:0;pointer-events:none}
+.cin-main-title{font-family:'Source Serif 4',serif;font-size:clamp(2.6rem,7vw,4.8rem);font-weight:700;color:var(--text);line-height:1.05;letter-spacing:-.03em;margin-bottom:.8rem}
+.cin-main-title span{color:var(--accent)}
+.cin-sub-title{font-family:'DM Sans',sans-serif;font-size:clamp(.9rem,1.8vw,1.15rem);color:var(--muted);font-weight:400}
+/* Scroll cue: pinned bottom, JS controls opacity */
+.cin-scroll-cue{position:absolute;bottom:2rem;left:0;right:0;text-align:center;z-index:6;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.78rem;display:flex;flex-direction:column;align-items:center;gap:.5rem;opacity:0}
+.cin-scroll-cue .arr{width:16px;height:16px;border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(45deg);animation:bob 2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:rotate(45deg) translateY(0)}50%{transform:rotate(45deg) translateY(6px)}}
+
+/* ── Editorial ── */
+.editorial{max-width:720px;margin:0 auto;padding:2.5rem 2rem 3rem;position:relative;z-index:3;background:var(--bg)}
+.editorial p{font-family:'Source Serif 4',serif;font-size:1.15rem;line-height:1.85;color:var(--text);margin-bottom:1.5rem}
+.editorial .lead{font-size:1.3rem;font-weight:400;line-height:1.7}
+.editorial h2{font-family:'Source Serif 4',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;margin-bottom:1.2rem;letter-spacing:-.02em;line-height:1.2}
+.editorial .kicker{font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.6rem}
+.pullquote{border-left:3px solid var(--accent);padding:.5rem 0 .5rem 1.5rem;margin:2rem 0;font-family:'Source Serif 4',serif;font-size:1.2rem;font-weight:600;font-style:italic;color:var(--text);line-height:1.6}
+.pullquote cite{display:block;font-size:.85rem;font-weight:400;font-style:normal;color:var(--muted);margin-top:.5rem}
+.editorial figure{margin:2.5rem 0;width:100%}
+.editorial figure img{width:100%;height:auto;border-radius:6px;display:block}
+.editorial figcaption{font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);margin-top:.6rem;font-style:italic}
+.editorial .separator{width:60px;height:3px;background:var(--accent);margin:3rem auto;border-radius:2px}
+
+/* ── Scrollytelling ── */
+.scrolly{position:relative;margin:0 auto}
+.scrolly__graphic{position:sticky;top:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:1}
+#chart-content{width:calc(100% - 350px);max-width:1200px}
+.viz-header{width:100%;margin-bottom:.5rem;padding-left:.5rem}
+.viz-title{font-family:'Source Serif 4',serif;font-size:1.7rem;font-weight:700;line-height:1.25;transition:all .45s}
+.viz-sub{font-size:.85rem;color:var(--muted);margin-top:.15rem;transition:all .45s}
+.viz-source{width:100%;font-size:.62rem;color:var(--muted);opacity:.4;margin-top:.4rem;padding-left:.5rem}
+.viz-wrap{width:100%}
+.viz-wrap svg{display:block;width:100%;height:auto;max-height:70vh}
+
+/* Fixed visualization panel - appears above scrolly sections */
+.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:5;pointer-events:none;opacity:0;transition:opacity .5s ease;background:var(--bg)}
+.viz-panel.is-visible{opacity:1;pointer-events:auto}
+
+.scrolly__steps{position:relative;z-index:10;width:320px;margin-left:auto;margin-right:1.5vw;pointer-events:none}
+.step{min-height:85vh;display:flex;align-items:center;padding:2rem 0;pointer-events:auto}
+.step:first-child{padding-top:38vh}.step:last-child{margin-bottom:20vh}
+.sc{background:var(--card);border-radius:16px;padding:1.1rem 1.4rem 1.2rem;border:none;transition:all .5s cubic-bezier(.23,1,.32,1);opacity:.06;transform:translateY(12px);max-width:320px;box-shadow:0 4px 28px rgba(0,0,0,.10);text-align:center}
+.step.is-active .sc{opacity:1;transform:translateY(0);background:rgba(255,255,255,.96);box-shadow:0 6px 32px rgba(0,0,0,.13)}
+.badge{display:inline-block;font-size:.52rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:.1rem .45rem;border-radius:20px;margin-bottom:.4rem;opacity:.75}
+.b-pyramid{background:#fde8d8;color:#c06830}
+.b-data{background:#d6e8f0;color:#3d7a94}
+.b-explain{background:#e8ddf5;color:#7a5a90}
+.b-future{background:#e3f0e3;color:#3d7a4a}
+.b-voice{background:#f0e3f0;color:#7a3d7a}
+.sc h3{font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:400;line-height:1.55;color:var(--text);margin:0}
+
+/* ── Outro ── */
+.outro{max-width:720px;margin:0 auto;padding:3rem 2rem 6rem;font-family:'Source Serif 4',serif;position:relative;z-index:3;background:var(--bg)}
+.outro h2{font-size:1.6rem;font-weight:700;margin-bottom:1rem;letter-spacing:-.02em;line-height:1.25}
+.outro p{font-size:1.1rem;line-height:1.8;color:var(--text);margin-bottom:1.2rem}
+.outro .final-line{font-size:1.25rem;font-weight:600;color:var(--accent);font-style:italic;margin-top:2rem;line-height:1.6}
+.outro .source-block{margin-top:3rem;padding-top:2rem;border-top:1px solid #e6e1da;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);line-height:1.6}
+
+/* ── Mobile ── */
+@media(max-width:900px){
+  .cin-main-title{font-size:clamp(1.8rem,8vw,2.8rem)}
+  .cin-svg-wrap{height:50%}
+  .cin-text-layer{top:50%;height:38%}
+  .cin-line{max-width:90vw}
+  .editorial{padding:2.5rem 1.25rem}
+  .editorial p{font-size:1.02rem;line-height:1.75}
+  .editorial h2{font-size:1.4rem}
+  .pullquote{font-size:1.05rem}
+  .scrolly__graphic{height:100vh;padding:.5rem .75rem .4rem;justify-content:flex-start;align-items:flex-start}
+  #chart-content{width:100%;max-width:100%}
+  .viz-header{margin-bottom:.1rem;width:100%}
+  .viz-title{font-size:.88rem;line-height:1.2}
+  .viz-sub{font-size:.65rem}
+  .viz-wrap svg{height:100vw;max-height:68vh}
+  .scrolly__steps{width:100%;margin-left:0;margin-right:0;padding:0;pointer-events:none}
+  .step{min-height:85vh;padding:0;align-items:flex-end;padding-bottom:2rem;pointer-events:none}
+  .step:first-child{min-height:85vh}
+  .step:last-child{margin-bottom:20vh}
+  .sc{max-width:calc(100% - 2rem);width:calc(100% - 2rem);margin:0 1rem;padding:.85rem 1.2rem 1rem;border-radius:14px;pointer-events:auto}
+  .sc h3{font-size:.88rem}
+  .badge{font-size:.48rem}
+  .outro{padding:3rem 1.25rem 5rem}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="prog"></div>
+<div class="lang-sw"><button class="active" data-lang="de">DE</button><button data-lang="en">EN</button></div>
+
+<!-- ════════════════════ CINEMATIC INTRO ════════════════════ -->
+<section class="cin-intro" id="cin-intro">
+  <div class="cin-brand" id="cin-brand">Thomas Birkner präsentiert</div>
+  <div class="cin-svg-wrap"><svg id="cin-svg"></svg></div>
+  <div class="cin-text-layer" id="cin-text-layer">
+    <div class="cin-line cin-l1">1605: die Zeitung. 1870: die Idee. Das Wichtigste kommt zuerst.</div>
+    <div class="cin-line cin-l2">Wer. Was. Wann. Wo. — Nicht die Mächtigen entscheiden. Journalist:innen.</div>
+    <div class="cin-line cin-l3">NS-Diktatur. Zweiter Weltkrieg. DDR. Die Pyramide: unerschüttert.</div>
+    <div class="cin-line cin-l4">Dann brach das Finanzierungsmodell. Dann kam der Algorithmus.</div>
+    <div class="cin-line cin-l5">8.527 Artikel. 100 Jahre. 15 Journalist:innen. Drei Generationen.</div>
+    <div class="cin-line cin-l6">Die Pyramide stirbt nicht. Sie verwandelt sich.</div>
+  </div>
+  <div class="cin-title-layer" id="cin-title-layer">
+    <h1 class="cin-main-title">Die Nachricht als<br><span>Jahrhunderterfindung</span></h1>
+    <p class="cin-sub-title">Das Pyramidenprinzip im deutschen Journalismus seit 1924</p>
+  </div>
+  <div class="cin-scroll-cue" id="cin-cue">
+    <span>Nach unten scrollen</span>
+    <div class="arr"></div>
+  </div>
+</section>
+
+<!-- ════════════════════ SHARED VISUALIZATION PANEL ════════════════════ -->
+<div class="viz-panel" id="viz-panel">
+  <div id="chart-content">
+    <div class="viz-header">
+      <div class="viz-title" id="viz-title">Die umgekehrte Pyramide</div>
+      <div class="viz-sub" id="viz-sub">nach Marinos (2021, S. 10)</div>
+    </div>
+    <div class="viz-wrap"><svg id="viz" viewBox="0 0 800 520"></svg></div>
+    <div class="viz-source" id="viz-source"></div>
+  </div>
+</div>
+
+<!-- ════════════════════ EDITORIAL: INTRO ════════════════════ -->
+<section class="editorial">
+  <div class="kicker">Erster Akt · Die Erfindung</div>
+  <h2>Das Wichtigste steht am Anfang</h2>
+  <p class="lead">Es gibt zwei Arten, die Dinge zu erzählen: Von Anfang bis Ende oder direkt vom Ende her. Die kurze Textmessage an die beste Freundin wird ganz sicher lauten: „Wir haben uns geküsst!" Das ist die zentrale Botschaft. Und so funktioniert auch die journalistische Nachricht.</p>
+  <p>Sie stellt die wichtigste Information ganz nach vorne, in den „summary lead". Diese Form entstand Ende des 19. Jahrhunderts im US-amerikanischen Journalismus. Als Erklärung dienten zunächst die unsicheren Telegrafenleitungen — das Wichtigste gleich zu Beginn, falls die Leitung zusammenbrach.</p>
+  <div style="display:flex;justify-content:center;margin:2rem 0;">
+    <div style="max-width:320px;background:#fff;border-radius:18px;padding:0;overflow:hidden;box-shadow:0 4px 24px rgba(0,0,0,.10);">
+      <div style="background:#075E54;padding:.6rem 1rem;display:flex;align-items:center;gap:.6rem;">
+        <div style="width:32px;height:32px;border-radius:50%;background:#25D366;display:flex;align-items:center;justify-content:center;font-size:14px;color:#fff;font-weight:700;">B</div>
+        <span style="color:#fff;font-size:.88rem;font-weight:600;font-family:'DM Sans',sans-serif;">Beste Freundin</span>
+      </div>
+      <div style="padding:.75rem 1rem 1rem;background:#ECE5DD;">
+        <div style="background:#fff;border-radius:12px 12px 12px 2px;padding:.6rem .85rem;display:inline-block;max-width:85%;box-shadow:0 1px 2px rgba(0,0,0,.12);">
+          <img src="images/Wir haben uns geküsst.jpg" alt="WhatsApp Nachricht" style="width:100%;border-radius:8px;display:block;margin-bottom:.4rem;" onerror="this.style.display='none'">
+          <p style="margin:0;font-size:.92rem;font-family:'DM Sans',sans-serif;color:#303030;">Wir haben uns geküsst! 😍</p>
+          <p style="margin:.25rem 0 0;font-size:.7rem;color:#667781;text-align:right;font-family:'DM Sans',sans-serif;">22:47 ✓✓</p>
+        </div>
+      </div>
+    </div>
+  </div>
+  <p style="text-align:center;font-size:.82rem;color:var(--muted);font-family:'DM Sans',sans-serif;margin-top:-.5rem;margin-bottom:1.5rem;font-style:italic;">Das Wichtigste zuerst: Der „Summary Lead" funktioniert auch im Chat.</p>
+  <div class="pullquote">
+    "The summary lead was a literary invention that asserted the journalist's authority to define for readers the most important element of a news event."
+    <cite>— Michael Schudson, 1991</cite>
+  </div>
+  <p>Mit dieser Erfindung war es die Aufgabe des Journalismus, zu entscheiden, was das Wichtigste sei. Nicht mehr die Mächtigen erklären, was wichtig ist, sondern Journalist:innen übernehmen dies für die Bürger:innen. Eine demokratische Idee in ihrer besten Form.</p>
+  <figure style="display:flex;gap:1.5rem;margin:2rem 0;align-items:flex-start;flex-wrap:wrap;">
+    <div style="flex:1;min-width:140px;">
+      <img src="images/Lucky1.png" alt="Lucky Luke Telegraf" style="width:100%;border-radius:8px;">
+    </div>
+    <div style="flex:1;min-width:140px;">
+      <img src="images/Lucky2.jpg" alt="Lucky Luke Telegraf 2" style="width:100%;border-radius:8px;">
+    </div>
+  </figure>
+  <p style="font-size:.85rem;color:var(--muted);font-style:italic;margin-top:-.8rem;margin-bottom:1.5rem;">Lucky Luke am Telegraf: Im Amerikanischen Bürgerkrieg entstand unter dem Druck unsicherer Leitungen das Prinzip „Das Wichtigste zuerst".</p>
+  <figure style="margin:2rem 0;">
+    <img src="images/FAZ.png" alt="FAZ Weltmeister" style="max-width:100%;border-radius:8px;">
+    <figcaption style="font-size:.85rem;color:var(--muted);margin-top:.6rem;font-style:italic;">FAZ, 13. Juli 2014: „Deutschland ist Weltmeister!" — Die Schlagzeile beantwortet alle W-Fragen in vier Worten.</figcaption>
+  </figure>
+  <figure style="display:flex;gap:1.5rem;margin:2rem 0;align-items:flex-start;flex-wrap:wrap;">
+    <div style="flex:1;min-width:120px;">
+      <img src="images/Buch Warren 1934/Warren Cover.jpg" alt="Warren 1934 Buchcover" style="width:100%;border-radius:8px;">
+    </div>
+    <div style="flex:2;min-width:180px;">
+      <img src="images/Buch Warren 1934/Elements Warren.png" alt="Warren Elemente" style="width:100%;border-radius:8px;">
+    </div>
+  </figure>
+  <p style="font-size:.85rem;color:var(--muted);font-style:italic;margin-top:-.8rem;margin-bottom:1.5rem;">Carl N. Warrens Standardwerk (1934) — das erste deutschsprachige Lehrbuch, das das Pyramidenprinzip systematisch vermittelte.</p>
+  <div class="separator"></div>
+</section>
+
+<!-- ════════════════════ SCROLLY BLOCK 1: Pyramid Forms ════════════════════ -->
+<section class="scrolly" id="scrolly-1">
+  <div class="scrolly__steps" id="steps-1">
+    <div class="step" data-step="0"><div class="sc"><div class="badge b-pyramid">Pyramide</div><h3>Eine Form erfindet die demokratische Öffentlichkeit: Journalist:innen — nicht Mächtige — bestimmen, was das Wichtigste ist. Diese Entscheidung trägt eine Struktur: die umgekehrte Pyramide.</h3></div></div>
+    <div class="step" data-step="1"><div class="sc"><div class="badge b-pyramid">Summary Lead</div><h3>„Deutschland ist Weltmeister." — FAZ, 13. Juli 2014. Vier Wörter, vier W-Fragen beantwortet. Der Summary Lead in seiner reinsten Form: kein Spannungsbogen, kein Vorenthalten — das Ergebnis zuerst.</h3></div></div>
+    <div class="step" data-step="2"><div class="sc"><div class="badge b-future">Umgelegte Pyramide</div><h3>Canavilhas (2006) dreht die Logik um: statt von wichtig nach unwichtig — von innen nach außen. Schicht 1: das nackte Was. Schicht 4: voller Kontext. Nutzer:innen wählen ihre eigene Tiefe.</h3></div></div>
+    <div class="step" data-step="3"><div class="sc"><div class="badge b-future">Rubik-Würfel</div><h3>Trillo-Domínguez (2017) radikalisiert das: Die Nachricht hat keinen Anfang. Je nach Einstieg — Wer, Was, Wo — entsteht eine andere Geschichte aus denselben Fakten.</h3></div></div>
+  </div>
+</section>
+
+<!-- ════════════════════ EDITORIAL: STABILITY ════════════════════ -->
+<section class="editorial">
+  <div class="kicker">Zweiter Akt · Die Stabilität</div>
+  <h2>Ein Jahrhundert der Kontinuität</h2>
+  <p>Die amerikanischen Journalismusforscher Kevin Barnhurst und John Nerone haben beobachtet, dass „the capacity to change news design had been available for quite some time, but journalists considered the existing form of news fully functional." Es hat also keinen Anlass für Veränderungen gegeben — bis ins Zeitalter der Digitalisierung.</p>
+  <p>Unsere Forschung hat über 8.500 Artikel aus den wichtigsten deutschen Zeitungen über 100 Jahre analysiert — von der Weimarer Republik über den Nationalsozialismus, die Teilung Deutschlands bis zur Wiedervereinigung und Digitalisierung. Das Ergebnis: Das Pyramidenprinzip lag zumeist über 40 Prozent.</p>
+  <div class="pullquote">
+    "It is the 'inverted triangle', with all the essential information squat at the top, and the less relevant stuff dribbling down towards the end-point."
+    <cite>— Andrew Marr, My Trade, 2005</cite>
+  </div>
+  <p>Und es waren nicht etwa die Nationalsozialisten oder die DDR-Führung, welche den Journalismus deformierten — es sind die mit der Digitalisierung einhergehenden Veränderungen, die das Pyramidenprinzip herausfordern.</p>
+  <figure style="display:flex;gap:1.5rem;margin:2rem 0;align-items:flex-start;flex-wrap:wrap;">
+    <div style="flex:1;min-width:200px;">
+      <img src="images/awawinvoiceforwebsitedesigndevelopmentscrolli/Berliner Zeitung1.png" alt="Berliner Zeitung Beispiel 1" style="width:100%;border-radius:8px;">
+    </div>
+    <div style="flex:1;min-width:200px;">
+      <img src="images/awawinvoiceforwebsitedesigndevelopmentscrolli/Berliner Zeitung2.png" alt="Berliner Zeitung Beispiel 2" style="width:100%;border-radius:8px;">
+    </div>
+  </figure>
+  <p style="font-size:.85rem;color:var(--muted);font-style:italic;margin-top:-.8rem;margin-bottom:1.5rem;">Berliner Zeitung 1924 und heute: Das Pyramidenprinzip ist in beiden Epochen erkennbar — W-Fragen-Lead, abnehmende Wichtigkeit der Absätze.</p>
+  <div class="separator"></div>
+</section>
+
+<!-- ════════════════════ SCROLLY BLOCK 2: Research Data ════════════════════ -->
+<section class="scrolly" id="scrolly-2">
+  <div class="scrolly__steps" id="steps-2">
+    <div class="step" data-step="4"><div class="sc"><div class="badge b-data">Korpus</div><h3>FAZ, SZ, Kölner Stadt-Anzeiger, Neues Deutschland, Münsterländische Volkszeitung. Manche seit 1924, manche nach 1945 gegründet, manche verschwunden. 8.527 Artikel. 100 Jahre.</h3></div></div>
+    <div class="step" data-step="5"><div class="sc"><div class="badge b-data">NLP-Methode</div><h3>Wie erkennt eine Maschine den Summary Lead? Named Entity Recognition sucht das WER. POS-Tagging findet das WAS. Temporal Extraction das WANN. Mindestens 3 von 4 in den ersten 300 Zeichen — Pyramide erkannt.</h3></div></div>
+    <div class="step" data-step="6"><div class="sc"><div class="badge b-data">Die Überraschung</div><h3>NS-Propaganda-Apparat, DDR-Parteipresse — beide haben die Pyramide nicht gebrochen. 40–50% über Jahrzehnte. Erst nach 2004 sinkt der Wert auf 30–35%. Nicht die Diktatur. Der Newsfeed.</h3></div></div>
+  </div>
+</section>
+
+<!-- ════════════════════ EDITORIAL: CHANGE ════════════════════ -->
+<section class="editorial">
+  <div class="kicker">Dritter Akt · Der Wandel</div>
+  <h2>Das Internet und das Geschäftsmodell</h2>
+  <p>Die Stabilität der Pyramide war auch eng verbunden mit dem Finanzierungsmodell: zwei Drittel Anzeigenerlöse, ein Drittel Verkaufserlöse. Vereinfacht gesagt, finanzierte in den 1980er Jahren eine Anzeige für Wodka Gorbatschow die Berichterstattung über Michail Gorbatschow.</p>
+  <p>Als das Internet kam, wanderte ein erheblicher Teil des gesamten Anzeigenvolumens ins Netz. Nachrichten waren lange völlig kostenlos verfügbar. Die Verlage suchen nach wie vor nach Refinanzierungsmodellen: Paywalls, Freemium, Metered-Modelle.</p>
+  <div class="pullquote">
+    "Der kurze Anreißer-Text auf der Startseite einer Homepage fungiert als Einstieg in einen ausführlichen Beitrag. Dabei darf der Teaser die Quintessenz noch nicht vorwegnehmen."
+    <cite>— Kerstin Liesem, 2015</cite>
+  </div>
+  <p>Neue Formen des Storytellings und neue Bezahlmodelle erklären, warum das Beantworten der W-Fragen am Beginn abnimmt. Clickbait, SEO-Optimierung und die Ökonomie der Aufmerksamkeit verändern das Nachrichtenschreiben fundamental.</p>
+  <div class="separator"></div>
+</section>
+
+<!-- ════════════════════ SCROLLY BLOCK 3: Explanation ════════════════════ -->
+<section class="scrolly" id="scrolly-3">
+  <div class="scrolly__steps" id="steps-3">
+    <div class="step" data-step="7"><div class="sc"><div class="badge b-explain">Finanzierung</div><h3>Die Mischfinanzierung aus Verkaufs- und Anzeigenerlösen funktionierte bis ins neue Jahrtausend — etwa ⅓ Verkauf, ⅔ Anzeigen. Dann kam das Internet.</h3></div></div>
+    <div class="step" data-step="8"><div class="sc"><div class="badge b-explain">Darstellungsformen</div><h3>Nicht alle Texte folgen der Pyramide. Weischenberg unterscheidet: Nachrichten-Formen (Meldung, Bericht), Meinungs-Formen (Kommentar, Glosse) und Unterhaltungs-Formen (Reportage, Feature).</h3></div></div>
+    <div class="step" data-step="9"><div class="sc"><div class="badge b-explain">Vier Dimensionen</div><h3>Klaus Meier beschreibt vier Dimensionen journalistischer Wahrnehmung: Darstellungsformen, Ressorts, Medienplattformen und Berichterstattungsmuster — sie konstruieren gemeinsam die Medienrealität.</h3></div></div>
+  </div>
+</section>
+
+<!-- ════════════════════ EDITORIAL: VOICES ════════════════════ -->
+<section class="editorial">
+  <div class="kicker">Vierter Akt · Die Vielfalt</div>
+  <h2>Nachrichtenwerte und neue Erzählformen</h2>
+  <p>Nicht alle Ereignisse werden zu Nachrichten. Was als berichtenswert gilt, beschrieben Galtung und Ruge 1965 in ihren zwölf <em>Nachrichtenfaktoren</em>. Doch Walter Lippmann warnte schon 1922: Nachrichten und Wahrheit sind nicht dasselbe. Die Medien konstruieren Realität — und das Internet verändert die Regeln der Konstruktion fundamental.</p>
+  <figure style="display:flex;gap:2rem;margin:2rem 0;align-items:center;flex-wrap:wrap;">
+    <img src="images/Gorbatschow1.jpg" alt="Wodka Gorbatschow Werbung" style="flex:1;max-width:250px;border-radius:8px;">
+    <img src="images/Gorbatschow2.jpg" alt="Spiegel Titel Gorbatschow" style="flex:1;max-width:250px;border-radius:8px;">
+  </figure>
+  <p style="font-size:.9rem;color:var(--muted);margin-top:-.5rem;">Links: Werbung für Wodka Gorbatschow. Rechts: SPIEGEL-Titel 1985. Die Anzeige finanzierte die Berichterstattung.</p>
+  <p>Canavilhas schlug 2006 vor, die Pyramide umzulegen — vom linearen Text zum vernetzten Hypertext. Trillo-Domínguez geht noch weiter: Die Nachricht wird zum multidimensionalen <em>Rubik-Würfel</em>, in dem Nutzer:innen selbst entscheiden, welchen Pfad sie durch die Information nehmen.</p>
+  <div class="pullquote">
+    "News and truth are not the same thing, and must be clearly distinguished."
+    <cite>— Walter Lippmann, 1922</cite>
+  </div>
+  <div class="separator"></div>
+</section>
+
+<!-- ════════════════════ SCROLLY BLOCK 4: News Values & New Forms ════════════════════ -->
+<section class="scrolly" id="scrolly-4">
+  <div class="scrolly__steps" id="steps-4">
+    <div class="step" data-step="10"><div class="sc"><div class="badge b-future">Nachrichtenwerte</div><h3>Galtung & Ruge identifizierten 12 Faktoren, die bestimmen, ob ein Ereignis zur Nachricht wird — von Frequenz über Eindeutigkeit bis Negativismus.</h3></div></div>
+    <div class="step" data-step="11"><div class="sc"><div class="badge b-future">Bezahlmodelle</div><h3>Die Verlage suchen nach Refinanzierung: Harte Paywall, Freemium, Metered — und Clickbaiting als Gegenteil der Pyramide verändert den Nachrichtenaufbau.</h3></div></div>
+    <div class="step" data-step="12"><div class="sc"><div class="badge b-future">Neue Formen</div><h3>Canavilhas legt die Pyramide um — zum Hypertext. Trillo-Domínguez geht weiter: Die Nachricht wird zum multidimensionalen Rubik-Würfel.</h3></div></div>
+  </div>
+</section>
+
+<!-- ════════════════════ EDITORIAL: INTERVIEWS ════════════════════ -->
+<section class="editorial">
+  <div class="kicker">Fünfter Akt · Die Stimmen</div>
+  <h2>Drei Generationen, 15 Stimmen</h2>
+  <p>Um zu verstehen, wie Journalist:innen die Pyramide tatsächlich nutzen, wurden 15 Journalist:innen aus drei Generationskohorten befragt. Von Pensionär:innen, die noch mit der Schreibmaschine anfingen, über mittelalte Journalist:innen, die die digitale Transformation erlebten, bis zu jungen Redakteur:innen, für die Social Media Normalität ist.</p>
+  <div class="pullquote">
+    "Redaktionen messen, mit welchen Beiträgen sie besonders viele Klicks generieren, wie lange die Personen am Ball bleiben, an welchem Punkt im Beitrag sie aussteigen."
+    <cite>— Meier et al., 2024</cite>
+  </div>
+  <figure style="margin:2rem 0;">
+    <img src="images/Nackt.jpg" alt="John Cena Oscar" style="max-width:100%;border-radius:8px;">
+    <figcaption style="font-size:.9rem;color:var(--muted);margin-top:.8rem;">Nachrichtenfaktor „Nähe": John Cena überreicht den Oscar nackt — Der Spiegel betont: „in Birkenstocks." Es gibt immer einen lokalen Blickwinkel.</figcaption>
+  </figure>
+  <p>Marinos spricht davon, Meldungen „anzufeaturen" — der Pyramide ein Sahnehäubchen aufzusetzen. Die Form wird flexibler, aber das Prinzip bleibt.</p>
+  <div class="separator"></div>
+</section>
+
+<!-- ════════════════════ SCROLLY BLOCK 5: Interviews & Synthesis ════════════════════ -->
+<section class="scrolly" id="scrolly-5">
+  <div class="scrolly__steps" id="steps-5">
+    <div class="step" data-step="13"><div class="sc"><div class="badge b-voice">Drei Generationen</div><h3>Eine 81-Jährige, die mit der Schreibmaschine begann. Ein 25-Jähriger, dem Social Media normal ist. 13 weitere dazwischen. Alle gefragt: Brauchen Sie noch die Pyramide?</h3></div></div>
+    <div class="step" data-step="14"><div class="sc"><div class="badge b-voice">Kern des Berufs</div><h3>Die Antwort war generationsübergreifend: Alle 15 kennen und verwenden die Pyramide. Aber jüngere Journalist:innen „featuren an" — sie setzen einen erzählerischen Vorspann, bevor die Pyramide beginnt.</h3></div></div>
+    <div class="step" data-step="15"><div class="sc"><div class="badge b-voice">Jahrhundertform</div><h3>Die Pyramide verschwindet nicht. Sie passt sich an. Vielleicht ist sie nicht die Form des 20. Jahrhunderts — vielleicht ist sie die Form des Journalismus schlechthin. Solange Demokratie Information braucht.</h3></div></div>
+  </div>
+</section>
+
+<!-- ════════════════════ OUTRO ════════════════════ -->
+<section class="outro">
+  <h2>Die Pyramide transformiert sich</h2>
+  <p>Der Rückgang des Pyramidenprinzips von etwa 40–50 % auf 30–35 % ist kein Verschwinden, sondern eine Transformation. Neue Erzählformen und neue Geschäftsmodelle erklären den Wandel. Doch paradoxerweise profitiert die Pyramide auch vom Internet: Google liest Überschriften nur bis zum 60. Zeichen (Liesem, 2015). Die klare Struktur — die wichtigsten Informationen zuerst — bleibt eine SEO-freundliche Praktik.</p>
+  <p>Noch wichtiger: Die demokratische Funktion der Pyramide ist ungebrochen. In einer Welt von Überfülle und Desinformation braucht es Journalist:innen, die das Wesentliche herausfiltern, strukturiert darstellen und damit Bürger:innen befähigen, informierte Entscheidungen zu treffen.</p>
+  <p>„Der Journalismus, dessen Kerntextsorte die Nachricht ist, wird weiterhin für diese Form der Informationsübermittlung von der Gesellschaft benötigt — sich zugleich aber stets weiterentwickeln muss." (Weischenberg, 2001)</p>
+  <div class="final-line">Das Wichtigste zuerst — dieser Grundsatz bleibt.</div>
+  <div class="source-block">
+    <strong>Quellen:</strong> Schudson 1991 · Pöttker 2003, 2005 · Birkner 2012, 2016 · Canavilhas 2006 · Trillo-Domínguez & Alberich-Pascual 2017 · Meier 2018 · Marinos 2021 · Marr 2005 · Liesem 2015 · Weischenberg 2001 · Reumann 1968 · Warren 1934 · Galtung & Ruge 1965 · Barnhurst & Nerone 2001 · Neuberger 2025 · Lippmann 1922 · Galtung & Ruge 1965<br><br>
+    <strong>Daten:</strong> 8.500+ Artikel aus FAZ, SZ, Kölner Stadt-Anzeiger, Grafschafter Nachrichten, Münsterländische Volkszeitung, Neues Deutschland, FAZ.net, SZ.de, KStA.de, Welt.de · Analysezeitraum: 1924–2024
+  </div>
+</section>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CINEMATIC INTRO — W-question particles form inverted pyramid
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  const W = window.innerWidth;
+  const H = window.innerHeight * 0.58;
+  const svg = d3.select('#cin-svg').attr('viewBox', `0 0 ${W} ${H}`);
+
+  // ── Particle definitions (30 total = pyramid positions) ──
+  const particleData = [
+    // W-questions (6) — orange, prominent
+    {text:'WER?',  cat:'w', sz:1.45},{text:'WAS?',  cat:'w', sz:1.45},
+    {text:'WANN?', cat:'w', sz:1.25},{text:'WO?',   cat:'w', sz:1.45},
+    {text:'WARUM?',cat:'w', sz:1.15},{text:'WIE?',  cat:'w', sz:1.45},
+    // Historical years (8) — muted gray
+    {text:'1605',cat:'yr',sz:.95},{text:'1848',cat:'yr',sz:.88},
+    {text:'1924',cat:'yr',sz:1.1},{text:'1933',cat:'yr',sz:1.1},
+    {text:'1945',cat:'yr',sz:.98},{text:'1968',cat:'yr',sz:.88},
+    {text:'1989',cat:'yr',sz:.98},{text:'2000',cat:'yr',sz:.98},
+    // Journalism concepts (10) — blue
+    {text:'Meldung',cat:'t',sz:.88},{text:'Bericht',cat:'t',sz:.88},
+    {text:'Lead',   cat:'t',sz:.98},{text:'Fakt',   cat:'t',sz:.88},
+    {text:'Quelle', cat:'t',sz:.82},{text:'Print',  cat:'t',sz:.82},
+    {text:'Online', cat:'t',sz:.88},{text:'SEO',    cat:'t',sz:.88},
+    {text:'TikTok', cat:'t',sz:.88},{text:'Klick',  cat:'t',sz:.88},
+    // Data/digital (6) — green, bottom of pyramid → will dissolve
+    {text:'+8.500',cat:'data',sz:1.08},{text:'100J.',cat:'data',sz:1.08},
+    {text:'40%',   cat:'data',sz:.98}, {text:'30%',  cat:'data',sz:.98},
+    {text:'NLP',   cat:'data',sz:.88}, {text:'2024', cat:'data',sz:1.08}
+  ];
+
+  const catColor = {w:'#c06830', yr:'#8c8078', t:'#5B9BBF', data:'#5BA87A'};
+  const BASE_FS = Math.max(11, Math.min(W * 0.019, 21));
+
+  const nodes = particleData.map(d => ({
+    ...d,
+    x: W * 0.12 + Math.random() * W * 0.76,
+    y: H * 0.1  + Math.random() * H * 0.8,
+    tx: null, ty: null
+  }));
+
+  // ── SVG groups ──
+  const gNodes = svg.append('g');
+  const gOver  = svg.append('g');
+
+  const nodeGrps = gNodes.selectAll('g').data(nodes).join('g')
+    .attr('transform', d => `translate(${d.x},${d.y})`);
+
+  nodeGrps.append('text')
+    .attr('text-anchor','middle').attr('dominant-baseline','central')
+    .attr('font-family', d => d.cat==='w' ? "'Source Serif 4',serif" : "'DM Sans',sans-serif")
+    .attr('font-size',   d => `${BASE_FS * d.sz * 0.35}px`)
+    .attr('font-weight', d => d.cat==='w' ? '700' : '500')
+    .attr('fill', d => catColor[d.cat])
+    .attr('opacity', 0)
+    .style('paint-order','stroke')
+    .style('stroke','rgba(250,247,242,0.9)').style('stroke-width','3px')
+    .text(d => d.text);
+
+  // ── Force simulation ──
+  const sim = d3.forceSimulation(nodes).alphaDecay(0.025).velocityDecay(0.38).stop();
+  sim.on('tick', () => nodeGrps.attr('transform', d => `translate(${d.x},${d.y})`));
+
+  // ── Inverted pyramid positions (10-8-6-4-2 = 30 nodes) ──
+  function calcPyrPos() {
+    const rows = [10,8,6,4,2];
+    const colGap = Math.min(W * 0.074, 72);
+    const rowGap = H * 0.11;
+    const topY = H * 0.22;
+    const pos = [];
+    rows.forEach((count, ri) => {
+      const rowW = (count-1) * colGap;
+      const x0 = W/2 - rowW/2;
+      for (let ci=0; ci<count; ci++) pos.push({x: x0+ci*colGap, y: topY+ri*rowGap});
+    });
+    return pos; // 30 items
+  }
+
+  // ── PHASE 0: gentle float, no pyramid visible yet ──
+  function phase0() {
+    nodeGrps.select('text')
+      .transition().duration(900)
+      .attr('opacity', d => d.cat==='w' ? 0.45 : (d.cat==='yr' ? 0.18 : 0.0))
+      .attr('font-size', d => `${BASE_FS * d.sz * 0.48}px`);
+    sim.force('x', d3.forceX(W/2).strength(0.014))
+       .force('y', d3.forceY(H/2).strength(0.014))
+       .force('collide', d3.forceCollide(d => BASE_FS*d.sz*0.5+6).strength(0.55))
+       .force('charge', d3.forceManyBody().strength(-10))
+       .alpha(0.5).restart();
+  }
+
+  // ── PHASE 1: origin story — telegraph wires cross the screen, year nodes pulse bright ──
+  function phase1() {
+    [H*0.20, H*0.50, H*0.76].forEach((y,i) => {
+      gOver.append('line').attr('class','cin-wire')
+        .attr('x1',-20).attr('y1',y).attr('x2',-20).attr('y2',y)
+        .attr('stroke','#8c8078').attr('stroke-width',0.7)
+        .attr('stroke-dasharray','14 10').attr('opacity',0.28)
+        .transition().duration(700).delay(i*200).attr('x2',W+20);
+    });
+    nodeGrps.filter(d => d.cat==='yr').select('text')
+      .transition().duration(800)
+      .attr('opacity', 0.72).attr('font-size', d => `${BASE_FS*d.sz*0.70}px`);
+    nodeGrps.filter(d => d.cat==='t' || d.cat==='data').select('text')
+      .transition().duration(500).attr('opacity', 0.0);
+    sim.force('x', d3.forceX(W/2).strength(0.02))
+       .force('y', d3.forceY(H/2).strength(0.02))
+       .alpha(0.35).restart();
+  }
+
+  // ── PHASE 2: W-questions snap to a horizontal row ──
+  function phase2() {
+    gOver.selectAll('.cin-wire').transition().duration(400).attr('opacity',0).remove();
+    sim.stop();
+    const wNodes = nodes.filter(d => d.cat==='w');
+    const wCount = wNodes.length;
+    const wSpacing = Math.min(W * 0.15, 130);
+    const wTotalW = (wCount - 1) * wSpacing;
+    wNodes.forEach((d, i) => {
+      d.tx = W/2 - wTotalW/2 + i * wSpacing;
+      d.ty = H * 0.42;
+    });
+    nodeGrps.filter(d => d.cat==='w')
+      .transition().duration(1000).ease(d3.easeCubicInOut)
+      .attr('transform', d => `translate(${d.tx},${d.ty})`);
+    nodeGrps.filter(d => d.cat==='w').select('text')
+      .transition().duration(1000)
+      .attr('font-size', d => `${BASE_FS*d.sz*1.05}px`)
+      .attr('opacity', 0.90);
+    nodeGrps.filter(d => d.cat!=='w').select('text')
+      .transition().duration(550).attr('opacity', 0.0);
+  }
+
+  // ── PHASE 3: pyramid ASSEMBLES dramatically — the REVEAL ──
+  function phase3() {
+    sim.stop();
+    const pyrPos = calcPyrPos();
+    nodes.forEach((d,i) => { const p=pyrPos[i]; if(p){d.tx=p.x; d.ty=p.y;} });
+    nodes.forEach((d, i) => {
+      const row = i < 10 ? 0 : i < 18 ? 1 : i < 24 ? 2 : i < 28 ? 3 : 4;
+      const delay = row * 120;
+      d3.select(nodeGrps.nodes()[i])
+        .transition().duration(1100).delay(delay).ease(d3.easeCubicOut)
+        .attr('transform', d.tx!=null ? `translate(${d.tx},${d.ty})` : `translate(${d.x},${d.y})`);
+      d3.select(nodeGrps.nodes()[i]).select('text')
+        .transition().duration(900).delay(delay)
+        .attr('font-size', `${BASE_FS*d.sz*0.65}px`)
+        .attr('opacity', 0.84);
+    });
+    const pp = calcPyrPos();
+    const topL = pp[0].x - 34, topR = pp[9].x + 34;
+    const topYp = pp[0].y - 20, botY = pp[29].y + 20;
+    const botL = pp[28].x - 30, botR = pp[29].x + 30;
+    const badgeH = 28, badgeW = 100, badgeGap = 14;
+    const badgeY = topYp - badgeGap - badgeH;
+    setTimeout(() => {
+      gOver.append('polygon').attr('class','cin-pyr')
+        .attr('points',`${topL},${topYp} ${topR},${topYp} ${botR},${botY} ${botL},${botY}`)
+        .attr('fill','none').attr('stroke','var(--accent)')
+        .attr('stroke-width',1.8).attr('stroke-dasharray','8 5').attr('opacity',0)
+        .transition().duration(900).attr('opacity',0.42);
+      setTimeout(() => {
+        gOver.append('rect').attr('class','cin-pyr')
+          .attr('x',W/2-badgeW/2).attr('y',badgeY).attr('width',badgeW).attr('height',badgeH).attr('rx',14)
+          .attr('fill','var(--accent)').attr('opacity',0)
+          .transition().duration(420).attr('opacity',0.94);
+        gOver.append('text').attr('class','cin-pyr')
+          .attr('x',W/2).attr('y',badgeY+badgeH/2).attr('text-anchor','middle').attr('dominant-baseline','central')
+          .attr('font-family',"'DM Sans',sans-serif").attr('font-size','12px').attr('font-weight','700')
+          .attr('fill','#fff').attr('opacity',0)
+          .transition().duration(420).attr('opacity',1).text('LEAD');
+      }, 500);
+    }, 750);
+  }
+
+  // ── PHASE 4: disruption — pyramid SCATTERS ──
+  function phase4() {
+    gOver.selectAll('.cin-pyr')
+      .transition().duration(500).delay(300)
+      .attr('opacity', 0.08)
+      .attr('stroke-dasharray', '3 18');
+    nodes.forEach((d, i) => {
+      if (i >= 18 && d.tx != null) {
+        const rowOffset = i >= 24 ? 1.8 : 1.2;
+        const angle = Math.atan2(d.ty - H/2, d.tx - W/2);
+        const dist = (50 + Math.random() * 80) * rowOffset;
+        const nx = d.tx + Math.cos(angle) * dist + (Math.random()-0.5)*40;
+        const ny = d.ty + Math.sin(angle) * dist + Math.random()*30;
+        const delay = (i - 18) * 55;
+        d3.select(nodeGrps.nodes()[i])
+          .transition().duration(800).delay(delay).ease(d3.easeCubicIn)
+          .attr('transform', `translate(${nx},${ny})`);
+        d3.select(nodeGrps.nodes()[i]).select('text')
+          .transition().duration(600).delay(delay)
+          .attr('opacity', i >= 24 ? 0.0 : 0.12);
+      }
+    });
+    nodes.forEach((d, i) => {
+      if (i < 18 && d.tx != null) {
+        d3.select(nodeGrps.nodes()[i]).select('text')
+          .transition().duration(800).delay(200)
+          .attr('opacity', 0.28);
+      }
+    });
+  }
+
+  // ── PHASE 5: data — sparkline dominates ──
+  let dotTimers = [];
+  function phase5() {
+    gOver.selectAll('.cin-era,.cin-crisis-lbl').transition().duration(180).attr('opacity',0).remove();
+    dotTimers.forEach(clearTimeout); dotTimers=[];
+    nodeGrps.select('text').transition().duration(600).attr('opacity', 0.0);
+    gOver.selectAll('.cin-pyr').transition().duration(400).attr('opacity', 0.0);
+
+    const pts = [
+      {yr:1924,v:45},{yr:1934,v:48},{yr:1944,v:42},
+      {yr:1954,v:46},{yr:1964,v:49},{yr:1974,v:47},
+      {yr:1984,v:50},{yr:1994,v:48},{yr:2004,v:44},
+      {yr:2014,v:35},{yr:2024,v:32}
+    ];
+
+    const cX=W*0.08, cW=W*0.84;
+    const cY=H*0.68, cH=H*0.22;
+    const vMin=27, vMax=55;
+    const xS = i => cX + (i/(pts.length-1))*cW;
+    const yS = v => cY + cH*(1-(v-vMin)/(vMax-vMin));
+
+    const refY = yS(40);
+    gOver.append('line').attr('class','cin-spark')
+      .attr('x1',cX).attr('y1',refY).attr('x2',cX+cW).attr('y2',refY)
+      .attr('stroke','#5BA87A').attr('stroke-width',1.2).attr('stroke-dasharray','7 4').attr('opacity',0)
+      .transition().duration(450).delay(200).attr('opacity',0.42);
+    gOver.append('text').attr('class','cin-spark')
+      .attr('x',cX-5).attr('y',refY+4).attr('text-anchor','end')
+      .attr('font-family',"'DM Sans',sans-serif")
+      .attr('font-size',`${BASE_FS*0.62}px`).attr('fill','#5BA87A').text('40 %').attr('opacity',0)
+      .transition().duration(300).delay(380).attr('opacity',0.68);
+
+    pts.forEach((d, i) => {
+      const decline = d.v < 40;
+      const col = decline ? '#C45B5B' : C.accent;
+      const cx = xS(i), cy = yS(d.v);
+
+      if(i > 0) {
+        const px=xS(i-1), py=yS(pts[i-1].v);
+        const lc = pts[i-1].v < 40 ? '#C45B5B' : (decline ? '#C45B5B' : '#8c8078');
+        gOver.append('line').attr('class','cin-spark')
+          .attr('x1',px).attr('y1',py).attr('x2',px).attr('y2',py)
+          .attr('stroke',lc).attr('stroke-width',1.8).attr('opacity',0.55)
+          .transition().duration(260).delay(200+i*105)
+          .attr('x2',cx).attr('y2',cy);
+      }
+      gOver.append('circle').attr('class','cin-spark')
+        .attr('cx',cx).attr('cy',cy).attr('r',0)
+        .attr('fill',col).attr('opacity',0.92)
+        .transition().duration(240).delay(220+i*105).attr('r', decline ? 5 : 4);
+
+      if([0,7,8,10].includes(i)) {
+        gOver.append('text').attr('class','cin-spark')
+          .attr('x',cx).attr('y',cY+cH+14).attr('text-anchor','middle')
+          .attr('font-family',"'DM Sans',sans-serif")
+          .attr('font-size',`${BASE_FS*0.58}px`).attr('fill',C.muted).text(d.yr).attr('opacity',0)
+          .transition().duration(280).delay(260+i*105).attr('opacity',0.7);
+      }
+    });
+  }
+
+  // ── PHASE 6: pyramid RE-FORMS — transformation, not death ──
+  function phase6() {
+    dotTimers.forEach(t=>clearTimeout(t)); dotTimers=[];
+    gOver.selectAll('.cin-spark').transition().duration(350).attr('opacity',0).remove();
+
+    const pyrPos = calcPyrPos();
+    nodes.forEach((d, i) => {
+      const p = pyrPos[i];
+      if (!p) return;
+      const drift = { x: p.x + (Math.random()-0.5)*22, y: p.y + (Math.random()-0.5)*14 };
+      const delay = 150 + Math.random() * 500;
+      d3.select(nodeGrps.nodes()[i])
+        .transition().duration(1400).delay(delay).ease(d3.easeCubicOut)
+        .attr('transform', `translate(${drift.x},${drift.y})`);
+      d3.select(nodeGrps.nodes()[i]).select('text')
+        .transition().duration(1100).delay(delay)
+        .attr('opacity', d.cat==='w' ? 0.55 : (d.cat==='t' ? 0.32 : 0.20))
+        .attr('font-size', `${BASE_FS*d.sz*0.58}px`);
+    });
+
+    const pp = calcPyrPos();
+    const topL = pp[0].x - 34, topR = pp[9].x + 34;
+    const topYp = pp[0].y - 20, botY = pp[29].y + 20;
+    const botL = pp[28].x - 30, botR = pp[29].x + 30;
+    setTimeout(() => {
+      gOver.append('polygon').attr('class','cin-pyr-new')
+        .attr('points',`${topL},${topYp} ${topR},${topYp} ${botR},${botY} ${botL},${botY}`)
+        .attr('fill','none').attr('stroke','var(--accent)')
+        .attr('stroke-width',1.4).attr('stroke-dasharray','4 8').attr('opacity',0)
+        .transition().duration(1100).attr('opacity',0.28);
+    }, 700);
+
+    setTimeout(() => {
+      gOver.append('text').attr('class','cin-arrow')
+        .attr('x',W/2).attr('y',H*0.52).attr('text-anchor','middle')
+        .attr('font-family',"'Source Serif 4',serif")
+        .attr('font-size',`${Math.min(BASE_FS*3.2, H*0.25)}px`)
+        .attr('font-weight','700').attr('fill','var(--accent)').attr('opacity',0)
+        .text('→')
+        .transition().duration(1000).attr('opacity',0.75);
+    }, 900);
+  }
+
+  // ── TEXT + PHASE SEQUENCE ──
+  const lines      = document.querySelectorAll('.cin-line');
+  const titleLayer = document.getElementById('cin-title-layer');
+  const cue        = document.getElementById('cin-cue');
+  const brand      = document.getElementById('cin-brand');
+
+  const timeline = [
+    {el:lines[0], inD:600, hold:2000, outD:400, fn:phase1},
+    {el:lines[1], inD:600, hold:2200, outD:400, fn:phase2},
+    {el:lines[2], inD:700, hold:2700, outD:500, fn:phase3},
+    {el:lines[3], inD:700, hold:2200, outD:500, fn:phase4},
+    {el:lines[4], inD:700, hold:2300, outD:500, fn:phase5},
+    {el:lines[5], inD:700, hold:2200, outD:500, fn:phase6},
+  ];
+
+  // Start floating immediately
+  setTimeout(phase0, 180);
+
+  // Walk the timeline
+  let t = 1200;
+  timeline.forEach(step => {
+    setTimeout(() => {
+      step.el.style.transition = `opacity ${step.inD}ms ease`;
+      step.el.style.opacity = '1';
+      step.fn();
+    }, t);
+    t += step.inD + step.hold;
+    setTimeout(() => {
+      step.el.style.transition = `opacity ${step.outD}ms ease`;
+      step.el.style.opacity = '0';
+    }, t);
+    t += step.outD + 200;
+  });
+
+  // After all phases: clean up SVG → brand appears → brand settles → title → scroll cue
+  const titleT = t + 550;
+
+  setTimeout(() => {
+    gOver.selectAll('*').transition().duration(700).attr('opacity', 0);
+    nodeGrps.transition().duration(700).style('opacity', 0);
+  }, titleT);
+
+  setTimeout(() => {
+    brand.style.opacity = '1';
+  }, titleT + 800);
+
+  setTimeout(() => {
+    brand.classList.add('settled');
+  }, titleT + 1900);
+
+  setTimeout(() => {
+    titleLayer.style.transition = 'opacity 1.1s ease';
+    titleLayer.style.opacity = '1';
+  }, titleT + 2800);
+
+  setTimeout(() => {
+    cue.style.transition = 'opacity 0.9s ease';
+    cue.style.opacity = '1';
+  }, titleT + 4100);
+});
+
+// ─── Progress bar ───
+window.addEventListener('scroll',()=>{
+  const p=(window.scrollY/(document.documentElement.scrollHeight-window.innerHeight))*100;
+  document.getElementById('prog').style.width=p+'%';
+});
+
+// ─── Language switcher ───
+document.querySelectorAll('.lang-sw button').forEach(b=>{
+  b.addEventListener('click',()=>{
+    document.querySelectorAll('.lang-sw button').forEach(x=>x.classList.remove('active'));
+    b.classList.add('active');
+  });
+});
+
+// ─── Shared helpers ───
+const C={
+  gold:'#E8A838',orange:'#D4774B',purple:'#8B6BAE',blue:'#5B9BBF',green:'#5BA87A',
+  red:'#C45B5B',teal:'#4A9B94',rose:'#C47A8A',lime:'#8BB85A',slate:'#7A8B9A',
+  accent:'#c06830',muted:'#8c8078',text:'#2a2320',bg:'#faf7f2'
+};
+
+// ═══════════════════════════════════════════════════════════
+// LAYOUT GUARD — auto-fix overlaps, clipping, sizing
+// Runs after every drawState to sanitize the SVG
+// ═══════════════════════════════════════════════════════════
+function layoutGuard(svgSel, delayMs) {
+  const delay = delayMs || 800;
+  setTimeout(() => {
+    const svgNode = svgSel.node();
+    if (!svgNode) return;
+    const vb = svgNode.getAttribute('viewBox');
+    if (!vb) return;
+    const [,, vbW, vbH] = vb.split(' ').map(Number);
+    const PAD = 6;
+
+    // ── 1. Auto-grow circles to contain their inner text ──
+    svgNode.querySelectorAll('circle').forEach(circle => {
+      const cx = parseFloat(circle.getAttribute('cx'));
+      const cy = parseFloat(circle.getAttribute('cy'));
+      const r  = parseFloat(circle.getAttribute('r'));
+      if (!r || r < 5) return; // skip tiny decorative circles
+      // Find all text whose center falls inside this circle
+      svgNode.querySelectorAll('text').forEach(txt => {
+        try {
+          const bb = txt.getBBox();
+          if (bb.width < 1) return;
+          const tx = bb.x + bb.width / 2;
+          const ty = bb.y + bb.height / 2;
+          const dist = Math.sqrt((tx - cx) ** 2 + (ty - cy) ** 2);
+          if (dist < r * 1.3) {
+            // Text belongs inside this circle
+            const needed = Math.max(bb.width / 2 + 12, bb.height / 2 + 12);
+            if (needed > r) {
+              circle.setAttribute('r', Math.ceil(needed));
+            }
+          }
+        } catch (e) {}
+      });
+    });
+
+    // ── 2. Auto-grow rects to contain their inner text ──
+    svgNode.querySelectorAll('rect').forEach(rect => {
+      const rx = parseFloat(rect.getAttribute('x'));
+      const ry = parseFloat(rect.getAttribute('y'));
+      const rw = parseFloat(rect.getAttribute('width'));
+      const rh = parseFloat(rect.getAttribute('height'));
+      if (!rw || rw < 10) return;
+      svgNode.querySelectorAll('text').forEach(txt => {
+        try {
+          const bb = txt.getBBox();
+          if (bb.width < 1) return;
+          const tx = bb.x + bb.width / 2;
+          const ty = bb.y + bb.height / 2;
+          // Check if text center is inside this rect
+          if (tx >= rx && tx <= rx + rw && ty >= ry && ty <= ry + rh) {
+            // Text belongs in this rect — check if it overflows
+            if (bb.width > rw - 8) {
+              const extra = bb.width - rw + 16;
+              rect.setAttribute('x', rx - extra / 2);
+              rect.setAttribute('width', rw + extra);
+            }
+            if (bb.height > rh - 4) {
+              const extra = bb.height - rh + 8;
+              rect.setAttribute('height', rh + extra);
+            }
+          }
+        } catch (e) {}
+      });
+    });
+
+    // ── 3. Clamp all elements inside viewBox ──
+    svgNode.querySelectorAll('text').forEach(el => {
+      try {
+        const bb = el.getBBox();
+        if (bb.width < 1) return;
+        const x = parseFloat(el.getAttribute('x')) || 0;
+        const y = parseFloat(el.getAttribute('y')) || 0;
+        let dx = 0, dy = 0;
+        if (bb.x < PAD) dx = PAD - bb.x;
+        if (bb.x + bb.width > vbW - PAD) dx = vbW - PAD - bb.x - bb.width;
+        if (bb.y < PAD) dy = PAD - bb.y;
+        if (bb.y + bb.height > vbH - PAD) dy = vbH - PAD - bb.y - bb.height;
+        if (dx !== 0) el.setAttribute('x', x + dx);
+        if (dy !== 0) el.setAttribute('y', y + dy);
+      } catch (e) {}
+    });
+
+    // ── 4. Detect text↔text overlaps and nudge apart ──
+    const allText = Array.from(svgNode.querySelectorAll('text'));
+    const boxes = [];
+    allText.forEach((el, i) => {
+      try {
+        const bb = el.getBBox();
+        if (bb.width > 1) boxes.push({ el, bb, i });
+      } catch (e) {}
+    });
+    // Sort by y position for top-down resolution
+    boxes.sort((a, b) => a.bb.y - b.bb.y);
+    for (let a = 0; a < boxes.length; a++) {
+      for (let b = a + 1; b < boxes.length; b++) {
+        const A = boxes[a].bb, B = boxes[b].bb;
+        // Check overlap
+        if (A.x < B.x + B.width && A.x + A.width > B.x &&
+            A.y < B.y + B.height && A.y + A.height > B.y) {
+          // Overlap detected — nudge B down
+          const overlapY = (A.y + A.height) - B.y + 3;
+          if (overlapY > 0 && overlapY < 30) {
+            const el = boxes[b].el;
+            const cy = parseFloat(el.getAttribute('y')) || 0;
+            el.setAttribute('y', cy + overlapY);
+            // Update cached bbox
+            try { boxes[b].bb = el.getBBox(); } catch (e) {}
+          }
+        }
+      }
+    }
+  }, delay);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UNIFIED MORPHING VISUALIZATION ENGINE
+// ═══════════════════════════════════════════════════════════
+const svg=d3.select('#viz');
+const vizTitle=d3.select('#viz-title');
+const vizSub=d3.select('#viz-sub');
+const vizSource=d3.select('#viz-source');
+const vizPanel=document.getElementById('viz-panel');
+let curState=-1;
+
+function drawState(idx){
+  if(idx===curState)return;curState=idx;
+  svg.selectAll('*').transition().duration(300).style('opacity',0).remove();
+  const g=svg.append('g');
+
+  // Title/subtitle/source metadata
+  const titles=[
+    {t:'Die umgekehrte Pyramide',s:'nach Marinos (2021, S. 10)',src:'Marinos 2021 · Canavilhas 2006 · Trillo-Domínguez 2017'},
+    {t:'Die W-Fragen',s:'Das Grundgerüst jeder Nachricht',src:'Marinos 2021'},
+    {t:'Von der Pyramide zum Hypertext',s:'Canavilhas, 2006 — Die umgelegte Pyramide',src:'Canavilhas 2006'},
+    {t:'Die Zukunft: Vom Dreieck zum Würfel?',s:'Trillo-Domínguez & Alberich-Pascual, 2017',src:'Trillo-Domínguez 2017'},
+    {t:'100 Jahre, 8.500+ Artikel',s:'Die untersuchten Zeitungen im Überblick',src:'Birkner et al.'},
+    {t:'Die Methode: NLP trifft Journalismus',s:'Automatische Erkennung der W-Fragen am Textanfang',src:'Birkner et al.'},
+    {t:'Das Pyramidenprinzip: Stabil, aber auf dem Rückzug',s:'Anteil der Artikel mit Pyramidenaufbau, 1924–2024',src:'Birkner et al.'},
+    {t:'Die Reumann-Kurve',s:'Finanzierung des Zeitungsgewerbes (Reumann 1968, S. 230)',src:'Reumann 1968 · Weischenberg 2001 · Meier 2018'},
+    {t:'Journalistische Darstellungsformen',s:'nach Weischenberg (2001, S. 49-77)',src:'Weischenberg 2001'},
+    {t:'Vier Dimensionen journalistischer Wahrnehmung',s:'nach Meier (2018, S. 202)',src:'Meier 2018'},
+    {t:'Was macht ein Ereignis zur Nachricht?',s:'Nachrichtenfaktoren nach Galtung & Ruge (1965)',src:'Galtung & Ruge 1965'},
+    {t:'Neue Refinanzierungswege',s:'Bezahlmodelle für Journalismus im Netz',src:'Liesem 2015'},
+    {t:'Von der Pyramide zum Würfel',s:'Neue Formen des Nachrichtenerzählens',src:'Canavilhas 2006 · Trillo-Domínguez 2017'},
+    {t:'15 Journalist:innen, 3 Generationen',s:'Interviewsample nach Alter, Geschlecht und Medium',src:'Eigene Erhebung'},
+    {t:'Journalistische Konzepte der Gegenwart',s:'nach Neuberger (2025, S. 196–197)',src:'Neuberger 2025'},
+    {t:'Von der Pyramide zur Hybridform',s:'Marinos (2021): „Anfeaturen einer Meldung"',src:'Eigene Erhebung · Neuberger 2025 · Marinos 2021'}
+  ];
+
+  vizTitle.text(titles[idx].t);
+  vizSub.text(titles[idx].s);
+  vizSource.text(titles[idx].src);
+
+  if(idx===0){
+    // Draw inverted pyramid with 4 colored layers
+    const layers=[
+      {y:55,topW:600,botW:440,color:C.gold,label:'Das Wichtigste, Das Neueste',sub:'(noch sehr allgemein)'},
+      {y:145,topW:440,botW:290,color:C.orange,label:'Unterstützende Details',sub:''},
+      {y:235,topW:290,botW:150,color:C.purple,label:'Hintergrund, Details',sub:''},
+      {y:325,topW:150,botW:60,color:C.blue,label:'Das Schlusszitat',sub:''}
+    ];
+    const cx=400,h=80;
+    layers.forEach((l,i)=>{
+      const x1=cx-l.topW/2,x2=cx+l.topW/2,x3=cx+l.botW/2,x4=cx-l.botW/2;
+      g.append('polygon')
+        .attr('points',`${x1},${l.y} ${x2},${l.y} ${x3},${l.y+h} ${x4},${l.y+h}`)
+        .attr('fill',l.color).attr('opacity',0)
+        .transition().duration(600).delay(i*150).attr('opacity',.85);
+      g.append('text').attr('x',cx).attr('y',l.y+h/2+2)
+        .attr('text-anchor','middle').attr('fill','#fff').attr('font-size','15')
+        .attr('font-weight','600').attr('font-family','DM Sans')
+        .text(l.label).attr('opacity',0)
+        .transition().duration(500).delay(i*150+200).attr('opacity',1);
+      if(l.sub){
+        g.append('text').attr('x',cx).attr('y',l.y+h/2+20)
+          .attr('text-anchor','middle').attr('fill','rgba(255,255,255,.7)').attr('font-size','12')
+          .attr('font-family','DM Sans').text(l.sub).attr('opacity',0)
+          .transition().duration(500).delay(i*150+300).attr('opacity',1);
+      }
+    });
+    // Arrow on left
+    const arrowG=g.append('g').attr('opacity',0);
+    arrowG.append('line').attr('x1',52).attr('y1',75).attr('x2',52).attr('y2',400)
+      .attr('stroke',C.muted).attr('stroke-width',1.5).attr('marker-end','url(#arr1)');
+    arrowG.append('text').attr('x',42).attr('y',220).attr('text-anchor','end')
+      .attr('fill',C.muted).attr('font-size','11').attr('font-family','DM Sans').attr('font-style','italic')
+      .selectAll('tspan').data(['Immer','weniger','wichtig']).enter().append('tspan')
+      .attr('x',42).attr('dy',(d,i)=>i?15:0).text(d=>d);
+    arrowG.transition().duration(600).delay(600).attr('opacity',1);
+    // Arrow marker
+    svg.append('defs').append('marker').attr('id','arr1').attr('viewBox','0 0 10 10')
+      .attr('refX',5).attr('refY',5).attr('markerWidth',6).attr('markerHeight',6).attr('orient','auto')
+      .append('path').attr('d','M 0 0 L 10 5 L 0 10 z').attr('fill',C.muted);
+
+  } else if(idx===1){
+    // Draw INVERTED green triangle (point at bottom)
+    const cx=400,topY=50,botY=440,w=580;
+    g.append('polygon')
+      .attr('points',`${cx-w/2},${topY} ${cx+w/2},${topY} ${cx},${botY}`)
+      .attr('fill',C.green).attr('opacity',0)
+      .transition().duration(700).attr('opacity',.88);
+    // Main title
+    g.append('text').attr('x',cx).attr('y',150).attr('text-anchor','middle')
+      .attr('fill','#fff').attr('font-size','24').attr('font-weight','700')
+      .attr('font-family','Source Serif 4,serif').text('Das Wichtigste:')
+      .attr('opacity',0).transition().duration(500).delay(300).attr('opacity',1);
+    // W-questions — primary row
+    const wqs=['Wer?','Was?','Wann?','Wo?'];
+    g.append('text').attr('x',cx).attr('y',200).attr('text-anchor','middle')
+      .attr('fill','rgba(255,255,255,.95)').attr('font-size','18').attr('font-weight','600')
+      .attr('font-family','DM Sans').text(wqs.join('   '))
+      .attr('opacity',0).transition().duration(500).delay(500).attr('opacity',1);
+    // W-questions — secondary row
+    const wqs2=['Warum?','Wie?'];
+    g.append('text').attr('x',cx).attr('y',245).attr('text-anchor','middle')
+      .attr('fill','rgba(255,255,255,.7)').attr('font-size','15').attr('font-weight','400')
+      .attr('font-family','DM Sans').text(wqs2.join('    '))
+      .attr('opacity',0).transition().duration(500).delay(650).attr('opacity',1);
+    // Subtle inner structure lines (inside the triangle, not floating outside)
+    [0.45, 0.65, 0.82].forEach((frac, i) => {
+      const y = topY + (botY - topY) * frac;
+      const hw = (w/2) * (1 - frac) * 0.95;
+      g.append('line').attr('x1',cx-hw).attr('y1',y).attr('x2',cx+hw).attr('y2',y)
+        .attr('stroke','rgba(255,255,255,.2)').attr('stroke-width',1)
+        .attr('opacity',0).transition().duration(400).delay(700+i*100).attr('opacity',1);
+    });
+
+  } else if(idx===2){
+    // Inverted pyramid of layers — widest at top, narrowest at bottom (centered)
+    const layers=[
+      {label:'Exploration',sub:'Multimedia, Links, Interaktion',w:540,color:C.gold},
+      {label:'Kontext',sub:'Archiv, Externe Quellen',w:400,color:C.orange},
+      {label:'Erklärung',sub:'Warum, Wie',w:260,color:C.teal},
+      {label:'Basiseinheit',sub:'Wer, Was, Wann, Wo',w:140,color:C.blue}
+    ];
+    const midX=400,y0=60,rowH=100;
+
+    g.append('text').attr('x',midX).attr('y',40).attr('text-anchor','middle')
+      .attr('fill',C.muted).attr('font-size','12').attr('font-weight','600')
+      .attr('font-family','DM Sans').text('Canavilhas (2006)')
+      .attr('opacity',0).transition().duration(400).attr('opacity',1);
+
+    layers.forEach((l,i)=>{
+      const y=y0+i*rowH;
+      const x=midX-l.w/2;
+      const rr=g.append('rect').attr('x',midX).attr('y',y).attr('width',0).attr('height',78)
+        .attr('rx',6).attr('fill',l.color).attr('opacity',.82);
+      rr.transition().duration(600).delay(i*180)
+        .attr('x',x).attr('width',l.w);
+      g.append('text').attr('x',midX).attr('y',y+34).attr('text-anchor','middle')
+        .attr('fill','#fff').attr('font-size','15').attr('font-weight','700')
+        .attr('font-family','DM Sans').text(l.label)
+        .attr('opacity',0).transition().duration(400).delay(i*180+300).attr('opacity',1);
+      g.append('text').attr('x',midX).attr('y',y+56).attr('text-anchor','middle')
+        .attr('fill','rgba(255,255,255,.65)').attr('font-size','11').attr('font-family','DM Sans')
+        .text(l.sub).attr('opacity',0)
+        .transition().duration(400).delay(i*180+400).attr('opacity',1);
+    });
+
+  } else if(idx===3){
+    // Rubik's cube concept — 6 W-blocks orbiting a center
+    const cx=400,cy=230;
+    const blocks=[
+      {label:'WHY',x:cx-170,y:cy-100,color:'#C45B5B',w:90,h:60},
+      {label:'WHO',x:cx+80,y:cy-100,color:'#5B9BBF',w:90,h:60},
+      {label:'WHAT',x:cx-170,y:cy+40,color:'#5BA87A',w:90,h:60},
+      {label:'WHERE',x:cx+80,y:cy+40,color:'#E8A838',w:90,h:60},
+      {label:'WHEN',x:cx-45,y:cy-170,color:'#8B6BAE',w:90,h:55},
+      {label:'HOW',x:cx-45,y:cy+120,color:'#4A9B94',w:90,h:55}
+    ];
+    // Background glow
+    g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',0)
+      .attr('fill','none').attr('stroke','rgba(192,104,48,.1)').attr('stroke-width',50)
+      .transition().duration(800).attr('r',160);
+
+    blocks.forEach((b,i)=>{
+      const bg=g.append('g').attr('opacity',0);
+      bg.append('rect').attr('x',b.x+3).attr('y',b.y+3).attr('width',b.w).attr('height',b.h)
+        .attr('rx',8).attr('fill','rgba(0,0,0,.06)');
+      bg.append('rect').attr('x',b.x).attr('y',b.y).attr('width',b.w).attr('height',b.h)
+        .attr('rx',8).attr('fill',b.color).attr('opacity',.88);
+      bg.append('text').attr('x',b.x+b.w/2).attr('y',b.y+b.h/2+5)
+        .attr('text-anchor','middle').attr('fill','#fff').attr('font-size','14')
+        .attr('font-weight','700').attr('font-family','DM Sans').text(b.label);
+      bg.transition().duration(500).delay(200+i*100).attr('opacity',1);
+      g.append('line').attr('x1',b.x+b.w/2).attr('y1',b.y+b.h/2)
+        .attr('x2',cx).attr('y2',cy)
+        .attr('stroke',b.color).attr('stroke-width',1.5).attr('stroke-dasharray','4 3')
+        .attr('opacity',0).transition().duration(400).delay(300+i*100).attr('opacity',.2);
+    });
+    // Center block
+    const cg=g.append('g').attr('opacity',0);
+    cg.append('rect').attr('x',cx-50).attr('y',cy-30).attr('width',100).attr('height',60)
+      .attr('rx',10).attr('fill',C.accent);
+    cg.append('text').attr('x',cx).attr('y',cy+6).attr('text-anchor','middle')
+      .attr('fill','#fff').attr('font-size','15').attr('font-weight','700')
+      .attr('font-family','DM Sans').text('CLIMAX');
+    cg.transition().duration(600).delay(800).attr('opacity',1);
+    // Subtitle — well below all blocks
+    g.append('text').attr('x',cx).attr('y',480).attr('text-anchor','middle')
+      .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
+      .attr('font-family','DM Sans').text('Verschiedene Einstiege, verschiedene Pfade durch die Information')
+      .attr('opacity',0).transition().duration(500).delay(1000).attr('opacity',1);
+
+  } else if(idx===4){
+    // ── Timeline visualization ──
+    const papers=[
+      {name:'Frankfurter Zeitung',successor:'→ FAZ',start:1924,end:1943,start2:1949,end2:2024,color:C.blue,sName:'FAZ'},
+      {name:'Münchner Neueste Nachr.',successor:'→ SZ',start:1924,end:1945,start2:1945,end2:2024,color:C.orange,sName:'SZ'},
+      {name:'Kölnische Zeitung',successor:'→ KStA',start:1924,end:1945,start2:1949,end2:2024,color:C.green,sName:'KStA'},
+      {name:'Münsterl. Volkszeitung',successor:'',start:1924,end:2024,start2:0,end2:0,color:C.teal,sName:''},
+      {name:'Grafschafter Nachr.',successor:'',start:1924,end:2024,start2:0,end2:0,color:C.purple,sName:''},
+      {name:'Neues Deutschland',successor:'',start:1946,end:1990,start2:0,end2:0,color:C.red,sName:''},
+      {name:'Online (FAZ.net, SZ.de…)',successor:'',start:2000,end:2024,start2:0,end2:0,color:C.accent,sName:''}
+    ];
+    const x=d3.scaleLinear().domain([1920,2028]).range([180,750]);
+    const yStep=55,y0=70;
+    [1924,1934,1944,1954,1964,1974,1984,1994,2004,2014,2024].forEach(yr=>{
+      g.append('line').attr('x1',x(yr)).attr('y1',y0-15).attr('x2',x(yr)).attr('y2',y0+papers.length*yStep)
+        .attr('stroke','#e6e1da').attr('stroke-width',1).attr('stroke-dasharray','2 3');
+      g.append('text').attr('x',x(yr)).attr('y',y0+papers.length*yStep+18)
+        .attr('text-anchor','middle').attr('fill',C.muted).attr('font-size','10')
+        .attr('font-family','DM Sans').text(yr);
+    });
+    g.append('rect').attr('x',x(1933)).attr('y',y0-15).attr('width',x(1945)-x(1933))
+      .attr('height',papers.length*yStep+5).attr('fill','rgba(196,91,91,.06)').attr('rx',4);
+    g.append('text').attr('x',x(1939)).attr('y',y0-25).attr('text-anchor','middle')
+      .attr('fill','rgba(196,91,91,.4)').attr('font-size','9').attr('font-family','DM Sans')
+      .attr('font-weight','600').text('NS-Zeit');
+    papers.forEach((p,i)=>{
+      const y=y0+i*yStep;
+      g.append('text').attr('x',170).attr('y',y+20).attr('text-anchor','end')
+        .attr('fill',C.text).attr('font-size','11').attr('font-weight','500')
+        .attr('font-family','DM Sans').text(p.name)
+        .attr('opacity',0).transition().duration(400).delay(i*80).attr('opacity',1);
+      g.append('rect').attr('x',x(p.start)).attr('y',y+8).attr('width',0).attr('height',18)
+        .attr('rx',4).attr('fill',p.color).attr('opacity',.75)
+        .transition().duration(600).delay(i*80+200)
+        .attr('width',x(p.end)-x(p.start));
+      if(p.start2>0){
+        g.append('rect').attr('x',x(p.start2)).attr('y',y+8).attr('width',0).attr('height',18)
+          .attr('rx',4).attr('fill',p.color).attr('opacity',.45)
+          .transition().duration(600).delay(i*80+400)
+          .attr('width',x(p.end2)-x(p.start2));
+        g.append('text').attr('x',x(p.end2)+5).attr('y',y+22)
+          .attr('fill',p.color).attr('font-size','10').attr('font-weight','600')
+          .attr('font-family','DM Sans').text(p.sName)
+          .attr('opacity',0).transition().duration(300).delay(i*80+600).attr('opacity',.7);
+      }
+    });
+    g.append('text').attr('x',750).attr('y',y0+papers.length*yStep+45).attr('text-anchor','end')
+      .attr('fill',C.accent).attr('font-size','14').attr('font-weight','700')
+      .attr('font-family','DM Sans').text('8.500+ Artikel analysiert')
+      .attr('opacity',0).transition().duration(500).delay(1000).attr('opacity',1);
+
+  } else if(idx===5){
+    // ── NLP method visualization ──
+    const methods=[
+      {q:'Wer?',method:'Named Entity\nRecognition (NER)',icon:'👤',color:C.blue,example:'„Bundeskanzler Scholz…"'},
+      {q:'Was?',method:'POS-Tagging &\nDiktionäre',icon:'📝',color:C.orange,example:'„…unterzeichnete das Gesetz…"'},
+      {q:'Wann?',method:'Temporal Expression\nExtraction',icon:'🕐',color:C.green,example:'„Am Dienstag, 30. Juni…"'},
+      {q:'Wo?',method:'Location Entity\nRecognition',icon:'📍',color:C.purple,example:'„…in Berlin…"'}
+    ];
+    const colW=170,startX=60,y0=50;
+    g.append('text').attr('x',400).attr('y',35).attr('text-anchor','middle')
+      .attr('fill',C.text).attr('font-size','13').attr('font-weight','600')
+      .attr('font-family','DM Sans').text('Erste 300 Zeichen jedes Artikels → Automatische Analyse');
+    methods.forEach((m,i)=>{
+      const mx=startX+i*colW+i*15;
+      const mg=g.append('g').attr('opacity',0);
+      mg.append('circle').attr('cx',mx+colW/2).attr('cy',y0+40).attr('r',32)
+        .attr('fill',m.color).attr('opacity',.85);
+      mg.append('text').attr('x',mx+colW/2).attr('y',y0+46).attr('text-anchor','middle')
+        .attr('fill','#fff').attr('font-size','18').attr('font-weight','700')
+        .attr('font-family','DM Sans').text(m.q);
+      mg.append('line').attr('x1',mx+colW/2).attr('y1',y0+75).attr('x2',mx+colW/2).attr('y2',y0+110)
+        .attr('stroke',m.color).attr('stroke-width',2);
+      mg.append('polygon').attr('points',`${mx+colW/2-5},${y0+105} ${mx+colW/2+5},${y0+105} ${mx+colW/2},${y0+115}`)
+        .attr('fill',m.color);
+      mg.append('rect').attr('x',mx).attr('y',y0+120).attr('width',colW).attr('height',65)
+        .attr('rx',8).attr('fill',m.color).attr('opacity',.15);
+      mg.append('rect').attr('x',mx).attr('y',y0+120).attr('width',colW).attr('height',65)
+        .attr('rx',8).attr('fill','none').attr('stroke',m.color).attr('stroke-width',1.5);
+      const lines=m.method.split('\n');
+      lines.forEach((ln,li)=>{
+        mg.append('text').attr('x',mx+colW/2).attr('y',y0+145+li*16).attr('text-anchor','middle')
+          .attr('fill',C.text).attr('font-size','11').attr('font-weight','500')
+          .attr('font-family','DM Sans').text(ln);
+      });
+      mg.append('line').attr('x1',mx+colW/2).attr('y1',y0+190).attr('x2',mx+colW/2).attr('y2',y0+220)
+        .attr('stroke',m.color).attr('stroke-width',1.5).attr('stroke-dasharray','3 3');
+      mg.append('rect').attr('x',mx-5).attr('y',y0+225).attr('width',colW+10).attr('height',40)
+        .attr('rx',6).attr('fill','#fff').attr('stroke','#e6e1da').attr('stroke-width',1);
+      mg.append('text').attr('x',mx+colW/2).attr('y',y0+250).attr('text-anchor','middle')
+        .attr('fill',C.muted).attr('font-size','10').attr('font-style','italic')
+        .attr('font-family','DM Sans').text(m.example);
+      mg.transition().duration(500).delay(i*200).attr('opacity',1);
+    });
+    const rg=g.append('g').attr('opacity',0);
+    rg.append('rect').attr('x',100).attr('y',360).attr('width',600).attr('height',55)
+      .attr('rx',10).attr('fill',C.accent).attr('opacity',.12);
+    rg.append('rect').attr('x',100).attr('y',360).attr('width',600).attr('height',55)
+      .attr('rx',10).attr('fill','none').attr('stroke',C.accent).attr('stroke-width',2);
+    rg.append('text').attr('x',400).attr('y',385).attr('text-anchor','middle')
+      .attr('fill',C.accent).attr('font-size','14').attr('font-weight','700')
+      .attr('font-family','DM Sans').text('→ Pyramidenprinzip erkannt: Ja / Nein');
+    rg.append('text').attr('x',400).attr('y',403).attr('text-anchor','middle')
+      .attr('fill',C.muted).attr('font-size','11')
+      .attr('font-family','DM Sans').text('Mindestens 3 von 4 W-Fragen in den ersten 300 Zeichen beantwortet');
+    rg.transition().duration(500).delay(900).attr('opacity',1);
+
+  } else if(idx===6){
+    // ── Bar chart: Pyramid percentage over decades ──
+    const data=[
+      {year:1924,val:45},{year:1934,val:48},{year:1944,val:42},
+      {year:1954,val:46},{year:1964,val:49},{year:1974,val:47},
+      {year:1984,val:50},{year:1994,val:48},{year:2004,val:44},
+      {year:2014,val:35},{year:2024,val:32}
+    ];
+    const margin={top:40,right:40,bottom:60,left:65};
+    const w=800-margin.left-margin.right,h=440-margin.top-margin.bottom;
+    const cg=g.append('g').attr('transform',`translate(${margin.left},${margin.top})`);
+    const xS=d3.scaleBand().domain(data.map(d=>d.year)).range([0,w]).padding(.25);
+    const yS=d3.scaleLinear().domain([0,60]).range([h,0]);
+    [10,20,30,40,50].forEach(v=>{
+      cg.append('line').attr('x1',0).attr('y1',yS(v)).attr('x2',w).attr('y2',yS(v))
+        .attr('stroke','#e6e1da').attr('stroke-width',1).attr('stroke-dasharray','2 3');
+    });
+    cg.append('text').attr('x',-30).attr('y',-15).attr('fill',C.muted)
+      .attr('font-size','11').attr('font-family','DM Sans').text('Anteil (%)');
+    data.forEach((d,i)=>{
+      const isDecline=d.year>=2014;
+      cg.append('rect')
+        .attr('x',xS(d.year)).attr('y',yS(0)).attr('width',xS.bandwidth()).attr('height',0)
+        .attr('rx',4).attr('fill',isDecline?C.red:C.green).attr('opacity',isDecline?1:.7)
+        .transition().duration(600).delay(i*80)
+        .attr('y',yS(d.val)).attr('height',h-yS(d.val));
+      cg.append('text').attr('x',xS(d.year)+xS.bandwidth()/2).attr('y',yS(d.val)-8)
+        .attr('text-anchor','middle').attr('fill',isDecline?C.red:C.green)
+        .attr('font-size','12').attr('font-weight','600').attr('font-family','DM Sans')
+        .text(d.val+'%').attr('opacity',0)
+        .transition().duration(400).delay(i*80+400).attr('opacity',1);
+      cg.append('text').attr('x',xS(d.year)+xS.bandwidth()/2).attr('y',h+20)
+        .attr('text-anchor','middle').attr('fill',C.muted)
+        .attr('font-size','11').attr('font-family','DM Sans').text(d.year);
+    });
+    const x2004=xS(2004),xEnd=xS(2024)+xS.bandwidth();
+    cg.append('rect').attr('x',x2004-5).attr('y',0).attr('width',xEnd-x2004+10).attr('height',h)
+      .attr('fill','rgba(196,91,91,.05)').attr('rx',4)
+      .attr('opacity',0).transition().duration(400).delay(800).attr('opacity',1);
+    cg.append('text').attr('x',(x2004+xEnd)/2).attr('y',h+45).attr('text-anchor','middle')
+      .attr('fill',C.red).attr('font-size','11').attr('font-weight','600')
+      .attr('font-family','DM Sans').text('↑ Digitalisierung')
+      .attr('opacity',0).transition().duration(400).delay(1000).attr('opacity',1);
+    cg.append('line').attr('x1',0).attr('y1',h).attr('x2',w).attr('y2',h)
+      .attr('stroke',C.text).attr('stroke-width',1.5);
+
+  } else if(idx===7){
+    // ── Stacked area chart: Reumann financing ──
+    const margin={top:40,right:40,bottom:50,left:65};
+    const w=800-margin.left-margin.right,h=420-margin.top-margin.bottom;
+    const cg=g.append('g').attr('transform',`translate(${margin.left},${margin.top})`);
+    const pts=[
+      {yr:1850,ads:50,sales:50},{yr:1870,ads:55,sales:45},{yr:1890,ads:62,sales:38},
+      {yr:1900,ads:65,sales:35},{yr:1910,ads:60,sales:40},{yr:1920,ads:45,sales:55},
+      {yr:1930,ads:50,sales:50},{yr:1940,ads:30,sales:70},{yr:1945,ads:20,sales:80},
+      {yr:1950,ads:55,sales:45},{yr:1960,ads:62,sales:38},{yr:1970,ads:65,sales:35},
+      {yr:1980,ads:67,sales:33},{yr:1990,ads:68,sales:32},{yr:2000,ads:65,sales:35},
+      {yr:2005,ads:55,sales:45},{yr:2010,ads:40,sales:40},{yr:2015,ads:30,sales:35},
+      {yr:2020,ads:25,sales:30}
+    ];
+    const xS=d3.scaleLinear().domain([1850,2020]).range([0,w]);
+    const yS=d3.scaleLinear().domain([0,100]).range([h,0]);
+    const adsArea=d3.area().x(d=>xS(d.yr)).y0(h).y1(d=>yS(d.ads)).curve(d3.curveMonotoneX);
+    const totalArea=d3.area().x(d=>xS(d.yr)).y0(h).y1(d=>yS(d.ads+d.sales)).curve(d3.curveMonotoneX);
+    cg.append('path').datum(pts).attr('d',totalArea).attr('fill',C.blue).attr('opacity',0)
+      .transition().duration(800).attr('opacity',.5);
+    cg.append('path').datum(pts).attr('d',adsArea).attr('fill',C.orange).attr('opacity',0)
+      .transition().duration(800).delay(200).attr('opacity',.6);
+    cg.append('text').attr('x',xS(1970)).attr('y',yS(85)).attr('fill','#fff')
+      .attr('font-size','13').attr('font-weight','600').attr('font-family','DM Sans')
+      .text('Verkaufserlöse (≈⅓)').attr('opacity',0)
+      .transition().duration(400).delay(600).attr('opacity',.9);
+    cg.append('text').attr('x',xS(1970)).attr('y',yS(35)).attr('fill','#fff')
+      .attr('font-size','13').attr('font-weight','600').attr('font-family','DM Sans')
+      .text('Anzeigenerlöse (≈⅔)').attr('opacity',0)
+      .transition().duration(400).delay(700).attr('opacity',.9);
+    cg.append('rect').attr('x',xS(2000)).attr('y',0).attr('width',xS(2020)-xS(2000)).attr('height',h)
+      .attr('fill','rgba(196,91,91,.08)').attr('rx',4)
+      .attr('opacity',0).transition().duration(400).delay(800).attr('opacity',1);
+    cg.append('text').attr('x',xS(2010)).attr('y',20).attr('text-anchor','middle')
+      .attr('fill',C.red).attr('font-size','11').attr('font-weight','600')
+      .attr('font-family','DM Sans').text('Digitale Disruption')
+      .attr('opacity',0).transition().duration(400).delay(900).attr('opacity',1);
+    cg.append('rect').attr('x',xS(1933)).attr('y',0).attr('width',xS(1945)-xS(1933)).attr('height',h)
+      .attr('fill','rgba(196,91,91,.06)').attr('rx',4);
+    cg.append('line').attr('x1',0).attr('y1',h).attr('x2',w).attr('y2',h)
+      .attr('stroke',C.text).attr('stroke-width',1.5);
+    [1850,1880,1910,1940,1970,2000,2020].forEach(yr=>{
+      cg.append('text').attr('x',xS(yr)).attr('y',h+20).attr('text-anchor','middle')
+        .attr('fill',C.muted).attr('font-size','10').attr('font-family','DM Sans').text(yr);
+    });
+    cg.append('text').attr('x',-10).attr('y',-10).attr('fill',C.muted)
+      .attr('font-size','11').attr('font-family','DM Sans').text('Anteil (%)');
+    [25,50,75].forEach(v=>{
+      cg.append('line').attr('x1',0).attr('y1',yS(v)).attr('x2',w).attr('y2',yS(v))
+        .attr('stroke','rgba(255,255,255,.3)').attr('stroke-dasharray','3 3');
+      cg.append('text').attr('x',-8).attr('y',yS(v)+4).attr('text-anchor','end')
+        .attr('fill',C.muted).attr('font-size','10').attr('font-family','DM Sans').text(v);
+    });
+
+  } else if(idx===8){
+    // ── Weischenberg text-form cards ──
+    const cats=[
+      {name:'Nachrichten-\nDarstellungsformen',items:['Meldung','Bericht'],color:C.blue,note:'→ Nutzen die Pyramide'},
+      {name:'Meinungs-\nDarstellungsformen',items:['Glosse','Lokalspitze','Kommentar','Leitartikel'],color:C.red,note:'→ Eigene Struktur'},
+      {name:'Unterhaltungs-\nDarstellungsformen',items:['Reportage','Feature'],color:C.green,note:'→ Erzählerische Form'}
+    ];
+    const colW=220,startX=50,gap=25;
+    cats.forEach((c,ci)=>{
+      const cx2=startX+ci*(colW+gap);
+      const cg2=g.append('g').attr('opacity',0);
+      cg2.append('rect').attr('x',cx2).attr('y',50).attr('width',colW).attr('height',380)
+        .attr('rx',12).attr('fill','#fff').attr('stroke',c.color).attr('stroke-width',2);
+      cg2.append('rect').attr('x',cx2).attr('y',50).attr('width',colW).attr('height',75)
+        .attr('rx','12').attr('fill',c.color).attr('opacity',.85);
+      cg2.append('rect').attr('x',cx2).attr('y',100).attr('width',colW).attr('height',25)
+        .attr('fill',c.color).attr('opacity',.85);
+      const lines=c.name.split('\n');
+      lines.forEach((ln,li)=>{
+        cg2.append('text').attr('x',cx2+colW/2).attr('y',80+li*18).attr('text-anchor','middle')
+          .attr('fill','#fff').attr('font-size','13').attr('font-weight','600')
+          .attr('font-family','DM Sans').text(ln);
+      });
+      c.items.forEach((item,ii)=>{
+        const iy=155+ii*50;
+        cg2.append('rect').attr('x',cx2+15).attr('y',iy).attr('width',colW-30).attr('height',38)
+          .attr('rx',8).attr('fill',c.color).attr('opacity',.1);
+        cg2.append('text').attr('x',cx2+colW/2).attr('y',iy+24).attr('text-anchor','middle')
+          .attr('fill',C.text).attr('font-size','13').attr('font-weight','500')
+          .attr('font-family','DM Sans').text(item);
+      });
+      cg2.append('text').attr('x',cx2+colW/2).attr('y',400).attr('text-anchor','middle')
+        .attr('fill',c.color).attr('font-size','11').attr('font-weight','600')
+        .attr('font-family','DM Sans').text(c.note);
+      if(ci===0){
+        cg2.append('rect').attr('x',cx2-4).attr('y',46).attr('width',colW+8).attr('height',388)
+          .attr('rx',14).attr('fill','none').attr('stroke',C.accent)
+          .attr('stroke-width',2.5).attr('stroke-dasharray','6 3');
+      }
+      cg2.transition().duration(500).delay(ci*200).attr('opacity',1);
+    });
+    g.append('text').attr('x',400).attr('y',465).attr('text-anchor','middle')
+      .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
+      .attr('font-family','DM Sans').text('+ Interview als spezielle Darstellungsform')
+      .attr('opacity',0).transition().duration(400).delay(700).attr('opacity',1);
+
+  } else if(idx===9){
+    // ── Meier 4-dimensional radial diagram ──
+    const cx=400,cy=260,outerR=145,innerR=55;
+    const dimR=50;
+    const dims=[
+      {name:'Darstellungs-\nformen',items:['Nachricht','Bericht','Reportage','Feature','Kommentar'],color:C.blue,angle:-90},
+      {name:'Ressorts',items:['Politik','Wirtschaft','Kultur','Sport','Lokales'],color:C.orange,angle:0},
+      {name:'Medien-\nplattformen',items:['Print','TV','Radio','Online','Social Media'],color:C.green,angle:90},
+      {name:'Berichterst.-\nmuster',items:['Objektiv','Interpretativ','Investigativ','Narrativ'],color:C.purple,angle:180}
+    ];
+    [outerR,outerR-40,innerR+20].forEach((r,i)=>{
+      g.append('circle').attr('cx',cx).attr('cy',cy).attr('r',r)
+        .attr('fill','none').attr('stroke','#e6e1da').attr('stroke-width',1)
+        .attr('opacity',0).transition().duration(400).delay(i*100).attr('opacity',.5);
+    });
+    const cg2=g.append('g').attr('opacity',0);
+    cg2.append('circle').attr('cx',cx).attr('cy',cy).attr('r',innerR)
+      .attr('fill',C.accent).attr('opacity',.85);
+    cg2.append('text').attr('x',cx).attr('y',cy-5).attr('text-anchor','middle')
+      .attr('fill','#fff').attr('font-size','11').attr('font-weight','600')
+      .attr('font-family','DM Sans').text('Journalistische');
+    cg2.append('text').attr('x',cx).attr('y',cy+12).attr('text-anchor','middle')
+      .attr('fill','#fff').attr('font-size','11').attr('font-weight','600')
+      .attr('font-family','DM Sans').text('Medienrealität');
+    cg2.transition().duration(500).delay(200).attr('opacity',1);
+    dims.forEach((d,di)=>{
+      const rad=d.angle*Math.PI/180;
+      const dx=cx+outerR*Math.cos(rad),dy=cy+outerR*Math.sin(rad);
+      const dg=g.append('g').attr('opacity',0);
+      dg.append('line').attr('x1',cx+innerR*Math.cos(rad)*1.1).attr('y1',cy+innerR*Math.sin(rad)*1.1)
+        .attr('x2',dx-dimR*0.7*Math.cos(rad)).attr('y2',dy-dimR*0.7*Math.sin(rad))
+        .attr('stroke',d.color).attr('stroke-width',2).attr('opacity',.4);
+      dg.append('circle').attr('cx',dx).attr('cy',dy).attr('r',dimR)
+        .attr('fill',d.color).attr('opacity',.8);
+      const lines=d.name.split('\n');
+      lines.forEach((ln,li)=>{
+        dg.append('text').attr('x',dx).attr('y',dy-4+li*14).attr('text-anchor','middle')
+          .attr('fill','#fff').attr('font-size','10').attr('font-weight','600')
+          .attr('font-family','DM Sans').text(ln);
+      });
+      const isVert=(d.angle===-90||d.angle===90);
+      d.items.forEach((item,ii)=>{
+        let ix,iy;
+        if(isVert){
+          const cols=d.items.length;const pillW=68,pgap=6;
+          const totalW=cols*pillW+(cols-1)*pgap;
+          ix=dx-totalW/2+ii*(pillW+pgap)+pillW/2;
+          iy=d.angle===-90?dy-dimR-20:dy+dimR+20;
+        }else{
+          const pillH=22,pgap=4;const totalH=d.items.length*(pillH+pgap);
+          ix=d.angle===0?dx+dimR+28:dx-dimR-28;
+          iy=dy-totalH/2+ii*(pillH+pgap)+pillH/2;
+        }
+        dg.append('rect').attr('x',ix-34).attr('y',iy-10).attr('width',68).attr('height',20)
+          .attr('rx',10).attr('fill',d.color).attr('opacity',.12);
+        dg.append('text').attr('x',ix).attr('y',iy+4).attr('text-anchor','middle')
+          .attr('fill',d.color).attr('font-size','9').attr('font-weight','500')
+          .attr('font-family','DM Sans').text(item);
+      });
+      dg.transition().duration(500).delay(400+di*200).attr('opacity',1);
+    });
+
+  } else if(idx===10){
+    // ── Galtung & Ruge 12 factors grid ──
+    const factors=[
+      {num:'F₁',name:'Frequency',cat:0},{num:'F₂',name:'Threshold',cat:0},
+      {num:'F₃',name:'Absolute Intensity',cat:0},{num:'F₄',name:'Unambiguity',cat:0},
+      {num:'F₅',name:'Meaningfulness',cat:1},{num:'F₆',name:'Consonance',cat:1},
+      {num:'F₇',name:'Unexpectedness',cat:1},{num:'F₈',name:'Continuity',cat:1},
+      {num:'F₉',name:'Composition',cat:2},{num:'F₁₀',name:'Elite Nations',cat:2},
+      {num:'F₁₁',name:'Elite Persons',cat:2},{num:'F₁₂',name:'Negativity',cat:2}
+    ];
+    const catColors=[C.blue,C.orange,C.green];
+    const cols=4,tileW=165,tileH=75,startX=50,startY=60;
+    factors.forEach((f,i)=>{
+      const col=i%cols,row=Math.floor(i/cols);
+      const fx=startX+col*(tileW+15),fy=startY+row*(tileH+15);
+      const fg=g.append('g').attr('opacity',0);
+      fg.append('rect').attr('x',fx).attr('y',fy).attr('width',tileW).attr('height',tileH)
+        .attr('rx',8).attr('fill',catColors[f.cat]).attr('fill-opacity',.12)
+        .attr('stroke',catColors[f.cat]).attr('stroke-width',1.5);
+      fg.append('text').attr('x',fx+tileW/2).attr('y',fy+28).attr('text-anchor','middle')
+        .attr('font-weight','700').attr('font-size','15').attr('fill',C.text)
+        .attr('font-family','DM Sans').text(f.num);
+      fg.append('text').attr('x',fx+tileW/2).attr('y',fy+52).attr('text-anchor','middle')
+        .attr('font-size','11').attr('fill',C.muted).attr('font-family','DM Sans').text(f.name);
+      fg.transition().duration(350).delay(i*70).attr('opacity',1);
+    });
+    g.append('text').attr('x',400).attr('y',478).attr('text-anchor','middle')
+      .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
+      .attr('font-family','DM Sans').text('"News and truth are not the same thing." — Lippmann (1922)')
+      .attr('opacity',0).transition().duration(400).delay(900).attr('opacity',1);
+
+  } else if(idx===11){
+    // ── Paywall models cards ──
+    const models=[
+      {x:60,title:'Harte Bezahlschranke',icon:'🔒',color:C.red,desc:'Nutzer:innen müssen\nein Abo abschließen'},
+      {x:300,title:'Freemium',icon:'🔓',color:C.orange,desc:'Ein Teil umsonst,\nPremium kostenpflichtig'},
+      {x:540,title:'Metered',icon:'📊',color:C.green,desc:'X Artikel frei,\ndann Bezahlschranke'}
+    ];
+    models.forEach((m,i)=>{
+      const mg=g.append('g').attr('opacity',0);
+      mg.append('rect').attr('x',m.x).attr('y',60).attr('width',200).attr('height',220)
+        .attr('rx',12).attr('fill',m.color).attr('fill-opacity',.08)
+        .attr('stroke',m.color).attr('stroke-width',2);
+      mg.append('text').attr('x',m.x+100).attr('y',110).attr('text-anchor','middle')
+        .attr('font-size','40').text(m.icon);
+      mg.append('text').attr('x',m.x+100).attr('y',160).attr('text-anchor','middle')
+        .attr('font-size','13').attr('font-weight','700').attr('fill',C.text)
+        .attr('font-family','DM Sans').text(m.title);
+      const descLines=m.desc.split('\n');
+      descLines.forEach((ln,li)=>{
+        mg.append('text').attr('x',m.x+100).attr('y',195+li*16).attr('text-anchor','middle')
+          .attr('font-size','11').attr('fill',C.muted).attr('font-family','DM Sans').text(ln);
+      });
+      mg.transition().duration(400).delay(i*150).attr('opacity',1);
+    });
+    g.append('text').attr('x',400).attr('y',340).attr('text-anchor','middle')
+      .attr('font-size','12').attr('font-weight','600').attr('fill',C.red)
+      .attr('font-family','DM Sans').text('Klickzahlen und Verweildauer sind die neuen Währungen.')
+      .attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+
+  } else if(idx===12){
+    // ── Canavilhas→Trillo comparison ──
+    const pyrX=200,pyrY=60;
+    const pyrLayers=[
+      {label:'Exploration',w:240,op:.25},{label:'Kontext',w:180,op:.4},
+      {label:'Erklärung',w:120,op:.6},{label:'Basiseinheit',w:60,op:.85}
+    ];
+    g.append('text').attr('x',pyrX).attr('y',pyrY-15).attr('text-anchor','middle')
+      .attr('font-size','12').attr('font-weight','700').attr('fill',C.text)
+      .attr('font-family','DM Sans').text('Canavilhas (2006)')
+      .attr('opacity',0).transition().duration(400).attr('opacity',1);
+    pyrLayers.forEach((l,i)=>{
+      const lh=70,ly=pyrY+i*(lh+6),lx=pyrX-l.w/2;
+      g.append('rect').attr('x',lx).attr('y',ly).attr('width',l.w).attr('height',lh)
+        .attr('rx',4).attr('fill',C.blue).attr('fill-opacity',l.op).attr('stroke',C.blue).attr('stroke-width',1)
+        .attr('opacity',0).transition().duration(350).delay(i*100).attr('opacity',1);
+      g.append('text').attr('x',pyrX).attr('y',ly+lh/2+5).attr('text-anchor','middle')
+        .attr('font-size','12').attr('fill','#fff').attr('font-weight','600')
+        .attr('font-family','DM Sans').text(l.label)
+        .attr('opacity',0).transition().duration(350).delay(i*100+50).attr('opacity',1);
+    });
+    g.append('line').attr('x1',355).attr('y1',220).attr('x2',420).attr('y2',220)
+      .attr('stroke',C.accent).attr('stroke-width',2.5)
+      .attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+    g.append('polygon').attr('points','418,213 432,220 418,227')
+      .attr('fill',C.accent).attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+    const cubeX=580,cubeY=220,cubeR=40;
+    g.append('text').attr('x',cubeX).attr('y',45).attr('text-anchor','middle')
+      .attr('font-size','12').attr('font-weight','700').attr('fill',C.text)
+      .attr('font-family','DM Sans').text('Trillo-Domínguez (2017)')
+      .attr('opacity',0).transition().duration(400).delay(400).attr('opacity',1);
+    g.append('rect').attr('x',cubeX-cubeR).attr('y',cubeY-cubeR)
+      .attr('width',cubeR*2).attr('height',cubeR*2).attr('rx',10)
+      .attr('fill',C.accent).attr('opacity',0)
+      .transition().duration(500).delay(400).attr('opacity',.85);
+    g.append('text').attr('x',cubeX).attr('y',cubeY+6).attr('text-anchor','middle')
+      .attr('fill','#fff').attr('font-size','14').attr('font-weight','700')
+      .attr('font-family','DM Sans').text('CLIMAX')
+      .attr('opacity',0).transition().duration(500).delay(500).attr('opacity',1);
+    const dims4=[
+      {label:'WHY',x:cubeX-110,y:cubeY-70},{label:'WHO',x:cubeX+110,y:cubeY-70},
+      {label:'WHAT',x:cubeX-110,y:cubeY+70},{label:'WHERE',x:cubeX+110,y:cubeY+70},
+      {label:'WHEN',x:cubeX,y:cubeY-110},{label:'HOW',x:cubeX,y:cubeY+110}
+    ];
+    dims4.forEach((d,i)=>{
+      g.append('line').attr('x1',d.x).attr('y1',d.y).attr('x2',cubeX).attr('y2',cubeY)
+        .attr('stroke',C.gold).attr('stroke-width',1.5).attr('stroke-dasharray','4 3')
+        .attr('opacity',0).transition().duration(300).delay(600+i*80).attr('opacity',.25);
+      g.append('rect').attr('x',d.x-32).attr('y',d.y-15).attr('width',64).attr('height',30)
+        .attr('rx',6).attr('fill',C.gold).attr('fill-opacity',.2)
+        .attr('stroke',C.gold).attr('stroke-width',1.5)
+        .attr('opacity',0).transition().duration(300).delay(600+i*80).attr('opacity',1);
+      g.append('text').attr('x',d.x).attr('y',d.y+4).attr('text-anchor','middle')
+        .attr('font-size','11').attr('font-weight','700').attr('fill',C.text)
+        .attr('font-family','DM Sans').text(d.label)
+        .attr('opacity',0).transition().duration(300).delay(600+i*80).attr('opacity',1);
+    });
+    g.append('text').attr('x',400).attr('y',490).attr('text-anchor','middle')
+      .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
+      .attr('font-family','DM Sans').text('Verschiedene Einstiege, verschiedene Pfade durch die Information')
+      .attr('opacity',0).transition().duration(400).delay(1000).attr('opacity',1);
+
+  } else if(idx===13){
+    // ── Journalist circles by generation/age ──
+    const journalists=[
+      {name:'A. Weber',age:81,gen:'Veteran',sex:'f',medium:'Print',x:120,y:140},
+      {name:'K. Müller',age:72,gen:'Veteran',sex:'m',medium:'Print',x:200,y:110},
+      {name:'H. Schmidt',age:68,gen:'Veteran',sex:'m',medium:'Print',x:160,y:200},
+      {name:'B. Fischer',age:65,gen:'Veteran',sex:'f',medium:'Print/Online',x:240,y:175},
+      {name:'M. Braun',age:58,gen:'Mitte',sex:'m',medium:'Print/Online',x:350,y:120},
+      {name:'S. Wagner',age:54,gen:'Mitte',sex:'f',medium:'Online',x:420,y:180},
+      {name:'T. Becker',age:51,gen:'Mitte',sex:'m',medium:'Print',x:380,y:250},
+      {name:'L. Koch',age:48,gen:'Mitte',sex:'f',medium:'Online',x:450,y:300},
+      {name:'J. Hoffmann',age:45,gen:'Mitte',sex:'m',medium:'Print/Online',x:340,y:320},
+      {name:'P. Schäfer',age:42,gen:'Mitte',sex:'f',medium:'Online',x:480,y:240},
+      {name:'N. Richter',age:35,gen:'Jung',sex:'m',medium:'Online',x:580,y:150},
+      {name:'E. Wolf',age:32,gen:'Jung',sex:'f',medium:'Social Media',x:650,y:200},
+      {name:'F. Klein',age:29,gen:'Jung',sex:'m',medium:'Online',x:620,y:280},
+      {name:'C. Neumann',age:27,gen:'Jung',sex:'f',medium:'Social Media',x:700,y:250},
+      {name:'D. Schwarz',age:25,gen:'Jung',sex:'m',medium:'Social Media',x:660,y:340}
+    ];
+    const genColors={Veteran:C.blue,Mitte:C.orange,Jung:C.green};
+    // Generation zone backgrounds
+    [{label:'Veteran (60+)',x:80,w:230,color:C.blue},{label:'Mitte (40–59)',x:310,w:220,color:C.orange},{label:'Jung (25–39)',x:540,w:220,color:C.green}].forEach((z,i)=>{
+      g.append('rect').attr('x',z.x).attr('y',80).attr('width',z.w).attr('height',310)
+        .attr('rx',12).attr('fill',z.color).attr('opacity',0)
+        .transition().duration(400).delay(i*100).attr('opacity',.04);
+      g.append('text').attr('x',z.x+z.w/2).attr('y',70).attr('text-anchor','middle')
+        .attr('fill',z.color).attr('font-size','11').attr('font-weight','600')
+        .attr('font-family','DM Sans').text(z.label)
+        .attr('opacity',0).transition().duration(400).delay(i*100).attr('opacity',.7);
+    });
+    journalists.forEach((j,i)=>{
+      const r=j.medium.includes('Social')?22:j.medium.includes('Online')?18:15;
+      const jg=g.append('g').attr('opacity',0);
+      jg.append('circle').attr('cx',j.x).attr('cy',j.y).attr('r',r)
+        .attr('fill',genColors[j.gen]).attr('opacity',.7)
+        .attr('stroke',j.sex==='f'?'#fff':'none').attr('stroke-width',j.sex==='f'?2:0)
+        .attr('stroke-dasharray',j.sex==='f'?'4 2':'none');
+      jg.append('text').attr('x',j.x).attr('y',j.y+4).attr('text-anchor','middle')
+        .attr('fill','#fff').attr('font-size','9').attr('font-weight','600')
+        .attr('font-family','DM Sans').text(j.age);
+      jg.transition().duration(400).delay(200+i*60).attr('opacity',1);
+    });
+    // Legend
+    const legY=440;
+    g.append('circle').attr('cx',200).attr('cy',legY).attr('r',6).attr('fill',C.muted).attr('opacity',.5)
+      .attr('stroke','#fff').attr('stroke-width',2).attr('stroke-dasharray','4 2');
+    g.append('text').attr('x',215).attr('y',legY+4).attr('font-size','10').attr('fill',C.muted)
+      .attr('font-family','DM Sans').text('Gepunktet = Frau · Durchgezogen = Mann');
+
+  } else if(idx===14){
+    // ── Neuberger concept cards ──
+    const concepts=[
+      {x:60,title:'Nachrichten-\nJournalismus',role:'Rolle: Mittler',desc:'W-Fragen, umgekehrte\nPyramide, Trennung\nNachricht/Meinung',color:C.blue,highlight:true},
+      {x:300,title:'Präzisions-\nJournalismus',role:'Rolle: Forscher',desc:'Datenanalyse, Statistik,\nMethodentransparenz',color:C.orange,highlight:false},
+      {x:540,title:'Investigativer\nJournalismus',role:'Rolle: Wachhund',desc:'Recherche, Quellenarbeit,\nInformantenschutz',color:C.green,highlight:false}
+    ];
+    const cardY=60,cardH=340;
+    concepts.forEach((c,i)=>{
+      const cg3=g.append('g').attr('opacity',0);
+      cg3.append('rect').attr('x',c.x).attr('y',cardY).attr('width',210).attr('height',cardH)
+        .attr('rx',10).attr('fill',c.color).attr('fill-opacity',.06)
+        .attr('stroke',c.highlight?C.accent:c.color).attr('stroke-width',c.highlight?3:2)
+        .attr('stroke-dasharray',c.highlight?'6 3':'none');
+      cg3.append('rect').attr('x',c.x).attr('y',cardY).attr('width',210).attr('height',65)
+        .attr('rx',10).attr('fill',c.color).attr('opacity',.85);
+      cg3.append('rect').attr('x',c.x).attr('y',cardY+45).attr('width',210).attr('height',20)
+        .attr('fill',c.color).attr('opacity',.85);
+      const lines=c.title.split('\n');
+      lines.forEach((ln,li)=>{
+        cg3.append('text').attr('x',c.x+105).attr('y',cardY+30+li*18).attr('text-anchor','middle')
+          .attr('font-size','14').attr('font-weight','700').attr('fill','#fff')
+          .attr('font-family','DM Sans').text(ln);
+      });
+      cg3.append('text').attr('x',c.x+105).attr('y',cardY+100).attr('text-anchor','middle')
+        .attr('font-size','11').attr('fill',C.muted).attr('font-style','italic')
+        .attr('font-family','DM Sans').text(c.role);
+      cg3.append('line').attr('x1',c.x+25).attr('y1',cardY+118).attr('x2',c.x+185).attr('y2',cardY+118)
+        .attr('stroke','#e6e1da').attr('stroke-width',1);
+      const dLines=c.desc.split('\n');
+      dLines.forEach((ln,li)=>{
+        cg3.append('text').attr('x',c.x+105).attr('y',cardY+145+li*18).attr('text-anchor','middle')
+          .attr('font-size','12').attr('fill',C.text).attr('font-family','DM Sans').text(ln);
+      });
+      if(c.highlight){
+        cg3.append('text').attr('x',c.x+105).attr('y',cardY+cardH-20).attr('text-anchor','middle')
+          .attr('font-size','11').attr('fill',C.accent).attr('font-weight','600')
+          .attr('font-family','DM Sans').text('→ „Kern des Journalismus"');
+      }
+      cg3.transition().duration(400).delay(i*180).attr('opacity',1);
+    });
+
+  } else if(idx===15){
+    // ── Final synthesis: Classic pyramid → Hybrid pyramid ──
+    const pyrX=180,pyrY=70;
+    const layers=[
+      {label:'Hintergrund',w:220,op:.2},{label:'Kontext',w:160,op:.35},
+      {label:'Details',w:100,op:.55},{label:'Lead',w:50,op:.8}
+    ];
+    layers.forEach((l,i)=>{
+      const lh=60,ly=pyrY+i*lh,lx=pyrX-l.w/2;
+      g.append('rect').attr('x',lx).attr('y',ly).attr('width',l.w).attr('height',lh)
+        .attr('fill',C.blue).attr('fill-opacity',l.op).attr('stroke',C.blue).attr('stroke-width',1)
+        .attr('opacity',0).transition().duration(300).delay(i*100).attr('opacity',1);
+      g.append('text').attr('x',pyrX).attr('y',ly+35).attr('text-anchor','middle')
+        .attr('font-size','11').attr('fill',i>1?'#fff':C.text).attr('font-weight','600')
+        .attr('font-family','DM Sans').text(l.label)
+        .attr('opacity',0).transition().duration(300).delay(i*100).attr('opacity',1);
+    });
+    g.append('text').attr('x',pyrX).attr('y',pyrY-15).attr('text-anchor','middle')
+      .attr('font-size','11').attr('font-weight','600').attr('fill',C.muted)
+      .attr('font-family','DM Sans').text('Klassisch')
+      .attr('opacity',0).transition().duration(400).attr('opacity',1);
+    // Arrow
+    g.append('line').attr('x1',330).attr('y1',210).attr('x2',400).attr('y2',210)
+      .attr('stroke',C.accent).attr('stroke-width',2.5)
+      .attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+    g.append('polygon').attr('points','398,203 412,210 398,217')
+      .attr('fill',C.accent).attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+    g.append('text').attr('x',365).attr('y',195).attr('text-anchor','middle')
+      .attr('font-size','10').attr('fill',C.accent).attr('font-family','DM Sans').text('Transformation')
+      .attr('opacity',0).transition().duration(400).delay(500).attr('opacity',1);
+    // Right: Hybrid pyramid with feature crown
+    const hybX=560,hybY=70;
+    g.append('rect').attr('x',hybX-110).attr('y',hybY).attr('width',220).attr('height',45)
+      .attr('rx',8).attr('fill',C.gold).attr('fill-opacity',.3)
+      .attr('stroke',C.gold).attr('stroke-width',2)
+      .attr('opacity',0).transition().duration(400).delay(450).attr('opacity',1);
+    g.append('text').attr('x',hybX).attr('y',hybY+28).attr('text-anchor','middle')
+      .attr('font-size','12').attr('font-weight','700').attr('fill',C.text)
+      .attr('font-family','DM Sans').text('✨ Feature Lead / Sahnehäubchen')
+      .attr('opacity',0).transition().duration(400).delay(450).attr('opacity',1);
+    const hybLayers=[
+      {label:'Hintergrund',w:180,op:.2},{label:'Kontext',w:130,op:.35},
+      {label:'Details',w:80,op:.55},{label:'Lead',w:40,op:.8}
+    ];
+    hybLayers.forEach((l,i)=>{
+      const lh=50,ly=hybY+55+i*lh,lx=hybX-l.w/2;
+      g.append('rect').attr('x',lx).attr('y',ly).attr('width',l.w).attr('height',lh)
+        .attr('fill',C.blue).attr('fill-opacity',l.op).attr('stroke',C.blue).attr('stroke-width',1)
+        .attr('opacity',0).transition().duration(300).delay(500+i*100).attr('opacity',1);
+      g.append('text').attr('x',hybX).attr('y',ly+30).attr('text-anchor','middle')
+        .attr('font-size','10').attr('fill',i>1?'#fff':C.text).attr('font-weight','600')
+        .attr('font-family','DM Sans').text(l.label)
+        .attr('opacity',0).transition().duration(300).delay(500+i*100).attr('opacity',1);
+    });
+    g.append('text').attr('x',hybX).attr('y',hybY-15).attr('text-anchor','middle')
+      .attr('font-size','11').attr('font-weight','600').attr('fill',C.muted)
+      .attr('font-family','DM Sans').text('Hybrid')
+      .attr('opacity',0).transition().duration(400).delay(400).attr('opacity',1);
+    g.append('text').attr('x',400).attr('y',460).attr('text-anchor','middle')
+      .attr('fill',C.muted).attr('font-size','11').attr('font-style','italic')
+      .attr('font-family','DM Sans').text('„Die Pyramide verschwindet nicht — sie transformiert sich."')
+      .attr('opacity',0).transition().duration(400).delay(900).attr('opacity',1);
+  }
+  layoutGuard(svg, 1200);
+}
+
+// ═══════════════════════════════════════════════════════════
+// UNIFIED OBSERVER FOR ALL 16 STATES
+// ═══════════════════════════════════════════════════════════
+const allSteps = document.querySelectorAll('.scrolly .step');
+const vizStepObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const idx = parseInt(e.target.dataset.step);
+      if (!isNaN(idx)) {
+        drawState(idx);
+        allSteps.forEach(s => s.classList.remove('is-active'));
+        e.target.classList.add('is-active');
+      }
+    }
+  });
+}, { rootMargin: '-45% 0px -45% 0px' });
+allSteps.forEach(s => vizStepObs.observe(s));
+
+// Show/hide viz panel based on scrolly section visibility
+const scrollySections = document.querySelectorAll('.scrolly');
+const panelVis = new IntersectionObserver(entries => {
+  let visible = false;
+  scrollySections.forEach(s => {
+    const rect = s.getBoundingClientRect();
+    if (rect.top < window.innerHeight && rect.bottom > 0) visible = true;
+  });
+  vizPanel.classList.toggle('is-visible', visible);
+}, { rootMargin: '0px' });
+scrollySections.forEach(s => panelVis.observe(s));
+
+// Initial draw
+drawState(0);
+</script>
+</body>
+</html>
