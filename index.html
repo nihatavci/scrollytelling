@@ -395,7 +395,7 @@ window.addEventListener('DOMContentLoaded', () => {
   nodeGrps.append('text')
     .attr('text-anchor','middle').attr('dominant-baseline','central')
     .attr('font-family', d => d.cat==='w' ? "'Source Serif 4',serif" : "'DM Sans',sans-serif")
-    .attr('font-size',   d => `${BASE_FS * d.sz * 0.35}px`)
+    .attr('font-size',   d => `${BASE_FS * d.sz * 0.28}px`)
     .attr('font-weight', d => d.cat==='w' ? '700' : '500')
     .attr('fill', d => catColor[d.cat])
     .attr('opacity', 0)
@@ -410,9 +410,9 @@ window.addEventListener('DOMContentLoaded', () => {
   // ── Inverted pyramid positions (10-8-6-4-2 = 30 nodes) ──
   function calcPyrPos() {
     const rows = [10,8,6,4,2];
-    const colGap = Math.min(W * 0.074, 72);
-    const rowGap = H * 0.11;
-    const topY = H * 0.22;
+    const colGap = Math.min(W * 0.082, 80);
+    const rowGap = H * 0.13;
+    const topY = H * 0.15;
     const pos = [];
     rows.forEach((count, ri) => {
       const rowW = (count-1) * colGap;
@@ -680,16 +680,16 @@ window.addEventListener('DOMContentLoaded', () => {
   let t = 1200;
   timeline.forEach(step => {
     setTimeout(() => {
-      step.el.style.transition = `opacity ${step.inD}ms ease`;
+      step.el.style.transition = 'none';
       step.el.style.opacity = '1';
       step.fn();
     }, t);
-    t += step.inD + step.hold;
+    t += step.hold + 400;
     setTimeout(() => {
-      step.el.style.transition = `opacity ${step.outD}ms ease`;
+      step.el.style.transition = 'none';
       step.el.style.opacity = '0';
     }, t);
-    t += step.outD + 200;
+    t += 200;
   });
 
   // After all phases: clean up SVG → brand appears → brand settles → title → scroll cue
