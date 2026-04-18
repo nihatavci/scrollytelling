@@ -71,9 +71,9 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);ove
 .viz-wrap{width:100%}
 .viz-wrap svg{display:block;width:100%;height:auto;max-height:70vh}
 
-/* Fixed visualization panel - appears above scrolly sections */
-.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:none;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:5;pointer-events:none;background:var(--bg)}
-.viz-panel.is-visible{display:flex;pointer-events:auto}
+/* Fixed visualization panel - slides in from bottom with scroll */
+.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:5;pointer-events:none;background:var(--bg);transform:translateY(100%);will-change:transform}
+.viz-panel.is-visible{pointer-events:auto}
 
 .scrolly__steps{position:relative;z-index:10;width:320px;margin-left:auto;margin-right:1.5vw}
 .step{min-height:65vh;display:flex;align-items:center;padding:2rem 0}
@@ -1637,17 +1637,52 @@ const vizStepObs = new IntersectionObserver(entries => {
 }, { rootMargin: '-40% 0px -55% 0px' });
 allSteps.forEach(s => vizStepObs.observe(s));
 
-// Show/hide viz panel based on scrolly section visibility
+// Show/hide viz panel — slide in from bottom as user scrolls into first scrolly section
 const scrollySections = document.querySelectorAll('.scrolly');
-const panelVis = new IntersectionObserver(entries => {
-  let visible = false;
-  scrollySections.forEach(s => {
-    const rect = s.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) visible = true;
-  });
-  vizPanel.classList.toggle('is-visible', visible);
-}, { rootMargin: '0px' });
-scrollySections.forEach(s => panelVis.observe(s));
+const firstScrolly = scrollySections[0];
+const lastScrolly = scrollySections[scrollySections.length - 1];
+
+function updatePanelPosition() {
+  if (!firstScrolly || !lastScrolly) return;
+  const firstRect = firstScrolly.getBoundingClientRect();
+  const lastRect = lastScrolly.getBoundingClientRect();
+
+  // Check if any scrolly section is in view
+  const anyVisible = lastRect.top < window.innerHeight && firstRect.bottom > 0;
+
+  if (!anyVisible) {
+    // Fully hidden — push off screen
+    vizPanel.style.transform = 'translateY(100%)';
+    vizPanel.classList.remove('is-visible');
+    return;
+  }
+
+  // Slide-in: map first scrolly's top from bottom of viewport to 0
+  // When firstRect.top == window.innerHeight → panel at translateY(100%)
+  // When firstRect.top == 0 → panel at translateY(0%) (fully visible)
+  const slideZone = window.innerHeight;
+  const progress = Math.max(0, Math.min(1, 1 - firstRect.top / slideZone));
+
+  if (progress < 1) {
+    // Sliding in
+    const yPct = (1 - progress) * 100;
+    vizPanel.style.transform = `translateY(${yPct}%)`;
+    vizPanel.classList.add('is-visible');
+  } else {
+    // Fully in view — check if we're past the last scrolly
+    if (lastRect.bottom < 0) {
+      // Slide out upward
+      vizPanel.style.transform = 'translateY(-100%)';
+      vizPanel.classList.remove('is-visible');
+    } else {
+      vizPanel.style.transform = 'translateY(0%)';
+      vizPanel.classList.add('is-visible');
+    }
+  }
+}
+
+window.addEventListener('scroll', updatePanelPosition, { passive: true });
+updatePanelPosition();
 
 // Initial draw
 drawState(0);
