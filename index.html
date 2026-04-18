@@ -75,11 +75,11 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);ove
 .viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:none;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:5;pointer-events:none;background:var(--bg)}
 .viz-panel.is-visible{display:flex;pointer-events:auto}
 
-.scrolly__steps{position:relative;z-index:10;width:320px;margin-left:auto;margin-right:1.5vw;pointer-events:none}
-.step{min-height:100vh;display:flex;align-items:center;padding:2rem 0;pointer-events:auto}
-.step:first-child{padding-top:45vh}.step:last-child{margin-bottom:30vh}
-.sc{background:var(--card);border-radius:16px;padding:1.1rem 1.4rem 1.2rem;border:none;transition:all .5s cubic-bezier(.23,1,.32,1);opacity:.06;transform:translateY(12px);max-width:320px;box-shadow:0 4px 28px rgba(0,0,0,.10);text-align:center}
-.step.is-active .sc{opacity:1;transform:translateY(0);background:rgba(255,255,255,.96);box-shadow:0 6px 32px rgba(0,0,0,.13)}
+.scrolly__steps{position:relative;z-index:10;width:320px;margin-left:auto;margin-right:1.5vw}
+.step{min-height:65vh;display:flex;align-items:center;padding:2rem 0}
+.step:first-child{padding-top:40vh}.step:last-child{margin-bottom:25vh}
+.sc{background:var(--card);border-radius:16px;padding:1.1rem 1.4rem 1.2rem;border:none;max-width:320px;box-shadow:0 4px 28px rgba(0,0,0,.10);text-align:center;opacity:.35}
+.step.is-active .sc{opacity:1;box-shadow:0 6px 32px rgba(0,0,0,.13)}
 .badge{display:inline-block;font-size:.52rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:.1rem .45rem;border-radius:20px;margin-bottom:.4rem;opacity:.75}
 .b-pyramid{background:#fde8d8;color:#c06830}
 .b-data{background:#d6e8f0;color:#3d7a94}
@@ -111,10 +111,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);ove
   .viz-title{font-size:.88rem;line-height:1.2}
   .viz-sub{font-size:.65rem}
   .viz-wrap svg{height:100vw;max-height:68vh}
-  .scrolly__steps{width:100%;margin-left:0;margin-right:0;padding:0;pointer-events:none}
-  .step{min-height:100vh;padding:0;align-items:flex-end;padding-bottom:2rem;pointer-events:none}
-  .step:first-child{min-height:100vh}
-  .step:last-child{margin-bottom:30vh}
+  .scrolly__steps{width:100%;margin-left:0;margin-right:0;padding:0}
+  .step{min-height:60vh;padding:0;align-items:flex-end;padding-bottom:2rem}
+  .step:first-child{min-height:60vh}
+  .step:last-child{margin-bottom:20vh}
   .sc{max-width:calc(100% - 2rem);width:calc(100% - 2rem);margin:0 1rem;padding:.85rem 1.2rem 1rem;border-radius:14px;pointer-events:auto}
   .sc h3{font-size:.88rem}
   .badge{font-size:.48rem}
@@ -124,7 +124,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);ove
 </head>
 <body>
 <div class="progress" id="prog"></div>
-<div class="lang-sw"><button class="active" data-lang="de">DE</button><button data-lang="en">EN</button></div>
+<div class="lang-sw"><button class="active" data-lang="de">DE</button></div>
 
 <!-- ════════════════════ CINEMATIC INTRO ════════════════════ -->
 <section class="cin-intro" id="cin-intro">
@@ -410,9 +410,9 @@ window.addEventListener('DOMContentLoaded', () => {
   // ── Inverted pyramid positions (10-8-6-4-2 = 30 nodes) ──
   function calcPyrPos() {
     const rows = [10,8,6,4,2];
-    const colGap = Math.min(W * 0.082, 80);
-    const rowGap = H * 0.13;
-    const topY = H * 0.15;
+    const colGap = Math.min(W * 0.058, 58);
+    const rowGap = H * 0.12;
+    const topY = H * 0.18;
     const pos = [];
     rows.forEach((count, ri) => {
       const rowW = (count-1) * colGap;
@@ -494,9 +494,9 @@ window.addEventListener('DOMContentLoaded', () => {
         .attr('opacity', 0.84);
     });
     const pp = calcPyrPos();
-    const topL = pp[0].x - 34, topR = pp[9].x + 34;
-    const topYp = pp[0].y - 20, botY = pp[29].y + 20;
-    const botL = pp[28].x - 30, botR = pp[29].x + 30;
+    const topL = pp[0].x - 45, topR = pp[9].x + 45;
+    const topYp = pp[0].y - 26, botY = pp[29].y + 26;
+    const botL = pp[28].x - 38, botR = pp[29].x + 38;
     const badgeH = 28, badgeW = 100, badgeGap = 14;
     const badgeY = topYp - badgeGap - badgeH;
     setTimeout(() => {
@@ -636,9 +636,9 @@ window.addEventListener('DOMContentLoaded', () => {
     });
 
     const pp = calcPyrPos();
-    const topL = pp[0].x - 34, topR = pp[9].x + 34;
-    const topYp = pp[0].y - 20, botY = pp[29].y + 20;
-    const botL = pp[28].x - 30, botR = pp[29].x + 30;
+    const topL = pp[0].x - 45, topR = pp[9].x + 45;
+    const topYp = pp[0].y - 26, botY = pp[29].y + 26;
+    const botL = pp[28].x - 38, botR = pp[29].x + 38;
     setTimeout(() => {
       gOver.append('polygon').attr('class','cin-pyr-new')
         .attr('points',`${topL},${topYp} ${topR},${topYp} ${botR},${botY} ${botL},${botY}`)
