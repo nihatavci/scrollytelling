@@ -1,0 +1,49 @@
+{
+  "eval_id": 3,
+  "eval_name": "morphing-loading-animation",
+  "prompt": "Create a loading animation component that's smooth and modern. The animation should morph between 3-4 geometric shapes (circle → square → hexagon → circle) while changing colors. Include a percentage counter that ticks from 0 to 100 over 5 seconds. Make it feel premium and satisfying.",
+  "assertions": [
+    {
+      "id": "shape_morphing",
+      "text": "SVG shapes morph smoothly between circle, square, hexagon, and back to circle",
+      "passed": true,
+      "evidence": "SVG path animations transition smoothly between all four shapes with proper easing"
+    },
+    {
+      "id": "color_transitions",
+      "text": "Colors transition during morphing (gradient changes)",
+      "passed": true,
+      "evidence": "Color palette shifts through Indigo → Pink → Amber → Purple in sync with shape morphing"
+    },
+    {
+      "id": "percentage_counter",
+      "text": "Percentage counter ticks from 0 to 100 over exactly 5 seconds",
+      "passed": true,
+      "evidence": "Counter uses requestAnimationFrame to increment smoothly from 0-100 in 5000ms"
+    },
+    {
+      "id": "premium_feel",
+      "text": "Professional, premium feel with modern typography and smooth easing",
+      "passed": true,
+      "evidence": "Modern font stack (Inter, system fonts), cubic-bezier easing, drop shadows, and professional layout"
+    },
+    {
+      "id": "looping_animation",
+      "text": "Animation loops infinitely",
+      "passed": true,
+      "evidence": "After 5-second cycle, animation resets and repeats continuously"
+    },
+    {
+      "id": "self_contained",
+      "text": "Self-contained HTML file with no external dependencies",
+      "passed": true,
+      "evidence": "Single HTML file with inline CSS and JavaScript, no external imports"
+    },
+    {
+      "id": "visual_interest",
+      "text": "Includes subtle rotation and scale effects for visual interest",
+      "passed": true,
+      "evidence": "30% rotation per cycle and ±5% scale pulse applied to shape, plus rotating background glow"
+    }
+  ]
+}

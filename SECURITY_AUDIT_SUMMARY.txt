@@ -1,0 +1,95 @@
+CODESIGHT SECURITY AUDIT - EXECUTIVE SUMMARY
+=============================================
+
+Repository: https://github.com/Houseofmvps/codesight (v1.13.1)
+Audit Date: 2026-04-22
+Codebase: 17,258 LOC, 175+ async functions
+Language: TypeScript/Node.js
+
+KEY FINDINGS:
+=============
+
+CRITICAL (1):
+- Issue #1: Prompt Injection in Wiki Articles
+  File: src/generators/wiki.ts lines 268-290, src/formatter.ts
+
+  Route paths, middleware names, and env vars are interpolated into markdown
+  WITHOUT escaping backticks/brackets/asterisks. Attackers can inject
+  markdown syntax that breaks code fences or adds instructions.
+
+  Fix Time: 1-2 hours
+  Status: REQUIRES IMMEDIATE ACTION
+
+HIGH SEVERITY (2):
+- Issue #2: MCP File Path Traversal
+  File: src/mcp-server.ts lines 184-209
+  toolGetBlastRadius() accepts file paths without validation.
+  Could leak filesystem information across project boundaries.
+  Fix Time: 30 minutes
+
+- Issue #3: Environment Variable Disclosure
+  File: src/generators/wiki.ts line 235
+  Sensitive env var names (containing KEY, SECRET, TOKEN, PASSWORD)
+  are exposed in wiki and MCP tool responses.
+  Fix Time: 1 hour
+
+MEDIUM SEVERITY (4):
+- Issue #4: Schema Field Name Injection (Database models not escaped)
+- Issue #5: Component Props Injection (React/Vue props not escaped)
+- Issue #6: Middleware Names in Routes (Low impact but related to #1)
+- Issue #7: Redundant Detector Execution (10-15% token waste)
+
+LOW SEVERITY (3):
+- Issue #8: Binary File Scanning (3-5% token waste)
+- Issue #9: Monorepo Schema Duplication (20-30% monorepo token waste)
+- Issue #10: Statistics Output Unbounded (DoS edge case)
+
+POSITIVE FINDINGS:
+==================
+✓ HTML report output properly escaped
+✓ No direct Claude API integration (major security advantage)
+✓ Configuration validation working well
+✓ File error handling robust
+✓ MCP protocol correctly implemented
+
+OVERALL RISK LEVEL:
+===================
+BEFORE FIXES: Medium (6.5/10)
+AFTER FIXES:  Low (2.5/10)
+
+IMPLEMENTATION EFFORT:
+======================
+Phase 1 (Critical/High): 2-3 hours
+Phase 2 (Medium):        4-5 hours
+Phase 3 (Optimization):  6-8 hours
+
+TESTING REQUIRED:
+=================
+- Test routes with backticks, brackets, asterisks
+- Test env var names with markdown syntax
+- Test model/field names with injection payloads
+- Test component props with special characters
+- Test MCP tools with path traversal attempts
+
+ARCHITECTURAL STRENGTH:
+=======================
+CodeSight's design of generating markdown context files (rather than
+calling Claude API directly) is a security advantage. This prevents
+direct injection at the API boundary.
+
+RECOMMENDATION:
+================
+DEPLOY: Phase 1 fixes immediately before wider adoption
+        Especially Issue #1 (Critical)
+
+TIMELINE: Phase 1 by end of week
+          Phase 2 by next release
+          Phase 3 optional optimization
+
+DEPLOY-READY: YES, with Phase 1 fixes
+
+---
+
+DETAILED REPORT: See CODESIGHT_SECURITY_AUDIT.md
+CODE EXAMPLES:  All fixes include working code snippets
+TESTING GUIDE:  Sample test cases provided

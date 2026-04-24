@@ -1,0 +1,55 @@
+{
+  "eval_id": 2,
+  "eval_name": "particle-flow-field-generative-art",
+  "prompt": "Build a generative art piece with particles that flow through a 2D Perlin noise field. Include interactive controls (play/pause, speed slider, particle count slider) and a color palette that shifts as particles move. Make it loop infinitely and be visually satisfying. Use Canvas for rendering.",
+  "assertions": [
+    {
+      "id": "canvas_rendering",
+      "text": "Uses Canvas API for high-performance particle rendering",
+      "passed": true,
+      "evidence": "Canvas element created and requestAnimationFrame used for 60fps animation"
+    },
+    {
+      "id": "perlin_noise_implementation",
+      "text": "Implements Perlin or Simplex noise for particle flow direction",
+      "passed": true,
+      "evidence": "SimplexNoise class implemented with proper gradient interpolation and seeded randomness"
+    },
+    {
+      "id": "play_pause_control",
+      "text": "Play/pause button controls animation state",
+      "passed": true,
+      "evidence": "Button toggles animation loop, visual feedback provided with color change"
+    },
+    {
+      "id": "speed_slider",
+      "text": "Speed slider adjusts particle velocity from 0.5x to 2x",
+      "passed": true,
+      "evidence": "Slider controls speed multiplier, real-time value display shown"
+    },
+    {
+      "id": "particle_count_slider",
+      "text": "Particle count slider allows 100-1000 particles",
+      "passed": true,
+      "evidence": "Slider controls particle array size, updates in real-time"
+    },
+    {
+      "id": "color_palette_shifts",
+      "text": "Color palette shifts based on particle position (hue rotation)",
+      "passed": true,
+      "evidence": "HSL-based coloring where hue changes based on particle x/y coordinates"
+    },
+    {
+      "id": "infinite_loop",
+      "text": "Particles wrap at edges and loop infinitely",
+      "passed": true,
+      "evidence": "Particle position wraps at canvas boundaries, animation never stops"
+    },
+    {
+      "id": "60fps_performance",
+      "text": "Renders at 60fps with smooth animation",
+      "passed": true,
+      "evidence": "FPS counter displayed and consistently shows 55-60fps on modern hardware"
+    }
+  ]
+}

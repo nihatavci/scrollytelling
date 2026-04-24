@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Generative Particle Flow Field</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background: #0a0e27;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            overflow: hidden;
+        }
+
+        #canvas {
+            flex: 1;
+            display: block;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1f3a 100%);
+        }
+
+        .controls {
+            background: rgba(10, 14, 39, 0.95);
+            backdrop-filter: blur(10px);
+            border-top: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px;
+            display: flex;
+            gap: 30px;
+            align-items: center;
+            flex-wrap: wrap;
+            box-shadow: 0 -2px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .control-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .control-group label {
+            color: #e0e0e0;
+            font-weight: 500;
+            font-size: 14px;
+            white-space: nowrap;
+        }
+
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        button:active {
+            transform: translateY(0);
+        }
+
+        button.active {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            box-shadow: 0 4px 15px rgba(245, 87, 108, 0.4);
+        }
+
+        input[type="range"] {
+            width: 150px;
+            height: 6px;
+            border-radius: 3px;
+            background: linear-gradient(to right, #667eea, #764ba2);
+            outline: none;
+            -webkit-appearance: none;
+            appearance: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+        }
+
+        input[type="range"]::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: white;
+            cursor: pointer;
+            border: none;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+            transition: all 0.2s ease;
+        }
+
+        input[type="range"]::-moz-range-thumb:hover {
+            transform: scale(1.2);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.5);
+        }
+
+        .value-display {
+            color: #667eea;
+            font-weight: 600;
+            min-width: 50px;
+            text-align: right;
+            font-size: 13px;
+        }
+
+        .info {
+            color: #888;
+            font-size: 12px;
+            padding: 0 20px;
+            display: flex;
+            gap: 30px;
+        }
+
+        .info-item {
+            display: flex;
+            gap: 8px;
+        }
+
+        .info-label {
+            color: #666;
+        }
+
+        .info-value {
+            color: #667eea;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="canvas"></canvas>
+
+    <div class="controls">
+        <div class="control-group">
+            <button id="playPauseBtn" class="active">Pause</button>
+        </div>
+
+        <div class="control-group">
+            <label for="speedSlider">Speed:</label>
+            <input type="range" id="speedSlider" min="0.5" max="2" step="0.1" value="1">
+            <span class="value-display" id="speedValue">1.0x</span>
+        </div>
+
+        <div class="control-group">
+            <label for="particleSlider">Particles:</label>
+            <input type="range" id="particleSlider" min="100" max="1000" step="50" value="500">
+            <span class="value-display" id="particleValue">500</span>
+        </div>
+
+        <div class="control-group">
+            <button id="resetBtn">Reset Field</button>
+        </div>
+    </div>
+
+    <div class="info">
+        <div class="info-item">
+            <span class="info-label">FPS:</span>
+            <span class="info-value" id="fpsDisplay">60</span>
+        </div>
+        <div class="info-item">
+            <span class="info-label">Active Particles:</span>
+            <span class="info-value" id="particleCount">500</span>
+        </div>
+    </div>
+
+    <script>
+        // ============================================
+        // SIMPLEX NOISE IMPLEMENTATION
+        // ============================================
+        class SimplexNoise {
+            constructor(seed = 0) {
+                this.p = this.buildPermutationTable(seed);
+            }
+
+            buildPermutationTable(seed) {
+                const p = Array.from({ length: 256 }, (_, i) => i);
+                // Shuffle with seed
+                for (let i = 255; i > 0; i--) {
+                    const j = Math.floor((seed * 65536 * Math.sin(seed + i)) % (i + 1));
+                    [p[i], p[j]] = [p[j], p[i]];
+                }
+                return p.concat(p);
+            }
+
+            fade(t) {
+                return t * t * t * (t * (t * 6 - 15) + 10);
+            }
+
+            lerp(t, a, b) {
+                return a + t * (b - a);
+            }
+
+            grad(hash, x, y) {
+                const h = hash & 15;
+                const u = h < 8 ? x : y;
+                const v = h < 8 ? y : x;
+                return ((h & 1) === 0 ? u : -u) + ((h & 2) === 0 ? v : -v);
+            }
+
+            noise(x, y) {
+                const xi = Math.floor(x) & 255;
+                const yi = Math.floor(y) & 255;
+
+                const xf = x - Math.floor(x);
+                const yf = y - Math.floor(y);
+
+                const u = this.fade(xf);
+                const v = this.fade(yf);
+
+                const aa = this.p[this.p[xi] + yi];
+                const ba = this.p[this.p[xi + 1] + yi];
+                const ab = this.p[this.p[xi] + yi + 1];
+                const bb = this.p[this.p[xi + 1] + yi + 1];
+
+                const g1 = this.grad(aa, xf, yf);
+                const g2 = this.grad(ba, xf - 1, yf);
+                const g3 = this.grad(ab, xf, yf - 1);
+                const g4 = this.grad(bb, xf - 1, yf - 1);
+
+                const x1 = this.lerp(u, g1, g2);
+                const x2 = this.lerp(u, g3, g4);
+                return this.lerp(v, x1, x2);
+            }
+        }
+
+        // ============================================
+        // PARTICLE SYSTEM
+        // ============================================
+        class Particle {
+            constructor(x, y, width, height) {
+                this.x = x;
+                this.y = y;
+                this.vx = 0;
+                this.vy = 0;
+                this.width = width;
+                this.height = height;
+                this.lifespan = 1;
+                this.trailLength = 8;
+                this.trail = [];
+            }
+
+            update(noise, scale, speed) {
+                // Get noise value at current position
+                const angle = noise.noise(this.x / scale, this.y / scale) * Math.PI * 2;
+
+                // Update velocity based on noise field
+                this.vx = Math.cos(angle) * speed;
+                this.vy = Math.sin(angle) * speed;
+
+                // Update position
+                this.x += this.vx;
+                this.y += this.vy;
+
+                // Store trail
+                this.trail.push({ x: this.x, y: this.y });
+                if (this.trail.length > this.trailLength) {
+                    this.trail.shift();
+                }
+
+                // Wrap around edges
+                if (this.x < 0) this.x = this.width;
+                if (this.x > this.width) this.x = 0;
+                if (this.y < 0) this.y = this.height;
+                if (this.y > this.height) this.y = 0;
+            }
+
+            getHue() {
+                // Return hue based on position (0-360)
+                return ((this.x / this.width + this.y / this.height) * 360) % 360;
+            }
+
+            draw(ctx) {
+                const hue = this.getHue();
+
+                // Draw trail
+                for (let i = 0; i < this.trail.length; i++) {
+                    const alpha = (i / this.trail.length) * 0.6;
+                    ctx.strokeStyle = `hsla(${hue}, 100%, 60%, ${alpha})`;
+                    ctx.lineWidth = 1.5;
+                    ctx.beginPath();
+                    if (i === 0) {
+                        ctx.moveTo(this.trail[i].x, this.trail[i].y);
+                    } else {
+                        ctx.lineTo(this.trail[i].x, this.trail[i].y);
+                    }
+                    if (i === this.trail.length - 1) {
+                        ctx.stroke();
+                    }
+                }
+
+                // Draw particle
+                ctx.fillStyle = `hsl(${hue}, 100%, 70%)`;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, 2, 0, Math.PI * 2);
+                ctx.fill();
+            }
+        }
+
+        // ============================================
+        // MAIN APPLICATION
+        // ============================================
+        class ParticleFlowField {
+            constructor() {
+                this.canvas = document.getElementById('canvas');
+                this.ctx = this.canvas.getContext('2d');
+                this.resizeCanvas();
+
+                this.particles = [];
+                this.noise = new SimplexNoise(Math.random() * 10000);
+                this.noiseScale = 80;
+                this.speed = 0.5;
+                this.isPlaying = true;
+                this.particleCount = 500;
+                this.frameCount = 0;
+                this.fps = 60;
+                this.lastFpsTime = Date.now();
+
+                this.setupControls();
+                this.createParticles();
+                this.animate();
+
+                window.addEventListener('resize', () => this.resizeCanvas());
+            }
+
+            resizeCanvas() {
+                this.canvas.width = window.innerWidth;
+                this.canvas.height = window.innerHeight - 80;
+                this.createParticles();
+            }
+
+            createParticles() {
+                this.particles = [];
+                for (let i = 0; i < this.particleCount; i++) {
+                    const x = Math.random() * this.canvas.width;
+                    const y = Math.random() * this.canvas.height;
+                    this.particles.push(new Particle(x, y, this.canvas.width, this.canvas.height));
+                }
+                document.getElementById('particleCount').textContent = this.particleCount;
+            }
+
+            setupControls() {
+                // Play/Pause
+                const playPauseBtn = document.getElementById('playPauseBtn');
+                playPauseBtn.addEventListener('click', () => {
+                    this.isPlaying = !this.isPlaying;
+                    playPauseBtn.textContent = this.isPlaying ? 'Pause' : 'Play';
+                    playPauseBtn.classList.toggle('active');
+                });
+
+                // Speed Slider
+                const speedSlider = document.getElementById('speedSlider');
+                const speedValue = document.getElementById('speedValue');
+                speedSlider.addEventListener('input', (e) => {
+                    this.speed = parseFloat(e.target.value);
+                    speedValue.textContent = this.speed.toFixed(1) + 'x';
+                });
+
+                // Particle Count Slider
+                const particleSlider = document.getElementById('particleSlider');
+                particleSlider.addEventListener('input', (e) => {
+                    this.particleCount = parseInt(e.target.value);
+                    document.getElementById('particleValue').textContent = this.particleCount;
+                    this.createParticles();
+                });
+
+                // Reset Button
+                const resetBtn = document.getElementById('resetBtn');
+                resetBtn.addEventListener('click', () => {
+                    this.noise = new SimplexNoise(Math.random() * 10000);
+                    this.createParticles();
+                });
+            }
+
+            animate() {
+                // Clear canvas with fade effect
+                this.ctx.fillStyle = 'rgba(10, 14, 39, 0.15)';
+                this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                // Update and draw particles
+                if (this.isPlaying) {
+                    for (const particle of this.particles) {
+                        particle.update(this.noise, this.noiseScale, this.speed);
+                        particle.draw(this.ctx);
+                    }
+                } else {
+                    // Just draw without updating
+                    for (const particle of this.particles) {
+                        particle.draw(this.ctx);
+                    }
+                }
+
+                // Update FPS counter
+                this.frameCount++;
+                const now = Date.now();
+                if (now - this.lastFpsTime >= 1000) {
+                    this.fps = this.frameCount;
+                    document.getElementById('fpsDisplay').textContent = this.fps;
+                    this.frameCount = 0;
+                    this.lastFpsTime = now;
+                }
+
+                requestAnimationFrame(() => this.animate());
+            }
+        }
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', () => {
+            new ParticleFlowField();
+        });
+    </script>
+</body>
+</html>

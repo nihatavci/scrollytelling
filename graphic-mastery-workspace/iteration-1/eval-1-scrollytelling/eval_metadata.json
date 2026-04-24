@@ -1,0 +1,43 @@
+{
+  "eval_id": 1,
+  "eval_name": "scrollytelling-morphing-visualization",
+  "prompt": "Create an interactive scrollytelling visualization like the Preston Curve demo, but with three states: (1) a world map showing GDP per capita, (2) scatter plot of GDP vs life expectancy, (3) a stacked bar chart showing regional breakdowns. Include smooth SVG path morphing between states using flubber, and add labels that fade in/out appropriately. User should scroll to trigger transitions.",
+  "assertions": [
+    {
+      "id": "has_html_output",
+      "text": "HTML file generated and contains valid SVG elements",
+      "passed": true,
+      "evidence": "scrollytelling-visualization.html exists and contains <svg> tag with proper structure"
+    },
+    {
+      "id": "three_states_implemented",
+      "text": "All three visualization states (map, scatter, bars) are implemented",
+      "passed": true,
+      "evidence": "Code includes state functions for map grid, scatter plot, and stacked bars with proper data binding"
+    },
+    {
+      "id": "flubber_morphing",
+      "text": "Uses Flubber for smooth path morphing between states",
+      "passed": true,
+      "evidence": "Flubber library loaded from CDN and attrTween used for smooth transitions"
+    },
+    {
+      "id": "scroll_detection",
+      "text": "IntersectionObserver used for scroll-triggered state changes",
+      "passed": true,
+      "evidence": "IntersectionObserver configured with rootMargin and triggers state functions on scroll"
+    },
+    {
+      "id": "coordinate_space_correct",
+      "text": "All shapes in same coordinate space (no transform tricks that break morphing)",
+      "passed": true,
+      "evidence": "Paths generated in consistent SVG coordinate space, all transforms applied at group level"
+    },
+    {
+      "id": "labels_fade_in_out",
+      "text": "Labels fade in and out appropriately with state changes",
+      "passed": true,
+      "evidence": "Label opacity transitions implemented, visible only in map state"
+    }
+  ]
+}

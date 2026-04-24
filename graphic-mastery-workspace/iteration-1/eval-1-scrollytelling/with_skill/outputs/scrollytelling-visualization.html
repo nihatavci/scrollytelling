@@ -1,0 +1,565 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Scrollytelling: Global Development Patterns</title>
+    <script src="https://d3js.org/d3.v7.min.js"></script>
+    <script src="https://unpkg.com/flubber@0.7.2/build/flubber.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: #f8f9fa;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            height: 100vh;
+        }
+
+        /* Sticky graphic panel */
+        .graphic-panel {
+            position: sticky;
+            top: 0;
+            width: 60%;
+            height: 100vh;
+            background: #fff;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        .graphic-container {
+            width: 100%;
+            height: 100%;
+            position: relative;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Scroll text panel */
+        .scroll-panel {
+            width: 40%;
+            overflow-y: scroll;
+            padding: 60px 40px;
+            background: #fff;
+        }
+
+        .scroll-section {
+            margin-bottom: 200vh;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .scroll-section.active {
+            opacity: 1;
+        }
+
+        .scroll-section h2 {
+            font-size: 28px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            font-weight: 600;
+        }
+
+        .scroll-section p {
+            font-size: 16px;
+            line-height: 1.8;
+            color: #555;
+            margin-bottom: 15px;
+        }
+
+        .scroll-section.state-0 {
+            margin-bottom: 100vh;
+        }
+
+        .scroll-section.state-1 {
+            margin-bottom: 100vh;
+        }
+
+        .scroll-section.state-2 {
+            margin-bottom: 50vh;
+        }
+
+        /* SVG styles */
+        .country-circle {
+            fill-opacity: 0.7;
+            stroke: white;
+            stroke-width: 1.5;
+            transition: filter 0.2s;
+        }
+
+        .country-circle:hover {
+            filter: brightness(1.1);
+            stroke-width: 2;
+        }
+
+        .scatter-point {
+            fill-opacity: 0.6;
+            stroke: white;
+            stroke-width: 1;
+        }
+
+        .scatter-point:hover {
+            filter: brightness(1.2);
+            stroke-width: 2;
+        }
+
+        .bar-rect {
+            stroke: white;
+            stroke-width: 0.5;
+            transition: filter 0.2s;
+        }
+
+        .bar-rect:hover {
+            filter: brightness(1.15);
+        }
+
+        text.label {
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        text.label.active {
+            opacity: 0.8;
+        }
+
+        text.axis-label {
+            font-size: 13px;
+            fill: #666;
+        }
+
+        text.title {
+            font-size: 20px;
+            font-weight: 600;
+            fill: #2c3e50;
+            opacity: 0;
+            transition: opacity 0.4s ease;
+        }
+
+        text.title.active {
+            opacity: 1;
+        }
+
+        line.axis-line {
+            stroke: #ddd;
+            stroke-width: 1;
+        }
+
+        .tooltip {
+            position: absolute;
+            background: rgba(0, 0, 0, 0.85);
+            color: white;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 12px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+            z-index: 100;
+        }
+
+        .tooltip.show {
+            opacity: 1;
+        }
+
+        /* Scrollbar styling */
+        .scroll-panel::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .scroll-panel::-webkit-scrollbar-track {
+            background: #f1f1f1;
+        }
+
+        .scroll-panel::-webkit-scrollbar-thumb {
+            background: #888;
+            border-radius: 4px;
+        }
+
+        .scroll-panel::-webkit-scrollbar-thumb:hover {
+            background: #555;
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+            }
+
+            .graphic-panel {
+                width: 100%;
+                height: 50vh;
+                position: relative;
+                border-right: none;
+                border-bottom: 1px solid #eee;
+            }
+
+            .scroll-panel {
+                width: 100%;
+                height: 50vh;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="graphic-panel">
+            <div class="graphic-container">
+                <svg id="viz"></svg>
+                <div class="tooltip" id="tooltip"></div>
+            </div>
+        </div>
+
+        <div class="scroll-panel" id="scrollPanel">
+            <div class="scroll-section state-0 active">
+                <h2>Global Economic Development</h2>
+                <p>
+                    Understanding how countries develop economically and what that means for their populations is crucial to addressing global inequality.
+                </p>
+                <p>
+                    This visualization explores the relationship between a nation's gross domestic product (GDP) per capita—a measure of economic output per person—and life expectancy, a key indicator of living standards and healthcare quality.
+                </p>
+                <p>
+                    Scroll down to explore three different perspectives on how the world's economies are distributed. The map below shows current GDP per capita across regions, with larger and darker circles indicating wealthier nations.
+                </p>
+            </div>
+
+            <div class="scroll-section state-1">
+                <h2>The Preston Curve: GDP vs Life Expectancy</h2>
+                <p>
+                    As we shift our view, we see a striking pattern: there's a strong relationship between a country's wealth and how long its citizens live on average. This phenomenon, discovered by economist Samuel Preston, shows that wealthier nations consistently have higher life expectancies.
+                </p>
+                <p>
+                    The relationship is strongest at lower income levels—as countries develop from poverty to middle income, life expectancy increases rapidly. The curve flattens at higher incomes, suggesting that wealth matters less for health once basic needs are met.
+                </p>
+                <p>
+                    Different colors represent different world regions. Outliers—countries that defy the general trend—often have strong healthcare systems or face unique challenges.
+                </p>
+            </div>
+
+            <div class="scroll-section state-2">
+                <h2>Regional Inequality and Income Distribution</h2>
+                <p>
+                    Finally, we see how the global population is distributed across income levels by region. This stacked view reveals critical disparities: some regions have concentrated wealth at the top, while others show more balanced distribution.
+                </p>
+                <p>
+                    This perspective highlights why global development policy must be regional—solutions that work in one context may not work in another. Understanding these patterns helps policymakers target interventions where they'll have the most impact.
+                </p>
+                <p>
+                    The challenge ahead: ensuring that economic growth translates into improved living standards for all, not just the wealthy.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Sample data: ~15 countries with real-world inspired figures
+        const data = [
+            { country: 'China', region: 'Asia', gdp: 12556, life: 78.2, population: 1412 },
+            { country: 'India', region: 'Asia', gdp: 2389, life: 71.4, population: 1417 },
+            { country: 'USA', region: 'Americas', gdp: 69288, life: 78.9, population: 338 },
+            { country: 'Germany', region: 'Europe', gdp: 48756, life: 81.3, population: 84 },
+            { country: 'Japan', region: 'Asia', gdp: 33815, life: 84.6, population: 125 },
+            { country: 'UK', region: 'Europe', gdp: 46360, life: 81.5, population: 68 },
+            { country: 'Brazil', region: 'Americas', gdp: 8917, life: 75.9, population: 216 },
+            { country: 'Nigeria', region: 'Africa', gdp: 2139, life: 54.7, population: 223 },
+            { country: 'Mexico', region: 'Americas', gdp: 9926, life: 75.1, population: 128 },
+            { country: 'Indonesia', region: 'Asia', gdp: 4656, life: 71.7, population: 277 },
+            { country: 'South Korea', region: 'Asia', gdp: 31489, life: 82.1, population: 52 },
+            { country: 'France', region: 'Europe', gdp: 42778, life: 82.4, population: 68 },
+            { country: 'Russia', region: 'Europe', gdp: 11654, life: 71.4, population: 146 },
+            { country: 'Canada', region: 'Americas', gdp: 52052, life: 81.7, population: 39 },
+            { country: 'Kenya', region: 'Africa', gdp: 2389, life: 63.2, population: 54 }
+        ];
+
+        // Color scale by region
+        const regionColors = {
+            'Asia': '#FF6B6B',
+            'Europe': '#4ECDC4',
+            'Americas': '#45B7D1',
+            'Africa': '#FFA07A'
+        };
+
+        // Dimensions
+        const margin = { top: 40, right: 40, bottom: 40, left: 40 };
+        const svgWidth = document.querySelector('.graphic-container').clientWidth;
+        const svgHeight = document.querySelector('.graphic-container').clientHeight;
+        const width = svgWidth - margin.left - margin.right;
+        const height = svgHeight - margin.top - margin.bottom;
+
+        // Create SVG
+        const svg = d3.select('#viz');
+        const g = svg.append('g')
+            .attr('transform', `translate(${margin.left},${margin.top})`);
+
+        // State management
+        let currentState = 0;
+        const states = ['map', 'scatter', 'bars'];
+
+        // Scales for different visualizations
+        const gdpScale = d3.scaleLog().domain([1000, 100000]).range([0, width]);
+        const lifeScale = d3.scaleLinear().domain([50, 85]).range([height, 0]);
+        const regionScale = d3.scaleLinear().domain([0, 4]).range([0, width]);
+
+        // Generate path data for each state
+        function generateMapPaths() {
+            const paths = data.map((d, i) => {
+                const x = (i % 5) * (width / 5) + 50;
+                const y = Math.floor(i / 5) * (height / 3) + 80;
+                const r = Math.sqrt(d.gdp) / 20;
+                return `M${x - r},${y}
+                        C${x - r},${y - r * 0.55} ${x - r * 0.55},${y - r} ${x},${y - r}
+                        C${x + r * 0.55},${y - r} ${x + r},${y - r * 0.55} ${x + r},${y}
+                        C${x + r},${y + r * 0.55} ${x + r * 0.55},${y + r} ${x},${y + r}
+                        C${x - r * 0.55},${y + r} ${x - r},${y + r * 0.55} ${x - r},${y}
+                        Z`;
+            });
+            return paths;
+        }
+
+        function generateScatterPaths() {
+            const paths = data.map((d, i) => {
+                const x = gdpScale(d.gdp);
+                const y = lifeScale(d.life);
+                const r = 8;
+                return `M${x - r},${y}
+                        C${x - r},${y - r * 0.55} ${x - r * 0.55},${y - r} ${x},${y - r}
+                        C${x + r * 0.55},${y - r} ${x + r},${y - r * 0.55} ${x + r},${y}
+                        C${x + r},${y + r * 0.55} ${x + r * 0.55},${y + r} ${x},${y + r}
+                        C${x - r * 0.55},${y + r} ${x - r},${y + r * 0.55} ${x - r},${y}
+                        Z`;
+            });
+            return paths;
+        }
+
+        function generateBarPaths() {
+            const regionData = {};
+            data.forEach(d => {
+                if (!regionData[d.region]) {
+                    regionData[d.region] = { poor: 0, lower: 0, upper: 0, high: 0 };
+                }
+                if (d.gdp < 5000) regionData[d.region].poor += d.population;
+                else if (d.gdp < 15000) regionData[d.region].lower += d.population;
+                else if (d.gdp < 40000) regionData[d.region].upper += d.population;
+                else regionData[d.region].high += d.population;
+            });
+
+            const regions = Object.keys(regionData);
+            const barWidth = width / (regions.length + 1);
+            const paths = [];
+
+            regions.forEach((region, i) => {
+                const rData = regionData[region];
+                const total = rData.poor + rData.lower + rData.upper + rData.high;
+                const x = (i + 1) * barWidth;
+                let y = height;
+                const barH = barWidth * 0.6;
+
+                [rData.poor, rData.lower, rData.upper, rData.high].forEach((val, j) => {
+                    const h = (val / total) * height * 0.8;
+                    paths.push(`M${x - barH / 2},${y}L${x + barH / 2},${y}L${x + barH / 2},${y - h}L${x - barH / 2},${y - h}Z`);
+                    y -= h;
+                });
+            });
+
+            return paths;
+        }
+
+        let mapPaths = generateMapPaths();
+        let scatterPaths = generateScatterPaths();
+        let barPaths = generateBarPaths();
+
+        // Ensure all paths have same length by padding with empty circles
+        const maxLen = Math.max(mapPaths.length, scatterPaths.length, barPaths.length);
+        while (mapPaths.length < maxLen) mapPaths.push(mapPaths[mapPaths.length - 1]);
+        while (scatterPaths.length < maxLen) scatterPaths.push(scatterPaths[scatterPaths.length - 1]);
+        while (barPaths.length < maxLen) barPaths.push(barPaths[barPaths.length - 1]);
+
+        // Create shape elements
+        const shapes = g.selectAll('.shape')
+            .data(d3.range(maxLen), d => d)
+            .enter()
+            .append('path')
+            .attr('class', 'shape')
+            .attr('d', (d, i) => mapPaths[i])
+            .attr('fill', (d, i) => regionColors[data[i % data.length].region] || '#999')
+            .attr('opacity', 0.7);
+
+        // Title
+        const title = g.append('text')
+            .attr('class', 'title')
+            .attr('x', width / 2)
+            .attr('y', -15)
+            .attr('text-anchor', 'middle')
+            .text('GDP per Capita by Country');
+
+        // Labels
+        const labels = g.selectAll('.label')
+            .data(data, d => d.country)
+            .enter()
+            .append('text')
+            .attr('class', 'label')
+            .text(d => d.country)
+            .attr('x', (d, i) => {
+                const idx = i % data.length;
+                return (idx % 5) * (width / 5) + 50;
+            })
+            .attr('y', (d, i) => {
+                const idx = i % data.length;
+                return Math.floor(idx / 5) * (height / 3) + 110;
+            })
+            .attr('text-anchor', 'middle')
+            .attr('dy', '0.3em');
+
+        // Axes for scatter state
+        const xAxis = g.append('g')
+            .attr('class', 'x-axis')
+            .attr('transform', `translate(0,${height})`)
+            .style('opacity', 0)
+            .call(d3.axisBottom(gdpScale).ticks(5, '$'));
+
+        xAxis.append('text')
+            .attr('class', 'axis-label')
+            .attr('x', width / 2)
+            .attr('y', 35)
+            .attr('fill', '#666')
+            .text('GDP per Capita ($)');
+
+        const yAxis = g.append('g')
+            .attr('class', 'y-axis')
+            .style('opacity', 0)
+            .call(d3.axisLeft(lifeScale).ticks(5));
+
+        yAxis.append('text')
+            .attr('class', 'axis-label')
+            .attr('transform', 'rotate(-90)')
+            .attr('y', 0 - 30)
+            .attr('x', 0 - (height / 2))
+            .attr('dy', '1em')
+            .attr('fill', '#666')
+            .text('Life Expectancy (years)');
+
+        // Grid lines
+        const gridX = g.append('g')
+            .attr('class', 'grid-x')
+            .style('opacity', 0);
+
+        const gridY = g.append('g')
+            .attr('class', 'grid-y')
+            .style('opacity', 0);
+
+        // Tooltip
+        const tooltip = document.getElementById('tooltip');
+
+        // Scroll detection
+        const scrollPanel = document.getElementById('scrollPanel');
+        const sections = document.querySelectorAll('.scroll-section');
+
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    entry.target.classList.add('active');
+                    const newState = Array.from(sections).indexOf(entry.target);
+                    if (newState !== currentState) {
+                        currentState = newState;
+                        updateVisualization(currentState);
+                    }
+                }
+            });
+        }, { threshold: 0.5 });
+
+        sections.forEach(section => observer.observe(section));
+
+        function updateVisualization(state) {
+            let newPaths, newTitle, showAxisX = false, showAxisY = false, showLabels = false;
+
+            switch (state) {
+                case 0:
+                    newPaths = mapPaths;
+                    newTitle = 'GDP per Capita by Country';
+                    showLabels = true;
+                    break;
+                case 1:
+                    newPaths = scatterPaths;
+                    newTitle = 'Preston Curve: GDP vs Life Expectancy';
+                    showAxisX = true;
+                    showAxisY = true;
+                    break;
+                case 2:
+                    newPaths = barPaths;
+                    newTitle = 'Regional Income Distribution';
+                    break;
+            }
+
+            // Morph shapes
+            shapes.transition()
+                .duration(800)
+                .ease(d3.easeCubicInOut)
+                .attr('d', (d, i) => newPaths[i]);
+
+            // Update title
+            title.transition()
+                .duration(400)
+                .text(newTitle);
+
+            // Toggle axes
+            xAxis.transition().duration(400).style('opacity', showAxisX ? 1 : 0);
+            yAxis.transition().duration(400).style('opacity', showAxisY ? 1 : 0);
+
+            // Toggle labels
+            labels.classed('active', showLabels);
+
+            // Update label positions for scatter
+            if (state === 1) {
+                labels.transition()
+                    .duration(600)
+                    .attr('x', d => gdpScale(d.gdp))
+                    .attr('y', d => lifeScale(d.life) - 12);
+            }
+        }
+
+        // Hover interactions
+        shapes.on('mouseover', function(event, d) {
+            const idx = Array.from(shapes.nodes()).indexOf(this);
+            const dataPoint = data[idx % data.length];
+            tooltip.innerHTML = `<strong>${dataPoint.country}</strong><br/>
+                                GDP: $${dataPoint.gdp.toLocaleString()}<br/>
+                                Life Expectancy: ${dataPoint.life} years<br/>
+                                Region: ${dataPoint.region}`;
+            tooltip.classList.add('show');
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY - 40) + 'px';
+        })
+        .on('mouseout', function() {
+            tooltip.classList.remove('show');
+        })
+        .on('mousemove', function(event) {
+            tooltip.style.left = (event.pageX + 10) + 'px';
+            tooltip.style.top = (event.pageY - 40) + 'px';
+        });
+
+        // Initialize
+        updateVisualization(0);
+
+        // Handle window resize
+        window.addEventListener('resize', () => {
+            // Recalculate dimensions if needed
+        });
+    </script>
+</body>
+</html>

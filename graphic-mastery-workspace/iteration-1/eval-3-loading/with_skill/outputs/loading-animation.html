@@ -1,0 +1,389 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Loading Animation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background: linear-gradient(135deg, #0f0f1e 0%, #1a1a2e 50%, #16213e 100%);
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen', 'Ubuntu', 'Cantarell', sans-serif;
+            overflow: hidden;
+        }
+
+        .loading-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 48px;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* SVG Container */
+        .svg-container {
+            position: relative;
+            width: 280px;
+            height: 280px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            filter: drop-shadow(0 20px 60px rgba(99, 102, 241, 0.15));
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Morphing shape */
+        .morph-shape {
+            fill: none;
+            stroke: url(#shapeGradient);
+            stroke-width: 3;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            filter: drop-shadow(0 8px 24px rgba(99, 102, 241, 0.2));
+        }
+
+        /* Percentage counter */
+        .percentage-display {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            pointer-events: none;
+            z-index: 20;
+        }
+
+        .percentage-number {
+            font-size: 48px;
+            font-weight: 600;
+            color: #ffffff;
+            letter-spacing: -1px;
+            line-height: 1;
+            font-variant-numeric: tabular-nums;
+        }
+
+        .percentage-label {
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.6);
+            letter-spacing: 2px;
+            text-transform: uppercase;
+            margin-top: 8px;
+            font-weight: 500;
+        }
+
+        /* Status text */
+        .status-text {
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.8);
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            font-weight: 500;
+            animation: fadePulse 3s ease-in-out infinite;
+        }
+
+        @keyframes fadePulse {
+            0%, 100% { opacity: 0.8; }
+            50% { opacity: 1; }
+        }
+
+        /* Background glow effect */
+        .glow-background {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            width: 500px;
+            height: 500px;
+            background: radial-gradient(circle, rgba(99, 102, 241, 0.1) 0%, transparent 70%);
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            animation: glowPulse 4s ease-in-out infinite;
+            pointer-events: none;
+        }
+
+        @keyframes glowPulse {
+            0%, 100% {
+                transform: translate(-50%, -50%) scale(0.8);
+                opacity: 0.5;
+            }
+            50% {
+                transform: translate(-50%, -50%) scale(1.2);
+                opacity: 0.3;
+            }
+        }
+
+        /* Accent decorations */
+        .accent-dot {
+            position: absolute;
+            width: 4px;
+            height: 4px;
+            background: rgba(99, 102, 241, 0.4);
+            border-radius: 50%;
+        }
+
+        .accent-dot:nth-child(1) {
+            top: 10%;
+            left: 20%;
+            animation: float 6s ease-in-out infinite;
+        }
+
+        .accent-dot:nth-child(2) {
+            bottom: 15%;
+            right: 20%;
+            animation: float 7s ease-in-out infinite 1s;
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Background glow -->
+    <div class="glow-background"></div>
+
+    <!-- Accent decorations -->
+    <div class="accent-dot"></div>
+    <div class="accent-dot"></div>
+
+    <!-- Main loading container -->
+    <div class="loading-container">
+        <div class="svg-container">
+            <svg viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+                <!-- Define gradients -->
+                <defs>
+                    <linearGradient id="shapeGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" style="stop-color: #6366f1; stop-opacity: 1" />
+                        <stop offset="50%" style="stop-color: #a78bfa; stop-opacity: 1" />
+                        <stop offset="100%" style="stop-color: #ec4899; stop-opacity: 1" />
+                    </linearGradient>
+
+                    <!-- Animation color stops -->
+                    <stop id="colorStop1" offset="0%" style="stop-color: #6366f1; stop-opacity: 1" />
+                    <stop id="colorStop2" offset="50%" style="stop-color: #a78bfa; stop-opacity: 1" />
+                    <stop id="colorStop3" offset="100%" style="stop-color: #ec4899; stop-opacity: 1" />
+                </defs>
+
+                <!-- Morphing shape -->
+                <g transform="translate(140, 140)">
+                    <path class="morph-shape" d="M 0,-70 A 70,70 0 1,1 0,70 A 70,70 0 1,1 0,-70 Z" />
+                </g>
+            </svg>
+
+            <!-- Percentage counter overlay -->
+            <div class="percentage-display">
+                <div class="percentage-number" id="percentageNumber">0</div>
+                <div class="percentage-label">Complete</div>
+            </div>
+        </div>
+
+        <div class="status-text" id="statusText">Loading</div>
+    </div>
+
+    <script>
+        // Shape paths for morphing
+        const shapes = [
+            // Circle
+            'M 0,-70 A 70,70 0 1,1 0,70 A 70,70 0 1,1 0,-70 Z',
+            // Square
+            'M -50,-50 L 50,-50 L 50,50 L -50,50 Z',
+            // Hexagon
+            'M 0,-70 L 60.62,-35 L 60.62,35 L 0,70 L -60.62,35 L -60.62,-35 Z',
+            // Back to circle
+            'M 0,-70 A 70,70 0 1,1 0,70 A 70,70 0 1,1 0,-70 Z'
+        ];
+
+        // Color palettes for each shape transition
+        const colorPalettes = [
+            { start: '#6366f1', mid: '#a78bfa', end: '#ec4899' },    // Circle: Indigo to Pink
+            { start: '#ec4899', mid: '#f472b6', end: '#fbbf24' },    // Square: Pink to Amber
+            { start: '#fbbf24', mid: '#60a5fa', end: '#8b5cf6' },    // Hexagon: Amber to Purple
+            { start: '#8b5cf6', mid: '#a78bfa', end: '#6366f1' }     // Back to Circle: Purple to Indigo
+        ];
+
+        const pathElement = document.querySelector('.morph-shape');
+        const percentageNumber = document.getElementById('percentageNumber');
+        const statusText = document.getElementById('statusText');
+        const gradientElement = document.getElementById('shapeGradient');
+
+        let currentShapeIndex = 0;
+        let animationStartTime = 0;
+        let totalDuration = 5000; // 5 seconds total for full cycle (0-100%)
+        let isAnimating = true;
+
+        function easeInOutCubic(t) {
+            return t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+        }
+
+        function easeOutCubic(t) {
+            return 1 - Math.pow(1 - t, 3);
+        }
+
+        function interpolateColor(color1, color2, t) {
+            // Parse hex colors
+            const c1 = parseInt(color1.slice(1), 16);
+            const c2 = parseInt(color2.slice(1), 16);
+
+            const r1 = (c1 >> 16) & 255;
+            const g1 = (c1 >> 8) & 255;
+            const b1 = c1 & 255;
+
+            const r2 = (c2 >> 16) & 255;
+            const g2 = (c2 >> 8) & 255;
+            const b2 = c2 & 255;
+
+            const r = Math.round(r1 + (r2 - r1) * t);
+            const g = Math.round(g1 + (g2 - g1) * t);
+            const b = Math.round(b1 + (b2 - b1) * t);
+
+            return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+        }
+
+        function updateGradient(palette, progress) {
+            const colors = [palette.start, palette.mid, palette.end];
+            document.querySelectorAll('#shapeGradient stop').forEach((stop, i) => {
+                stop.setAttribute('stop-color', colors[i]);
+            });
+        }
+
+        function interpolatePath(path1, path2, t) {
+            // Simple path interpolation using regex to extract numbers
+            const nums1 = path1.match(/-?[\d.]+/g).map(Number);
+            const nums2 = path2.match(/-?[\d.]+/g).map(Number);
+
+            const interpolated = nums1.map((n, i) => {
+                return n + (nums2[i] - n) * t;
+            });
+
+            // Reconstruct path - this is a simplified approach
+            // For more complex morphing, use flubber library
+            let result = '';
+            let numIndex = 0;
+
+            // Pattern-based reconstruction
+            if (path1.includes('A')) {
+                // Circle to other shapes
+                const regex = /([MLAZlmaz])/g;
+                const commands = path1.match(/[MLAZlmaz]/g) || [];
+                result = path1.replace(/-?[\d.]+/g, () => {
+                    return interpolated[numIndex++].toFixed(2);
+                });
+            } else {
+                // Polygon morphing
+                const isCircle = path2.includes('A');
+                result = path2.replace(/-?[\d.]+/g, () => {
+                    return interpolated[numIndex++].toFixed(2);
+                });
+            }
+
+            return result;
+        }
+
+        function smoothPathMorph(from, to, t, easing = easeInOutCubic) {
+            // For production-grade morphing, using a simplified approach
+            // Extract coordinate values
+            const fromNums = from.match(/-?[\d.]+/g).map(Number);
+            const toNums = to.match(/-?[\d.]+/g).map(Number);
+
+            // Ensure same length
+            const length = Math.max(fromNums.length, toNums.length);
+            const from_extended = [...fromNums, ...Array(length - fromNums.length).fill(fromNums[fromNums.length - 1])];
+            const to_extended = [...toNums, ...Array(length - toNums.length).fill(toNums[toNums.length - 1])];
+
+            const eased = easing(t);
+            const morphed = from_extended.map((n, i) => {
+                return n + (to_extended[i] - n) * eased;
+            });
+
+            // Reconstruct with original command structure
+            let result = from;
+            let numIndex = 0;
+            result = result.replace(/-?[\d.]+/g, () => morphed[numIndex++].toFixed(2));
+
+            return result;
+        }
+
+        function animate() {
+            if (!isAnimating) {
+                requestAnimationFrame(animate);
+                return;
+            }
+
+            const now = Date.now();
+            if (animationStartTime === 0) {
+                animationStartTime = now;
+            }
+
+            const elapsed = now - animationStartTime;
+            const cycleProgress = (elapsed % totalDuration) / totalDuration;
+            const percentage = Math.round(cycleProgress * 100);
+
+            // Update percentage display
+            percentageNumber.textContent = percentage;
+
+            // Determine which shape transition we're in
+            const shapePhase = cycleProgress * 4; // 4 shapes in the cycle
+            const shapeIndex = Math.floor(shapePhase);
+            const shapeProgress = shapePhase - shapeIndex;
+
+            // Morph between shapes
+            const currentShape = shapes[shapeIndex];
+            const nextShape = shapes[(shapeIndex + 1) % shapes.length];
+            const morphedPath = smoothPathMorph(currentShape, nextShape, shapeProgress);
+
+            // Update path
+            pathElement.setAttribute('d', morphedPath);
+
+            // Update colors during morph
+            const colorPalette = colorPalettes[shapeIndex];
+            updateGradient(colorPalette, shapeProgress);
+
+            // Add subtle rotation
+            const rotation = (cycleProgress * 360) * 0.3; // 30% rotation per cycle
+            pathElement.parentElement.setAttribute('transform', `translate(140, 140) rotate(${rotation})`);
+
+            // Add scale pulse
+            const scalePulse = 1 + Math.sin(cycleProgress * Math.PI * 2) * 0.05;
+            pathElement.parentElement.setAttribute('transform',
+                `translate(140, 140) rotate(${rotation}) scale(${scalePulse})`);
+
+            // Update status text
+            if (percentage === 100) {
+                statusText.textContent = 'Complete';
+            } else if (percentage > 75) {
+                statusText.textContent = 'Almost Done';
+            } else if (percentage > 50) {
+                statusText.textContent = 'Halfway There';
+            } else {
+                statusText.textContent = 'Loading';
+            }
+
+            requestAnimationFrame(animate);
+        }
+
+        // Start animation
+        animate();
+
+        // Optional: Reset after completion (for demo purposes)
+        setInterval(() => {
+            if (animationStartTime > 0 && Date.now() - animationStartTime > totalDuration * 3) {
+                animationStartTime = 0;
+            }
+        }, 100);
+    </script>
+</body>
+</html>

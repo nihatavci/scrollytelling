@@ -1,0 +1,23 @@
+{
+  "skill_name": "graphic-mastery",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Create an interactive scrollytelling visualization like the Preston Curve demo, but with three states: (1) a world map showing GDP per capita, (2) scatter plot of GDP vs life expectancy, (3) a stacked bar chart showing regional breakdowns. Include smooth SVG path morphing between states using flubber, and add labels that fade in/out appropriately. User should scroll to trigger transitions.",
+      "expected_output": "Self-contained HTML file with: sticky graphic panel, scroll-triggered state changes, SVG paths that morph smoothly between map/scatter/bars, labeled data points, fully functional IntersectionObserver-based scroll detection. No external files needed.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Build a generative art piece: particles that flow through a 2D Perlin noise field. Include interactive controls (play/pause, speed slider, particle count slider) and a color palette that shifts as particles move. Make it loop infinitely and be visually satisfying. Use Canvas for rendering.",
+      "expected_output": "Self-contained HTML file with: Canvas-rendered particle system, smooth requestAnimationFrame animation, interactive slider controls, Perlin/Simplex noise implementation, color transitions, pause/play button. Runs at 60fps.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Create a loading animation component that's smooth and modern. The animation should morph between 3-4 geometric shapes (circle → square → hexagon → circle) while changing colors. Include a percentage counter that ticks from 0 to 100 over 5 seconds. Make it feel premium and satisfying.",
+      "expected_output": "Self-contained HTML file with: SVG shapes that morph smoothly, color transitions, rotating/scaling effects, percentage counter, 5-second total duration, professional aesthetics, looping behavior.",
+      "files": []
+    }
+  ]
+}

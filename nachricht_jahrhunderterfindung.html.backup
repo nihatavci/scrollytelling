@@ -7,8 +7,7 @@
 <meta property="og:title" content="Die Nachricht als Jahrhunderterfindung">
 <meta property="og:description" content="Das Pyramidenprinzip im deutschen Journalismus seit 1924 — eine interaktive Scrollytelling-Erfahrung.">
 <meta name="description" content="Interaktive Visualisierung: 100 Jahre Pyramidenprinzip im deutschen Journalismus. 8.500+ Artikel analysiert.">
-<script src="./vendor/d3.min.js"></script>
-<script>window.d3||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"><\/script>')</script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=DM+Sans:ital,wght@0,400;0,500;0,600;1,400&display=swap');
 :root{--bg:#faf7f2;--text:#2a2320;--muted:#8c8078;--accent:#c06830;--card:rgba(255,255,255,.93)}
@@ -64,7 +63,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);ove
 /* ── Scrollytelling ── */
 .scrolly{position:relative;margin:0 auto}
 .scrolly__graphic{position:sticky;top:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:1}
-#chart-content{width:100%;max-width:1400px;margin:0 auto}
+#chart-content{width:calc(100% - 350px);max-width:1200px}
 .viz-header{width:100%;margin-bottom:.5rem;padding-left:.5rem}
 .viz-title{font-family:'Source Serif 4',serif;font-size:1.7rem;font-weight:700;line-height:1.25;transition:all .45s}
 .viz-sub{font-size:.85rem;color:var(--muted);margin-top:.15rem;transition:all .45s}
@@ -73,12 +72,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);ove
 .viz-wrap svg{display:block;width:100%;height:auto;max-height:70vh}
 
 /* Fixed visualization panel - slides in from bottom with scroll */
-.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem 2rem 1rem 2rem;z-index:1;pointer-events:none;background:var(--bg);transform:translateY(100vh);will-change:transform}
+.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:5;pointer-events:none;background:var(--bg);transform:translateY(100%);will-change:transform}
 .viz-panel.is-visible{pointer-events:auto}
 
-.scrolly__steps{position:relative;z-index:10;width:440px;margin-left:auto;margin-right:5vw}
-.step{min-height:100vh;display:flex;align-items:center;padding:2rem 0}
-.step:first-child{padding-top:45vh}.step:last-child{margin-bottom:30vh}
+.scrolly__steps{position:relative;z-index:10;width:320px;margin-left:auto;margin-right:1.5vw}
+.step{min-height:65vh;display:flex;align-items:center;padding:2rem 0}
+.step:first-child{padding-top:40vh}.step:last-child{margin-bottom:25vh}
 .sc{background:var(--card);border-radius:16px;padding:1.1rem 1.4rem 1.2rem;border:none;max-width:320px;box-shadow:0 4px 28px rgba(0,0,0,.10);text-align:center;opacity:.35}
 .step.is-active .sc{opacity:1;box-shadow:0 6px 32px rgba(0,0,0,.13)}
 .badge{display:inline-block;font-size:.52rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:.1rem .45rem;border-radius:20px;margin-bottom:.4rem;opacity:.75}
@@ -1638,49 +1637,51 @@ const vizStepObs = new IntersectionObserver(entries => {
 }, { rootMargin: '-40% 0px -55% 0px' });
 allSteps.forEach(s => vizStepObs.observe(s));
 
-// Natural-flow chart: mirrors `position: sticky; top:0` for the active
-// scrolly section — chart is ALWAYS present once its section starts entering
-// the viewport. It scrolls up with the section, pins at the top while the
-// section owns the viewport, then scrolls out with the section's bottom.
+// Show/hide viz panel — slide in from bottom as user scrolls into first scrolly section
 const scrollySections = document.querySelectorAll('.scrolly');
-let _activeScrolly = null;
-function firstStepIdx(scrolly){
-  const s = scrolly.querySelector('.step[data-step]');
-  if (!s) return NaN;
-  return parseInt(s.dataset.step, 10);
-}
+const firstScrolly = scrollySections[0];
+const lastScrolly = scrollySections[scrollySections.length - 1];
+
 function updatePanelPosition() {
-  if (!scrollySections.length) return;
-  const vpH = window.innerHeight;
-  let offset = vpH * 2; // default: parked below, invisible
-  let newActive = null;
-  for (const sec of scrollySections) {
-    const r = sec.getBoundingClientRect();
-    if (r.top < vpH && r.bottom > 0) {
-      newActive = sec;
-      if (r.top > 0)              offset = r.top;           // sliding up from bottom
-      else if (r.bottom > vpH)    offset = 0;               // sticky at top
-      else                        offset = r.bottom - vpH;  // sliding out at top
-      break;
+  if (!firstScrolly || !lastScrolly) return;
+  const firstRect = firstScrolly.getBoundingClientRect();
+  const lastRect = lastScrolly.getBoundingClientRect();
+
+  // Check if any scrolly section is in view
+  const anyVisible = lastRect.top < window.innerHeight && firstRect.bottom > 0;
+
+  if (!anyVisible) {
+    // Fully hidden — push off screen
+    vizPanel.style.transform = 'translateY(100%)';
+    vizPanel.classList.remove('is-visible');
+    return;
+  }
+
+  // Slide-in: map first scrolly's top from bottom of viewport to 0
+  // When firstRect.top == window.innerHeight → panel at translateY(100%)
+  // When firstRect.top == 0 → panel at translateY(0%) (fully visible)
+  const slideZone = window.innerHeight;
+  const progress = Math.max(0, Math.min(1, 1 - firstRect.top / slideZone));
+
+  if (progress < 1) {
+    // Sliding in
+    const yPct = (1 - progress) * 100;
+    vizPanel.style.transform = `translateY(${yPct}%)`;
+    vizPanel.classList.add('is-visible');
+  } else {
+    // Fully in view — check if we're past the last scrolly
+    if (lastRect.bottom < 0) {
+      // Slide out upward
+      vizPanel.style.transform = 'translateY(-100%)';
+      vizPanel.classList.remove('is-visible');
+    } else {
+      vizPanel.style.transform = 'translateY(0%)';
+      vizPanel.classList.add('is-visible');
     }
   }
-  if (newActive !== _activeScrolly) {
-    _activeScrolly = newActive;
-    if (newActive) {
-      const idx = firstStepIdx(newActive);
-      if (!isNaN(idx)) drawState(idx);
-    }
-  }
-  vizPanel.style.transform = `translateY(${offset}px)`;
 }
-let _rafPending = false;
-function scheduleUpdate(){
-  if (_rafPending) return;
-  _rafPending = true;
-  requestAnimationFrame(() => { _rafPending = false; updatePanelPosition(); });
-}
-window.addEventListener('scroll', scheduleUpdate, { passive: true });
-window.addEventListener('resize', scheduleUpdate, { passive: true });
+
+window.addEventListener('scroll', updatePanelPosition, { passive: true });
 updatePanelPosition();
 
 // Initial draw
