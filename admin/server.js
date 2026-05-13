@@ -408,6 +408,10 @@ Each item has a "kind" field. Available kinds:
 - { "kind": "callout",       "tone": "info"|"note"|"warning", "title": string?, "body": string }
 - { "kind": "pullquote",     "text": "\\"…\\"", "cite": "— Author, Year" }
 - { "kind": "separator" }
+- { "kind": "footnote",      "ref": number, "note": string }       // numbered footnote; appears inline as superscript, collected to an endnotes list at the bottom of the page
+- { "kind": "highlight",     "html": string }                      // a marker-style highlighted block of text (paragraph length)
+- { "kind": "stepList",      "title": string, "steps": [{ "title": string, "body": string }] }  // a numbered how-to / explainer list of steps
+- { "kind": "factCheck",     "claim": string, "verdict": "true"|"false"|"misleading", "explanation": string, "source": string }   // a fact-check call-out
 - { "kind": "figureSingle",  "src": "images/…", "alt": string, "caption": string?, "italic": boolean? }
 - { "kind": "figurePair",    "images": [{ "src":"images/…", "alt":string, "flex":1, "minWidth":140 }, {...}] }
 - { "kind": "captionInline", "text": string }
@@ -462,6 +466,33 @@ Generate 2–4 stats per row.`,
 { "tone": "info"|"note"|"warning",
   "title": string?,
   "body": string }                    // 1–3 short paragraphs separated by \\n\\n`,
+
+  ChapterDivider: `A "ChapterDivider" full-width chapter heading marker for long pieces. data shape:
+{
+  "number": string,             // optional chapter number, e.g. "I" or "01" or "Kapitel 2"
+  "title": string,              // chapter title
+  "subtitle": string            // optional subtitle / dek
+}
+Use this to mark large narrative breaks within a long piece. Most pages use 0–3 dividers.`,
+
+  Quote: `A "Quote" featured-quote block (heavier than an inline pullquote — the page's money quote). data shape:
+{
+  "text": string,               // the quote itself; quotation marks are added by the renderer
+  "attribution": string,        // "— Name" or just "Name"
+  "role": string,               // optional small line under name (e.g. role / institution / year)
+  "portraitSrc": string,        // optional headshot image path (images/...)
+  "sourceUrl": string,          // optional URL the reader can follow for full context
+  "sourceLabel": string         // optional label for that link (e.g. "Read the full speech")
+}
+Use at most one per page — the single most-important quotation.`,
+
+  VideoEmbed: `A "VideoEmbed" inline video block. data shape:
+{
+  "url": string,                // YouTube or Vimeo share URL; the renderer extracts the embed id
+  "caption": string,            // figcaption shown below the video
+  "credit": string              // optional small attribution (e.g. "via NYT")
+}
+Only YouTube and Vimeo are supported. Other URLs render as a link with a warning placeholder.`,
 };
 
 function buildClaudePrompt({ type, userPrompt, images, currentData, mode, doc }) {

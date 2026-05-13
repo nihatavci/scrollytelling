@@ -118,6 +118,10 @@ const EDITORIAL_ITEM_FRIENDLY = {
   callout:       { label: 'Callout', hint: 'highlighted box' },
   dropcap:       { label: 'Drop-cap paragraph', hint: 'paragraph with large initial letter' },
   list:          { label: 'List', hint: 'bulleted or numbered' },
+  stepList:      { label: 'Step-by-step',  hint: 'numbered how-to steps with title + body each' },
+  highlight:     { label: 'Highlight',     hint: 'marker-style emphasized paragraph' },
+  footnote:      { label: 'Footnote',      hint: 'inline ref → endnote at bottom of page' },
+  factCheck:     { label: 'Fact check',    hint: 'claim + TRUE/FALSE/MISLEADING verdict' },
 };
 
 const EDITORIAL_ITEM_KINDS = [
@@ -127,9 +131,13 @@ const EDITORIAL_ITEM_KINDS = [
   { kind: 'p',             label: 'Paragraph' },
   { kind: 'dropcap',       label: 'Drop-cap paragraph' },
   { kind: 'list',          label: 'List' },
+  { kind: 'stepList',      label: 'Step-by-step list' },
   { kind: 'bigNumber',     label: 'Big number' },
   { kind: 'callout',       label: 'Callout' },
   { kind: 'pullquote',     label: 'Pull quote' },
+  { kind: 'highlight',     label: 'Highlighted paragraph' },
+  { kind: 'footnote',      label: 'Footnote' },
+  { kind: 'factCheck',     label: 'Fact check' },
   { kind: 'figureSingle',  label: 'Image' },
   { kind: 'figurePair',    label: 'Image pair' },
   { kind: 'captionInline', label: 'Caption' },
@@ -139,14 +147,17 @@ const EDITORIAL_ITEM_KINDS = [
 ];
 
 const PALETTE_BLOCKS = [
-  { type: 'Hero',      desc: 'Title section at the top of a page' },
-  { type: 'Editorial', desc: 'Long-form text with paragraphs, images, quotes' },
-  { type: 'Scrolly',   desc: 'Scroll-driven stepped narrative with a sticky chart' },
-  { type: 'Timeline',  desc: 'Vertical dated events' },
-  { type: 'StatRow',   desc: 'Row of 2–4 large statistics' },
-  { type: 'Aside',     desc: 'Highlighted callout box' },
-  { type: 'Outro',     desc: 'Closing section with paragraphs and sources' },
-  { type: 'VizPanel',  desc: 'Advanced — visualization container' },
+  { type: 'Hero',           desc: 'Title section at the top of a page' },
+  { type: 'ChapterDivider', desc: 'Chapter break — number, title, optional subtitle' },
+  { type: 'Editorial',      desc: 'Long-form text with paragraphs, images, quotes' },
+  { type: 'Scrolly',        desc: 'Scroll-driven stepped narrative with a sticky chart' },
+  { type: 'Quote',          desc: 'Featured money quote — large, optional portrait' },
+  { type: 'VideoEmbed',     desc: 'YouTube or Vimeo video with caption' },
+  { type: 'Timeline',       desc: 'Vertical dated events' },
+  { type: 'StatRow',        desc: 'Row of 2–4 large statistics' },
+  { type: 'Aside',          desc: 'Highlighted callout box' },
+  { type: 'Outro',          desc: 'Closing section with paragraphs and sources' },
+  { type: 'VizPanel',       desc: 'Advanced — visualization container' },
 ];
 
 // Tiny inline mockups shown inside the palette cards and at the top of the
