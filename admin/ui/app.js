@@ -1094,6 +1094,11 @@ function editorialFieldsFor(kind) {
       return [
         { key: 'html', label: 'Highlighted text', kind: 'textarea' },
       ];
+    case 'stepList':
+      return [
+        { key: 'title', label: 'Heading (optional)', kind: 'text' },
+        { key: 'steps', label: 'Steps',              kind: 'step_list_field' },
+      ];
     default: return [];
   }
 }
@@ -1118,6 +1123,10 @@ function defaultItemFor(kind) {
     case 'list':           return { kind, ordered: false, items: ['First item', 'Second item'] };
     case 'footnote':       return { kind, ref: 1, note: 'The note text.' };
     case 'highlight':      return { kind, html: 'A short highlighted phrase.' };
+    case 'stepList': return { kind, title: '', steps: [
+      { title: 'Step one', body: 'Describe what to do.' },
+      { title: 'Step two', body: 'Describe what to do.' },
+    ]};
     default: return { kind };
   }
 }
@@ -1259,6 +1268,36 @@ function simpleField(f, obj, onChange) {
       add.textContent = '+ Add item';
       add.className = 'small';
       add.addEventListener('click', (e) => { e.preventDefault(); arr.push(''); onChange(); renderEditor(); });
+      wrap.appendChild(add);
+      break;
+    }
+    case 'step_list_field': {
+      let arr = getVal();
+      if (!Array.isArray(arr)) { arr = []; setVal(arr); }
+      arr.forEach((step, i) => {
+        const row = document.createElement('div');
+        row.className = 'subitem';
+        row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Step ${i+1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
+        const grid = document.createElement('div');
+        grid.style.cssText = 'display:grid;grid-template-columns:80px 1fr;gap:6px 8px;align-items:center;';
+        grid.innerHTML = `
+          <label class="field-label">Title</label>
+          <input type="text" data-k="title" value="${escapeAttr(step.title||'')}" placeholder="Short step title">
+          <label class="field-label" style="align-self:flex-start;padding-top:4px;">Body</label>
+          <textarea data-k="body" rows="2">${escapeText(step.body||'')}</textarea>`;
+        row.appendChild(grid);
+        grid.querySelectorAll('[data-k]').forEach(el => {
+          el.addEventListener('input', () => { step[el.dataset.k] = el.value; onChange(); });
+        });
+        row.querySelector('[data-a="up"]').addEventListener('click',  (e) => { e.preventDefault(); if (i>0)             { [arr[i-1], arr[i]] = [arr[i], arr[i-1]]; onChange(); renderEditor(); } });
+        row.querySelector('[data-a="down"]').addEventListener('click',(e) => { e.preventDefault(); if (i<arr.length-1) { [arr[i+1], arr[i]] = [arr[i], arr[i+1]]; onChange(); renderEditor(); } });
+        row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); arr.splice(i,1); onChange(); renderEditor(); });
+        wrap.appendChild(row);
+      });
+      const add = document.createElement('button');
+      add.textContent = '+ Add step';
+      add.className = 'small';
+      add.addEventListener('click', (e) => { e.preventDefault(); arr.push({ title: '', body: '' }); onChange(); renderEditor(); });
       wrap.appendChild(add);
       break;
     }

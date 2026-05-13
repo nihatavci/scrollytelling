@@ -109,6 +109,15 @@ const COMPONENT_CSS = `
 /* ── Highlight (marker style) ── */
 .highlight{background:linear-gradient(180deg,transparent 55%,#ffe98a 55%);padding:0 .15em;color:var(--ink-black);border-radius:1px}
 
+/* ── StepList (numbered how-to inside Editorial) ── */
+.steplist{margin:2rem 0 2.5rem;font-family:var(--font-body)}
+.steplist-title{font-family:var(--font-body);font-size:.78rem;font-weight:500;color:var(--graphite);text-transform:uppercase;letter-spacing:.18em;margin-bottom:1.2rem}
+.steplist-list{list-style:none;counter-reset:steplist;padding:0;margin:0}
+.steplist-step{counter-increment:steplist;position:relative;padding-left:3rem;margin-bottom:1.4rem;min-height:2.2rem}
+.steplist-step::before{content:counter(steplist,decimal-leading-zero);position:absolute;left:0;top:.05em;font-family:var(--font-display);font-size:1.5rem;font-weight:300;color:var(--graphite);letter-spacing:-.02em;line-height:1;width:2.2rem}
+.steplist-step-title{font-family:var(--font-display);font-size:1.15rem;font-weight:500;color:var(--ink-black);line-height:1.3;letter-spacing:-.015em;margin-bottom:.3rem}
+.steplist-step-body{font-family:var(--font-body);font-size:1rem;color:var(--graphite);line-height:1.55;font-weight:400}
+
 @media(max-width:900px){
   .timeline-block,.statrow-block{padding:3rem 1.25rem}
   .aside-block{margin:2.5rem 1.25rem}
@@ -456,6 +465,27 @@ function renderEditorialItem(item) {
     case 'highlight': {
       const wrap = el('mark', { class: 'highlight' });
       wrap.innerHTML = item.html || '';
+      return wrap;
+    }
+    case 'stepList': {
+      const wrap = el('div', { class: 'steplist' });
+      if (item.title) wrap.appendChild(el('div', { class: 'steplist-title' }, item.title));
+      const ol = el('ol', { class: 'steplist-list' });
+      (item.steps || []).forEach((s) => {
+        const li = el('li', { class: 'steplist-step' });
+        if (s.title) {
+          const t = el('div', { class: 'steplist-step-title' });
+          t.innerHTML = s.title;
+          li.appendChild(t);
+        }
+        if (s.body) {
+          const b = el('div', { class: 'steplist-step-body' });
+          b.innerHTML = s.body;
+          li.appendChild(b);
+        }
+        ol.appendChild(li);
+      });
+      wrap.appendChild(ol);
       return wrap;
     }
     default:
