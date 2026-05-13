@@ -89,6 +89,15 @@ const BLOCK_SCHEMAS = {
       { key: 'body',  label: 'Body (separate paragraphs with a blank line)', kind: 'textarea' },
     ],
   },
+  ChapterDivider: {
+    name: 'Chapter divider',
+    description: 'Chapter break — number, title, optional subtitle',
+    fields: [
+      { key: 'number',   label: 'Number / label (optional)',     kind: 'text', hint: 'e.g. <code>I</code>, <code>01</code>, <code>Kapitel 2</code>' },
+      { key: 'title',    label: 'Title',                          kind: 'text' },
+      { key: 'subtitle', label: 'Subtitle (optional)',            kind: 'textarea' },
+    ],
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -215,6 +224,12 @@ const BLOCK_PREVIEWS = {
     <div style="margin-top:8px;font:600 italic 9px 'Source Serif 4',serif;color:#c06830;">Final emphasized line.</div>`,
   VizPanel: `
     <div style="background:#fde8d8;border-radius:4px;height:48px;display:flex;align-items:center;justify-content:center;font:700 11px 'DM Sans',sans-serif;color:#c06830;letter-spacing:.05em;">VIZ</div>`,
+  ChapterDivider: `
+    <div style="text-align:center;padding:6px 0;">
+      <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.2em;color:#636363;text-transform:uppercase;">CHAPTER I</div>
+      <div style="font:300 16px 'DM Sans',sans-serif;color:#000;margin-top:6px;letter-spacing:-.02em;">Chapter title</div>
+      <div style="margin:6px auto 0;width:30px;height:2px;background:linear-gradient(90deg,#c679c4,#fa3d1d,#ffb005,#e1e1fe,#0358f7);border-radius:2px;"></div>
+    </div>`,
 };
 
 // ─────────────────────────── DOM refs ────────────────────────
@@ -662,6 +677,7 @@ function defaultDataFor(type) {
     case 'StatRow':   return { title: '', stats: [{value:'',label:'',context:''}, {value:'',label:'',context:''}, {value:'',label:'',context:''}] };
     case 'Timeline':  return { title: '', events: [{when:'',title:'',body:''}, {when:'',title:'',body:''}, {when:'',title:'',body:''}] };
     case 'Aside':     return { tone: 'info', title: '', body: '' };
+    case 'ChapterDivider': return { number: '', title: 'Chapter title', subtitle: '' };
     default:          return {};
   }
 }

@@ -61,9 +61,17 @@ const COMPONENT_CSS = `
 .aside-block p{font-family:var(--font-body);font-size:1rem;line-height:1.55;color:var(--ink-black);margin-bottom:.7rem;font-weight:400}
 .aside-block p:last-child{margin-bottom:0}
 
+/* ── ChapterDivider ── */
+.chapter-divider{max-width:720px;margin:5rem auto 3.5rem;padding:0 2rem;text-align:center;position:relative;z-index:3}
+.chapter-number{font-family:var(--font-body);font-size:.78rem;font-weight:500;color:var(--graphite);text-transform:uppercase;letter-spacing:.2em;margin-bottom:1rem}
+.chapter-title{font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.75rem);font-weight:300;color:var(--ink-black);line-height:1.18;letter-spacing:-.04em;margin-bottom:.6rem}
+.chapter-subtitle{font-family:var(--font-body);font-size:1.0625rem;color:var(--graphite);font-weight:400;line-height:1.5;max-width:560px;margin:0 auto 1.6rem}
+.chapter-strip{width:120px;height:2px;background:var(--spectrum-gradient);margin:0 auto;border-radius:2px}
+
 @media(max-width:900px){
   .timeline-block,.statrow-block{padding:3rem 1.25rem}
   .aside-block{margin:2.5rem 1.25rem}
+  .chapter-divider{margin:3.5rem auto 2.5rem;padding:0 1.25rem}
 }
 `;
 
@@ -76,14 +84,15 @@ function injectComponentCSS() {
 }
 
 const BLOCK_RENDERERS = {
-  Hero:       renderHero,
-  VizPanel:   renderVizPanel,
-  Editorial:  renderEditorial,
-  Scrolly:    renderScrolly,
-  Outro:      renderOutro,
-  StatRow:    renderStatRow,
-  Timeline:   renderTimeline,
-  Aside:      renderAside,
+  Hero:           renderHero,
+  VizPanel:       renderVizPanel,
+  Editorial:      renderEditorial,
+  Scrolly:        renderScrolly,
+  Outro:          renderOutro,
+  StatRow:        renderStatRow,
+  Timeline:       renderTimeline,
+  Aside:          renderAside,
+  ChapterDivider: renderChapterDivider,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -426,6 +435,20 @@ function renderAside(d) {
     para.innerHTML = p;
     sec.appendChild(para);
   });
+  return sec;
+}
+
+function renderChapterDivider(d) {
+  const sec = el('section', { class: 'chapter-divider', 'aria-label': 'Chapter break' });
+  if (d.number) sec.appendChild(el('div', { class: 'chapter-number' }, d.number));
+  if (d.title) {
+    const h = el('h2', { class: 'chapter-title' });
+    h.innerHTML = d.title;
+    sec.appendChild(h);
+  }
+  if (d.subtitle) sec.appendChild(el('div', { class: 'chapter-subtitle' }, d.subtitle));
+  // Decorative gradient strip below the heading
+  sec.appendChild(el('div', { class: 'chapter-strip', 'aria-hidden': 'true' }));
   return sec;
 }
 
