@@ -334,6 +334,17 @@ function renderEditorialItem(item) {
       return p;
     }
 
+    case 'list': {
+      const tag = item.ordered ? 'ol' : 'ul';
+      const list = el(tag, { class: 'ed-list' });
+      (item.items || []).forEach(text => {
+        const li = el('li');
+        li.innerHTML = text;
+        list.appendChild(li);
+      });
+      return list;
+    }
+
     default:
       console.warn('Unknown editorial item kind:', item.kind);
       return null;

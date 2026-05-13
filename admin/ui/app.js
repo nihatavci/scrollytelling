@@ -117,6 +117,7 @@ const EDITORIAL_ITEM_FRIENDLY = {
   customHTML:    { label: 'Custom HTML',    hint: 'advanced — raw HTML escape hatch' },
   callout:       { label: 'Callout', hint: 'highlighted box' },
   dropcap:       { label: 'Drop-cap paragraph', hint: 'paragraph with large initial letter' },
+  list:          { label: 'List', hint: 'bulleted or numbered' },
 };
 
 const EDITORIAL_ITEM_KINDS = [
@@ -936,6 +937,11 @@ function editorialFieldsFor(kind) {
       ];
     case 'customHTML':
       return [{ key: 'html', label: 'Raw HTML (be careful)', kind: 'textarea_html' }];
+    case 'list':
+      return [
+        { key: 'ordered', label: 'Numbered list (uncheck for bullets)', kind: 'bool' },
+        { key: 'items',   label: 'Items',                                kind: 'string_list_inline' },
+      ];
     default: return [];
   }
 }
@@ -957,6 +963,7 @@ function defaultItemFor(kind) {
     case 'bigNumber':      return { kind, value: '0', label: 'label', context: '' };
     case 'callout':        return { kind, tone: 'info', title: '', body: 'A short callout.' };
     case 'customHTML':     return { kind, html: '<div></div>' };
+    case 'list':           return { kind, ordered: false, items: ['First item', 'Second item'] };
     default: return { kind };
   }
 }
@@ -1073,6 +1080,32 @@ function simpleField(f, obj, onChange) {
         sub.appendChild(altInp);
         wrap.appendChild(sub);
       });
+      break;
+    }
+    case 'string_list_inline': {
+      const arr = Array.isArray(getVal()) ? getVal() : [];
+      if (!Array.isArray(getVal())) setVal(arr);
+      arr.forEach((str, i) => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;gap:6px;align-items:flex-start;margin-bottom:4px;';
+        const ta = document.createElement('textarea');
+        ta.rows = 1;
+        ta.value = str;
+        ta.style.flex = '1';
+        ta.addEventListener('input', () => { arr[i] = ta.value; onChange(); });
+        const del = document.createElement('button');
+        del.textContent = '✕';
+        del.className = 'small';
+        del.addEventListener('click', (e) => { e.preventDefault(); arr.splice(i,1); onChange(); renderEditor(); });
+        row.appendChild(ta);
+        row.appendChild(del);
+        wrap.appendChild(row);
+      });
+      const add = document.createElement('button');
+      add.textContent = '+ Add item';
+      add.className = 'small';
+      add.addEventListener('click', (e) => { e.preventDefault(); arr.push(''); onChange(); renderEditor(); });
+      wrap.appendChild(add);
       break;
     }
     default:
