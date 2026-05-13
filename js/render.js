@@ -118,6 +118,24 @@ const COMPONENT_CSS = `
 .steplist-step-title{font-family:var(--font-display);font-size:1.15rem;font-weight:500;color:var(--ink-black);line-height:1.3;letter-spacing:-.015em;margin-bottom:.3rem}
 .steplist-step-body{font-family:var(--font-body);font-size:1rem;color:var(--graphite);line-height:1.55;font-weight:400}
 
+/* ── FactCheck ── */
+.factcheck{margin:2.4rem 0;padding:1.4rem 1.6rem;border-radius:var(--radius-card);background:rgba(255,255,255,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(0,0,0,.06);box-shadow:var(--shadow-card);font-family:var(--font-body);position:relative;overflow:hidden}
+.factcheck::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px}
+.factcheck-true::before{background:var(--signal-blue)}
+.factcheck-false::before{background:var(--spectrum-red)}
+.factcheck-misleading::before{background:var(--marigold)}
+.factcheck-head{display:flex;align-items:center;gap:.7rem;margin-bottom:.9rem}
+.factcheck-pill{font-family:var(--font-body);font-size:.7rem;font-weight:500;text-transform:uppercase;letter-spacing:.14em;padding:.3rem .8rem;border-radius:var(--radius-pill);color:#fff;line-height:1}
+.factcheck-true .factcheck-pill{background:var(--signal-blue)}
+.factcheck-false .factcheck-pill{background:var(--spectrum-red)}
+.factcheck-misleading .factcheck-pill{background:var(--marigold);color:var(--ink-black)}
+.factcheck-eyebrow{font-size:.7rem;font-weight:500;color:var(--graphite);text-transform:uppercase;letter-spacing:.18em}
+.factcheck-claim{font-family:var(--font-display);font-size:1.15rem;font-weight:300;color:var(--ink-black);line-height:1.35;letter-spacing:-.015em;margin:0 0 .8rem;padding:0;border:none;font-style:normal}
+.factcheck-claim::before{content:'\\201C';margin-right:.1em;opacity:.4}
+.factcheck-claim::after{content:'\\201D';margin-left:.1em;opacity:.4}
+.factcheck-explanation{font-family:var(--font-body);font-size:.95rem;color:var(--ink-black);line-height:1.55;margin-bottom:.6rem;font-weight:400}
+.factcheck-source{font-family:var(--font-body);font-size:.78rem;color:var(--graphite);font-style:normal;font-weight:400}
+
 @media(max-width:900px){
   .timeline-block,.statrow-block{padding:3rem 1.25rem}
   .aside-block{margin:2.5rem 1.25rem}
@@ -486,6 +504,31 @@ function renderEditorialItem(item) {
         ol.appendChild(li);
       });
       wrap.appendChild(ol);
+      return wrap;
+    }
+    case 'factCheck': {
+      const verdict = (item.verdict || 'true').toLowerCase();
+      const verdictLabel = { true: 'True', false: 'False', misleading: 'Misleading' }[verdict] || verdict;
+      const wrap = el('aside', { class: `factcheck factcheck-${verdict}`, 'aria-label': 'Fact check: ' + verdictLabel });
+      const head = el('div', { class: 'factcheck-head' });
+      head.appendChild(el('span', { class: 'factcheck-pill' }, verdictLabel));
+      head.appendChild(el('span', { class: 'factcheck-eyebrow' }, 'Fact check'));
+      wrap.appendChild(head);
+      if (item.claim) {
+        const claim = el('blockquote', { class: 'factcheck-claim' });
+        claim.innerHTML = item.claim;
+        wrap.appendChild(claim);
+      }
+      if (item.explanation) {
+        const exp = el('div', { class: 'factcheck-explanation' });
+        exp.innerHTML = item.explanation;
+        wrap.appendChild(exp);
+      }
+      if (item.source) {
+        const src = el('div', { class: 'factcheck-source' });
+        src.innerHTML = 'Source: ' + (item.source || '');
+        wrap.appendChild(src);
+      }
       return wrap;
     }
     default:

@@ -1099,6 +1099,13 @@ function editorialFieldsFor(kind) {
         { key: 'title', label: 'Heading (optional)', kind: 'text' },
         { key: 'steps', label: 'Steps',              kind: 'step_list_field' },
       ];
+    case 'factCheck':
+      return [
+        { key: 'claim',       label: 'Claim being checked', kind: 'textarea' },
+        { key: 'verdict',     label: 'Verdict',             kind: 'verdict_select' },
+        { key: 'explanation', label: 'Explanation',         kind: 'textarea' },
+        { key: 'source',      label: 'Source (optional)',   kind: 'text' },
+      ];
     default: return [];
   }
 }
@@ -1127,6 +1134,7 @@ function defaultItemFor(kind) {
       { title: 'Step one', body: 'Describe what to do.' },
       { title: 'Step two', body: 'Describe what to do.' },
     ]};
+    case 'factCheck': return { kind, claim: 'The claim being checked.', verdict: 'true', explanation: 'Why the verdict is what it is.', source: '' };
     default: return { kind };
   }
 }
@@ -1299,6 +1307,18 @@ function simpleField(f, obj, onChange) {
       add.className = 'small';
       add.addEventListener('click', (e) => { e.preventDefault(); arr.push({ title: '', body: '' }); onChange(); renderEditor(); });
       wrap.appendChild(add);
+      break;
+    }
+    case 'verdict_select': {
+      const sel = document.createElement('select');
+      [['true','True'],['false','False'],['misleading','Misleading']].forEach(([v,l]) => {
+        const o = document.createElement('option');
+        o.value = v; o.textContent = l;
+        if ((getVal()||'true') === v) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => setVal(sel.value));
+      wrap.appendChild(sel);
       break;
     }
     default:
