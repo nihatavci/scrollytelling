@@ -64,6 +64,14 @@ const BLOCK_SCHEMAS = {
         hint: 'Separate citations with " · ". Use <code>&lt;br&gt;</code> for line breaks.' },
     ],
   },
+  StatRow: {
+    name: 'Stat row',
+    description: 'A horizontal row of 2–4 large numbers with labels',
+    fields: [
+      { key: 'title', label: 'Heading (optional)', kind: 'text' },
+      { key: 'stats', label: 'Stats',              kind: 'stat_list' },
+    ],
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -88,6 +96,7 @@ const EDITORIAL_ITEM_FRIENDLY = {
   captionInline: { label: 'Caption',        hint: 'italic, under a figure' },
   captionCenter: { label: 'Caption (centered)', hint: '' },
   whatsappCard:  { label: 'WhatsApp card',  hint: 'styled chat bubble' },
+  bigNumber:     { label: 'Big number',     hint: 'large stat with label' },
   customHTML:    { label: 'Custom HTML',    hint: 'advanced — raw HTML escape hatch' },
 };
 
@@ -96,6 +105,10 @@ const EDITORIAL_ITEM_KINDS = [
   { kind: 'kicker',        label: 'Kicker' },
   { kind: 'lead',          label: 'Lead' },
   { kind: 'p',             label: 'Paragraph' },
+  { kind: 'dropcap',       label: 'Drop-cap paragraph' },
+  { kind: 'list',          label: 'List' },
+  { kind: 'bigNumber',     label: 'Big number' },
+  { kind: 'callout',       label: 'Callout' },
   { kind: 'pullquote',     label: 'Pull quote' },
   { kind: 'figureSingle',  label: 'Image' },
   { kind: 'figurePair',    label: 'Image pair' },
@@ -103,13 +116,15 @@ const EDITORIAL_ITEM_KINDS = [
   { kind: 'captionCenter', label: 'Caption (centered)' },
   { kind: 'separator',     label: 'Separator' },
   { kind: 'whatsappCard',  label: 'WhatsApp card' },
-  // customHTML is intentionally omitted from the palette (advanced/escape hatch)
 ];
 
 const PALETTE_BLOCKS = [
   { type: 'Hero',      desc: 'Title section at the top of a page' },
   { type: 'Editorial', desc: 'Long-form text with paragraphs, images, quotes' },
   { type: 'Scrolly',   desc: 'Scroll-driven stepped narrative with a sticky chart' },
+  { type: 'Timeline',  desc: 'Vertical dated events' },
+  { type: 'StatRow',   desc: 'Row of 2–4 large statistics' },
+  { type: 'Aside',     desc: 'Highlighted callout box' },
   { type: 'Outro',     desc: 'Closing section with paragraphs and sources' },
   { type: 'VizPanel',  desc: 'Advanced — visualization container' },
 ];
@@ -539,6 +554,7 @@ function defaultDataFor(type) {
     case 'Editorial': return { content: [{ kind: 'h2', text: 'New section' }, { kind: 'p', html: 'New paragraph.' }] };
     case 'Scrolly':   return { scrollyId: 'scrolly-X', stepsId: 'steps-X', steps: [{ stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Label', body: 'Step body.' }] };
     case 'Outro':     return { h2: 'Outro', paragraphs: ['Final paragraph.'], finalLine: '', sourcesHtml: '' };
+    case 'StatRow':   return { title: '', stats: [{value:'',label:'',context:''}, {value:'',label:'',context:''}, {value:'',label:'',context:''}] };
     default:          return {};
   }
 }
@@ -670,6 +686,17 @@ function renderField(field, data, onChange) {
       wrap.appendChild(addBtn);
       break;
     }
+    case 'stat_list': {
+      const list = Array.isArray(val) ? val : [];
+      data[field.key] = list;
+      list.forEach((stat, i) => wrap.appendChild(statRowEditor(list, i, onChange)));
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+ Add stat';
+      addBtn.className = 'small';
+      addBtn.addEventListener('click', (e) => { e.preventDefault(); list.push({ value: '', label: '', context: '' }); onChange(); renderEditor(); });
+      wrap.appendChild(addBtn);
+      break;
+    }
     case 'editorial_items': {
       const list = Array.isArray(val) ? val : [];
       data[field.key] = list;
@@ -728,6 +755,27 @@ function scrollyStepEditor(list, i, onChange) {
   row.querySelector('[data-a="up"]').addEventListener('click', (e) => { e.preventDefault(); if (i>0) { [list[i-1], list[i]] = [list[i], list[i-1]]; reindexSteps(list); onChange(); renderEditor(); } });
   row.querySelector('[data-a="down"]').addEventListener('click', (e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; reindexSteps(list); onChange(); renderEditor(); } });
   row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); reindexSteps(list); onChange(); renderEditor(); });
+  return row;
+}
+
+function statRowEditor(list, i, onChange) {
+  const stat = list[i];
+  const row = document.createElement('div');
+  row.className = 'subitem';
+  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Stat ${i+1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px 8px;align-items:center;';
+  grid.innerHTML = `
+    <label class="field-label">Value</label>    <input type="text" data-k="value"   value="${escapeAttr(stat.value||'')}"   placeholder="e.g. 67% or 8,527 or 3×">
+    <label class="field-label">Label</label>    <input type="text" data-k="label"   value="${escapeAttr(stat.label||'')}"   placeholder="what the number means">
+    <label class="field-label">Context</label>  <input type="text" data-k="context" value="${escapeAttr(stat.context||'')}" placeholder="optional sub-line">`;
+  row.appendChild(grid);
+  grid.querySelectorAll('[data-k]').forEach(el => {
+    el.addEventListener('input', () => { stat[el.dataset.k] = el.value; onChange(); });
+  });
+  row.querySelector('[data-a="up"]').addEventListener('click',  (e) => { e.preventDefault(); if (i>0)              { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="down"]').addEventListener('click',(e) => { e.preventDefault(); if (i<list.length-1)  { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); onChange(); renderEditor(); });
   return row;
 }
 
@@ -806,6 +854,12 @@ function editorialFieldsFor(kind) {
               { key: 'time',          label: 'Time stamp',  kind: 'text' },
               { key: 'image.src',     label: 'Attached image (optional)', kind: 'image_nested', subKey: 'image' },
               { key: 'image.alt',     label: 'Alt text', kind: 'text_nested', subKey: 'image', advanced: true }];
+    case 'bigNumber':
+      return [
+        { key: 'value',   label: 'Value',   kind: 'text' },
+        { key: 'label',   label: 'Label',   kind: 'text' },
+        { key: 'context', label: 'Context (optional small line)', kind: 'text' },
+      ];
     case 'customHTML':
       return [{ key: 'html', label: 'Raw HTML (be careful)', kind: 'textarea_html' }];
     default: return [];
@@ -825,6 +879,7 @@ function defaultItemFor(kind) {
     case 'captionInline':  return { kind, text: 'Caption.' };
     case 'captionCenter':  return { kind, text: 'Caption.' };
     case 'whatsappCard':   return { kind, senderInitial:'A', senderName:'Friend', message:'Hi!', time:'12:00 ✓✓', image:{src:'',alt:''} };
+    case 'bigNumber':      return { kind, value: '0', label: 'label', context: '' };
     case 'customHTML':     return { kind, html: '<div></div>' };
     default: return { kind };
   }

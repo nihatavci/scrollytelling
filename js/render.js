@@ -79,6 +79,7 @@ const BLOCK_RENDERERS = {
   Editorial:  renderEditorial,
   Scrolly:    renderScrolly,
   Outro:      renderOutro,
+  StatRow:    renderStatRow,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -308,6 +309,14 @@ function renderEditorialItem(item) {
       return tpl.content;
     }
 
+    case 'bigNumber': {
+      const wrap = el('div', { class: 'bignumber' });
+      wrap.appendChild(el('div', { class: 'bignumber-value' }, item.value ?? ''));
+      if (item.label)   wrap.appendChild(el('div', { class: 'bignumber-label' },   item.label));
+      if (item.context) wrap.appendChild(el('div', { class: 'bignumber-context' }, item.context));
+      return wrap;
+    }
+
     default:
       console.warn('Unknown editorial item kind:', item.kind);
       return null;
@@ -342,6 +351,21 @@ function renderOutro(d) {
     section.appendChild(block);
   }
   return section;
+}
+
+function renderStatRow(d) {
+  const sec = el('section', { class: 'statrow-block' });
+  if (d.title) sec.appendChild(el('h3', {}, d.title));
+  const grid = el('div', { class: 'statrow-grid' });
+  (d.stats || []).forEach(s => {
+    const cell = el('div', { class: 'statrow-cell' });
+    cell.appendChild(el('div', { class: 'v' }, s.value ?? ''));
+    if (s.label)   cell.appendChild(el('div', { class: 'l' }, s.label));
+    if (s.context) cell.appendChild(el('div', { class: 'c' }, s.context));
+    grid.appendChild(cell);
+  });
+  sec.appendChild(grid);
+  return sec;
 }
 
 // ───────── Tiny DOM helpers ─────────
