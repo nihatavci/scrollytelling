@@ -82,12 +82,26 @@ const COMPONENT_CSS = `
 .quote-source{font-size:.78rem;color:var(--ink-black);text-decoration:underline;text-decoration-color:var(--steel);text-underline-offset:3px;margin-top:.25rem;transition:text-decoration-color .2s}
 .quote-source:hover{text-decoration-color:var(--ink-black)}
 
+/* ── VideoEmbed ── */
+.video-embed{max-width:1000px;margin:4rem auto;padding:0 2rem;position:relative;z-index:3}
+.video-figure{margin:0}
+.video-wrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--radius-image);overflow:hidden;background:var(--fog);box-shadow:var(--shadow-card)}
+.video-iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.video-placeholder{aspect-ratio:16/9;border-radius:var(--radius-image);background:var(--fog);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.6rem;padding:2rem;text-align:center;color:var(--graphite);font-family:var(--font-body)}
+.video-placeholder-icon{font-size:2.4rem;color:var(--steel)}
+.video-placeholder-msg{font-size:.9rem;font-weight:500;color:var(--graphite)}
+.video-placeholder-link{font-size:.82rem;color:var(--ink-black);text-decoration:underline;word-break:break-all;max-width:90%}
+.video-cap{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;display:flex;gap:.7rem;flex-wrap:wrap;font-weight:400;line-height:1.5}
+.video-caption{flex:1;min-width:200px}
+.video-credit{color:var(--ash);font-style:italic;font-size:.78rem}
+
 @media(max-width:900px){
   .timeline-block,.statrow-block{padding:3rem 1.25rem}
   .aside-block{margin:2.5rem 1.25rem}
   .chapter-divider{margin:3.5rem auto 2.5rem;padding:0 1.25rem}
   .quote-block{margin:3rem auto;padding:0 1.25rem}
   .quote-portrait{width:48px;height:48px}
+  .video-embed{margin:3rem auto;padding:0 1.25rem}
 }
 `;
 
@@ -110,6 +124,7 @@ const BLOCK_RENDERERS = {
   Aside:          renderAside,
   ChapterDivider: renderChapterDivider,
   Quote:          renderQuote,
+  VideoEmbed:     renderVideoEmbed,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -494,6 +509,63 @@ function renderQuote(d) {
   }
   cap.appendChild(ttext);
   fig.appendChild(cap);
+  sec.appendChild(fig);
+  return sec;
+}
+
+// Parse YouTube / Vimeo share URLs into an embed URL.
+// Returns { src, kind } or null if unsupported.
+function parseVideoUrl(raw) {
+  if (typeof raw !== 'string' || !raw.trim()) return null;
+  const url = raw.trim();
+  // YouTube: youtu.be/<id>, youtube.com/watch?v=<id>, youtube.com/embed/<id>
+  let m = url.match(/youtu\.be\/([A-Za-z0-9_-]{6,})/) ||
+          url.match(/youtube\.com\/watch\?(?:[^"]*[&?])?v=([A-Za-z0-9_-]{6,})/) ||
+          url.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{6,})/);
+  if (m) return { src: `https://www.youtube-nocookie.com/embed/${m[1]}`, kind: 'youtube' };
+  // Vimeo: vimeo.com/<id>, player.vimeo.com/video/<id>
+  m = url.match(/vimeo\.com\/(?:video\/)?(\d{5,})/) ||
+      url.match(/player\.vimeo\.com\/video\/(\d{5,})/);
+  if (m) return { src: `https://player.vimeo.com/video/${m[1]}`, kind: 'vimeo' };
+  return null;
+}
+
+function renderVideoEmbed(d) {
+  const sec = el('section', { class: 'video-embed' });
+  const fig = el('figure', { class: 'video-figure' });
+  const parsed = parseVideoUrl(d.url);
+  if (parsed) {
+    const wrap = el('div', { class: 'video-wrap' });
+    const iframe = el('iframe', {
+      class: 'video-iframe',
+      src: parsed.src,
+      title: d.caption || 'Embedded video',
+      loading: 'lazy',
+      allow: 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+      allowfullscreen: 'true',
+      referrerpolicy: 'strict-origin-when-cross-origin',
+      frameborder: '0',
+    });
+    wrap.appendChild(iframe);
+    fig.appendChild(wrap);
+  } else {
+    // Unsupported / empty URL → render a clear placeholder + clickable link if URL present
+    const ph = el('div', { class: 'video-placeholder' });
+    ph.appendChild(el('div', { class: 'video-placeholder-icon', 'aria-hidden': 'true' }, '▶'));
+    const msg = el('div', { class: 'video-placeholder-msg' },
+      d.url ? 'Unsupported video URL. Only YouTube and Vimeo are supported.' : 'No video URL set.');
+    ph.appendChild(msg);
+    if (d.url) {
+      ph.appendChild(el('a', { class: 'video-placeholder-link', href: d.url, target: '_blank', rel: 'noopener noreferrer' }, d.url));
+    }
+    fig.appendChild(ph);
+  }
+  if (d.caption || d.credit) {
+    const cap = el('figcaption', { class: 'video-cap' });
+    if (d.caption) cap.appendChild(el('span', { class: 'video-caption' }, d.caption));
+    if (d.credit) cap.appendChild(el('span', { class: 'video-credit' }, d.credit));
+    fig.appendChild(cap);
+  }
   sec.appendChild(fig);
   return sec;
 }

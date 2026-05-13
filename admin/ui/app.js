@@ -110,6 +110,15 @@ const BLOCK_SCHEMAS = {
       { key: 'sourceLabel',  label: 'Source link label (optional)',             kind: 'text' },
     ],
   },
+  VideoEmbed: {
+    name: 'Video embed',
+    description: 'YouTube or Vimeo video with caption',
+    fields: [
+      { key: 'url',     label: 'Video URL', kind: 'text', hint: 'Paste a YouTube or Vimeo URL.' },
+      { key: 'caption', label: 'Caption',   kind: 'textarea' },
+      { key: 'credit',  label: 'Credit (optional)', kind: 'text', hint: 'e.g. <code>via NYT</code>' },
+    ],
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -256,6 +265,11 @@ const BLOCK_PREVIEWS = {
         </div>
       </div>
     </div>`,
+  VideoEmbed: `
+    <div style="background:#eaeef2;border-radius:6px;height:54px;display:flex;align-items:center;justify-content:center;position:relative;">
+      <div style="width:0;height:0;border-left:11px solid #aeaeae;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px;"></div>
+    </div>
+    <div style="font:400 7px 'DM Sans',sans-serif;color:#636363;margin-top:5px;line-height:1.4;">Caption goes here · <span style="font-style:italic;color:#7c7c7c;">credit</span></div>`,
 };
 
 // ─────────────────────────── DOM refs ────────────────────────
@@ -705,6 +719,7 @@ function defaultDataFor(type) {
     case 'Aside':     return { tone: 'info', title: '', body: '' };
     case 'ChapterDivider': return { number: '', title: 'Chapter title', subtitle: '' };
     case 'Quote': return { text: 'Type the quote here.', attribution: 'Name', role: '', portraitSrc: '', sourceUrl: '', sourceLabel: '' };
+    case 'VideoEmbed': return { url: '', caption: '', credit: '' };
     default:          return {};
   }
 }
