@@ -3,37 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin · Scrollytelling CMS</title>
+<title>ScrollyCMS · Admin</title>
+<!-- Supabase config — replaced at deploy or set in env -->
+<meta name="supabase-url" content="__SUPABASE_URL__">
+<meta name="supabase-key" content="__SUPABASE_ANON_KEY__">
 <link rel="stylesheet" href="/admin/static/styles.css">
 </head>
 <body>
 
-<!-- ───────── Login screen ───────── -->
-<div id="login" class="login hidden">
-  <form id="login-form" class="login-card">
-    <div class="login-title">Admin Login</div>
-    <input id="login-pwd" type="password" placeholder="Password" autocomplete="current-password" required>
-    <button type="submit">Sign in</button>
-    <div id="login-error" class="error"></div>
-  </form>
+<!-- ───────── Auth screen ───────── -->
+<div id="auth" class="auth-screen hidden">
+  <div class="auth-card">
+    <div class="auth-brand">ScrollyCMS</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Sign in</button>
+      <button class="auth-tab" data-tab="signup">Create account</button>
+    </div>
+
+    <!-- Login form -->
+    <form id="login-form" class="auth-form">
+      <input id="login-email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="login-pwd" type="password" placeholder="Password" autocomplete="current-password" required>
+      <button type="submit" class="primary">Sign in</button>
+      <div id="login-error" class="error"></div>
+    </form>
+
+    <!-- Signup form -->
+    <form id="signup-form" class="auth-form hidden">
+      <input id="signup-name" type="text" placeholder="Display name" autocomplete="name" required>
+      <input id="signup-email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="signup-pwd" type="password" placeholder="Password (min 6 chars)" autocomplete="new-password" minlength="6" required>
+      <button type="submit" class="primary">Create account</button>
+      <div id="signup-error" class="error"></div>
+    </form>
+
+    <div id="auth-success" class="auth-success hidden">
+      <p>Check your email for a confirmation link, then sign in.</p>
+      <button onclick="document.querySelector('[data-tab=login]').click()" class="small">Go to sign in</button>
+    </div>
+  </div>
 </div>
 
 <!-- ───────── Dashboard ───────── -->
 <div id="app" class="app hidden">
 
   <header class="topbar">
-    <div class="brand">Scrollytelling · Admin</div>
+    <div class="brand">ScrollyCMS</div>
     <div class="topbar-page">
       <label>Page:</label>
       <select id="page-select"></select>
       <button id="btn-new-page" class="small" title="Create a new page">+ New page</button>
-      <a id="link-view-page" href="/" target="_blank" class="small" style="text-decoration:none;color:#0969da;font-size:12px;padding:4px 8px;">View ↗</a>
+      <a id="link-view-page" href="#" target="_blank" class="small view-link">View ↗</a>
       <span id="page-status" class="status"></span>
     </div>
     <div class="topbar-actions">
       <button id="btn-preview" title="Open rendered page in a new tab">Preview</button>
       <button id="btn-history" title="Snapshots history">History</button>
       <button id="btn-publish" class="primary">Save &amp; Publish</button>
+      <button id="btn-settings" class="ghost" title="Site settings">⚙</button>
       <button id="btn-logout" class="ghost">Logout</button>
     </div>
   </header>
@@ -62,7 +89,7 @@
         <span>Preview</span>
         <button id="btn-refresh-preview" class="small">Reload</button>
       </div>
-      <iframe id="preview-frame" src="/index.rendered.html"></iframe>
+      <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
     </aside>
   </div>
 </div>
@@ -70,6 +97,9 @@
 <!-- ───────── Modals ───────── -->
 <div id="modal-root"></div>
 
+<!-- ───────── Scripts ───────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/admin/static/supabase-client.js"></script>
 <script src="/admin/static/app.js"></script>
 </body>
 </html>
