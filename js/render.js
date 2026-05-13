@@ -336,10 +336,17 @@ function defaultContentUrl() {
 
 export async function render(jsonUrl, rootSelector = '#page-root') {
   injectComponentCSS();
-  if (!jsonUrl) jsonUrl = defaultContentUrl();
-  const res = await fetch(jsonUrl, { cache: 'no-store' });
-  if (!res.ok) throw new Error(`Failed to load ${jsonUrl}: ${res.status}`);
-  const doc = await res.json();
+
+  let doc;
+  if (window.__PAGE_DATA__) {
+    // Embedded by CF Pages Function or admin preview blob
+    doc = window.__PAGE_DATA__;
+  } else {
+    if (!jsonUrl) jsonUrl = defaultContentUrl();
+    const res = await fetch(jsonUrl, { cache: 'no-store' });
+    if (!res.ok) throw new Error(`Failed to load ${jsonUrl}: ${res.status}`);
+    doc = await res.json();
+  }
 
   if (doc.meta?.title) document.title = doc.meta.title;
   if (doc.lang)        document.documentElement.lang = doc.lang;
