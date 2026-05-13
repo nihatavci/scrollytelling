@@ -149,6 +149,63 @@ const PALETTE_BLOCKS = [
   { type: 'VizPanel',  desc: 'Advanced — visualization container' },
 ];
 
+// Tiny inline mockups shown inside the palette cards and at the top of the
+// Claude-generation modal so the user sees what the component looks like
+// before generating. Each is plain HTML using common admin colors — NOT the
+// rendered component itself.
+const BLOCK_PREVIEWS = {
+  Hero: `
+    <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.18em;color:#8c8078;text-transform:uppercase;">BRAND</div>
+    <div style="font:700 18px 'Source Serif 4',serif;line-height:1.05;margin-top:6px;color:#2a2320;">Title <span style="color:#c06830;">word</span></div>
+    <div style="font:400 9px 'DM Sans',sans-serif;color:#8c8078;margin-top:3px;">subtitle</div>`,
+  Editorial: `
+    <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.1em;color:#c06830;text-transform:uppercase;">KICKER</div>
+    <div style="font:700 13px 'Source Serif 4',serif;color:#2a2320;line-height:1.2;margin-top:4px;">Heading text</div>
+    <div style="margin-top:6px;height:5px;background:#eaeef2;border-radius:2px;"></div>
+    <div style="margin-top:3px;height:5px;background:#eaeef2;border-radius:2px;width:85%;"></div>
+    <div style="margin-top:3px;height:5px;background:#eaeef2;border-radius:2px;width:60%;"></div>`,
+  Scrolly: `
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1;background:#fde8d8;border-radius:4px;height:48px;display:flex;align-items:center;justify-content:center;font:700 10px 'DM Sans',sans-serif;color:#c06830;">CHART</div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:4px;">
+        <div style="background:#fff;border:1px solid #d4c5ff;border-radius:4px;padding:3px 5px;font:600 7px 'DM Sans',sans-serif;color:#6639ba;">STEP 1</div>
+        <div style="background:#fff;border:1px solid #eaeef2;border-radius:4px;padding:3px 5px;font:600 7px 'DM Sans',sans-serif;color:#8c8078;opacity:.6;">STEP 2</div>
+        <div style="background:#fff;border:1px solid #eaeef2;border-radius:4px;padding:3px 5px;font:600 7px 'DM Sans',sans-serif;color:#8c8078;opacity:.6;">STEP 3</div>
+      </div>
+    </div>`,
+  Timeline: `
+    <div style="display:flex;flex-direction:column;gap:6px;padding-left:8px;border-left:2px solid #eaeef2;position:relative;">
+      ${[1,2,3].map(i => `
+        <div style="display:flex;align-items:flex-start;gap:6px;">
+          <div style="width:6px;height:6px;border-radius:50%;background:#c06830;margin-left:-12px;margin-top:3px;flex-shrink:0;"></div>
+          <div>
+            <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.08em;color:#c06830;text-transform:uppercase;">1969</div>
+            <div style="font:700 9px 'Source Serif 4',serif;color:#2a2320;">Event ${i}</div>
+          </div>
+        </div>`).join('')}
+    </div>`,
+  StatRow: `
+    <div style="display:flex;gap:6px;justify-content:space-around;text-align:center;">
+      ${[{v:'67%',l:'label'}, {v:'8.5k',l:'items'}, {v:'3×',l:'more'}].map(s => `
+        <div>
+          <div style="font:700 18px 'Source Serif 4',serif;color:#c06830;line-height:1;">${s.v}</div>
+          <div style="font:500 7px 'DM Sans',sans-serif;color:#2a2320;margin-top:3px;">${s.l}</div>
+        </div>`).join('')}
+    </div>`,
+  Aside: `
+    <div style="border-left:3px solid #c06830;background:#fff8f1;border-radius:0 4px 4px 0;padding:6px 8px;">
+      <div style="font:700 9px 'Source Serif 4',serif;color:#2a2320;margin-bottom:3px;">Aside title</div>
+      <div style="font:400 8px 'DM Sans',sans-serif;color:#2a2320;line-height:1.4;">Highlighted side note.</div>
+    </div>`,
+  Outro: `
+    <div style="font:700 12px 'Source Serif 4',serif;color:#2a2320;">Closing</div>
+    <div style="margin-top:5px;height:4px;background:#eaeef2;border-radius:2px;"></div>
+    <div style="margin-top:3px;height:4px;background:#eaeef2;border-radius:2px;width:80%;"></div>
+    <div style="margin-top:8px;font:600 italic 9px 'Source Serif 4',serif;color:#c06830;">Final emphasized line.</div>`,
+  VizPanel: `
+    <div style="background:#fde8d8;border-radius:4px;height:48px;display:flex;align-items:center;justify-content:center;font:700 11px 'DM Sans',sans-serif;color:#c06830;letter-spacing:.05em;">VIZ</div>`,
+};
+
 // ─────────────────────────── DOM refs ────────────────────────
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
@@ -423,8 +480,11 @@ function renderPalette(body) {
   grid.className = 'palette-grid';
   PALETTE_BLOCKS.forEach(({ type, desc }) => {
     const card = document.createElement('button');
-    card.className = 'palette-card';
-    card.innerHTML = `<span class="name">${type}</span><span class="desc">${desc}</span>`;
+    card.className = 'palette-card with-preview';
+    card.innerHTML = `
+      <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
+      <span class="name">${type}</span>
+      <span class="desc">${desc}</span>`;
     card.addEventListener('click', () => {
       closeModal();
       openClaudeModal({ mode: 'create', type });
@@ -445,6 +505,20 @@ function openClaudeModal(opts) {
 
   openModal(title, (body) => {
     body.innerHTML = '';
+
+    if (BLOCK_PREVIEWS[type]) {
+      const previewBox = document.createElement('div');
+      previewBox.style.cssText = 'border:1px solid #d0d7de;border-radius:8px;padding:12px;margin-bottom:14px;background:#faf7f2;';
+      const previewLabel = document.createElement('div');
+      previewLabel.style.cssText = 'font-size:10px;font-weight:600;color:#8c959f;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;';
+      previewLabel.textContent = `${type} preview (rough mock)`;
+      const previewMock = document.createElement('div');
+      previewMock.style.cssText = 'max-width:280px;margin:0 auto;';
+      previewMock.innerHTML = BLOCK_PREVIEWS[type];
+      previewBox.appendChild(previewLabel);
+      previewBox.appendChild(previewMock);
+      body.appendChild(previewBox);
+    }
 
     const hint = document.createElement('p');
     hint.style.cssText = 'margin-bottom:12px;color:#57606a;font-size:12.5px;line-height:1.5;';
