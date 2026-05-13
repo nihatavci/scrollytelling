@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Die Nachricht als Jahrhunderterfindung</title>
+<meta property="og:title" content="Die Nachricht als Jahrhunderterfindung">
+<meta property="og:description" content="Das Pyramidenprinzip im deutschen Journalismus seit 1924 — eine interaktive Scrollytelling-Erfahrung.">
+<meta name="description" content="Interaktive Visualisierung: 100 Jahre Pyramidenprinzip im deutschen Journalismus. 8.500+ Artikel analysiert.">
+<script src="./vendor/d3.min.js"></script>
+<script>window.d3||document.write('<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.9.0/d3.min.js"><\/script>')</script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap');
+:root{
+  /* Dia palette */
+  --canvas:#f8f8f8; --snow:#fff; --fog:#efefef; --pebble:#d9d9d9;
+  --ash:#7c7c7c; --slate:#959595; --steel:#aeaeae; --graphite:#636363; --ink-black:#000;
+  --rose-quartz:#c679c4; --marigold:#ffb005; --signal-blue:#0358f7; --hot-pink:#fd02f5; --spectrum-red:#fa3d1d;
+  --spectrum-gradient:linear-gradient(90deg,#c679c4 0%,#fa3d1d 25%,#ffb005 50%,#e1e1fe 75%,#0358f7 100%);
+
+  /* Legacy aliases — every existing rule already references these names */
+  --bg:var(--canvas); --text:var(--ink-black); --muted:var(--graphite); --accent:var(--ink-black);
+  --card:rgba(255,255,255,.9);
+
+  /* Type */
+  --font-display:'DM Sans',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+  --font-body:'DM Sans',ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,sans-serif;
+
+  /* Radii */
+  --radius-card:30px; --radius-image:10px; --radius-button:30px; --radius-pill:9999px;
+
+  /* Elevation */
+  --shadow-card:rgba(0,0,0,0.08) 0 0 8px 0;
+}
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);overflow-x:hidden}
+.progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,#c06830,#5d8fa8);z-index:999;transition:width .2s;border-radius:0 2px 2px 0;width:0}
+
+/* ── Language Switcher ── */
+.lang-sw{position:fixed;top:1rem;right:1.5rem;z-index:999;display:flex;gap:0;border-radius:20px;overflow:hidden;border:1.5px solid rgba(42,35,32,.15);background:rgba(250,247,242,.88);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.04em}
+.lang-sw button{padding:.4rem .9rem;border:none;cursor:pointer;background:transparent;color:var(--muted);transition:all .25s ease}
+.lang-sw button.active{background:var(--accent);color:#fff;border-radius:18px}
+
+/* ── Cinematic Intro ── */
+.cin-intro{position:relative;width:100%;height:100vh;overflow:hidden;background:var(--bg);z-index:10}
+/* Brand: starts big+centered, JS flies it to top small */
+.cin-brand{position:absolute;left:0;right:0;text-align:center;font-family:'DM Sans',sans-serif;font-weight:600;letter-spacing:.18em;text-transform:uppercase;opacity:0;z-index:5;top:50%;transform:translateY(-50%);font-size:clamp(.85rem,2vw,1.25rem);color:var(--text);transition:top .9s cubic-bezier(.4,0,.2,1),transform .9s cubic-bezier(.4,0,.2,1),font-size .9s ease,color .9s ease,opacity .7s ease}
+.cin-brand.settled{top:1.8rem;transform:translateY(0);font-size:.72rem;color:var(--muted)}
+/* SVG fills top 58% */
+.cin-svg-wrap{position:absolute;top:0;left:0;width:100%;height:58%;z-index:1}
+.cin-svg-wrap svg{width:100%;height:100%;display:block}
+/* Text zone: vertically centered in the 58%–90% band */
+.cin-text-layer{position:absolute;left:0;right:0;top:58%;height:32%;z-index:2;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.cin-line{font-family:'Source Serif 4',serif;color:var(--text);opacity:0;position:absolute;text-align:center;max-width:72vw;line-height:1.55}
+.cin-l1,.cin-l2{font-size:clamp(1.3rem,2.6vw,1.75rem);font-weight:400;color:var(--muted)}
+.cin-l3{font-size:clamp(1.35rem,2.8vw,1.9rem);font-weight:600;color:var(--text)}
+.cin-l4{font-size:clamp(1.2rem,2.4vw,1.6rem);font-weight:400;color:var(--muted)}
+.cin-l5{font-size:clamp(1.3rem,2.7vw,1.85rem);font-weight:600;color:var(--text)}
+.cin-l6{font-size:clamp(1.45rem,3.2vw,2.2rem);font-weight:700;color:#3d7a4a;letter-spacing:-.01em}
+/* Title: full-screen overlay, shown last */
+.cin-title-layer{position:absolute;top:0;left:0;right:0;bottom:0;z-index:4;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:0 2rem;opacity:0;pointer-events:none}
+.cin-main-title{font-family:'Source Serif 4',serif;font-size:clamp(2.6rem,7vw,4.8rem);font-weight:700;color:var(--text);line-height:1.05;letter-spacing:-.03em;margin-bottom:.8rem}
+.cin-main-title span{color:var(--accent)}
+.cin-sub-title{font-family:'DM Sans',sans-serif;font-size:clamp(.9rem,1.8vw,1.15rem);color:var(--muted);font-weight:400}
+/* Scroll cue: pinned bottom, JS controls opacity */
+.cin-scroll-cue{position:absolute;bottom:2rem;left:0;right:0;text-align:center;z-index:6;color:var(--muted);font-family:'DM Sans',sans-serif;font-size:.78rem;display:flex;flex-direction:column;align-items:center;gap:.5rem;opacity:0}
+.cin-scroll-cue .arr{width:16px;height:16px;border-right:2px solid var(--accent);border-bottom:2px solid var(--accent);transform:rotate(45deg);animation:bob 2s ease-in-out infinite}
+@keyframes bob{0%,100%{transform:rotate(45deg) translateY(0)}50%{transform:rotate(45deg) translateY(6px)}}
+
+/* ── Editorial ── */
+.editorial{max-width:720px;margin:0 auto;padding:2.5rem 2rem 3rem;position:relative;z-index:3;background:var(--bg)}
+.editorial p{font-family:'Source Serif 4',serif;font-size:1.15rem;line-height:1.85;color:var(--text);margin-bottom:1.5rem}
+.editorial .lead{font-size:1.3rem;font-weight:400;line-height:1.7}
+.editorial h2{font-family:'Source Serif 4',serif;font-size:clamp(1.6rem,3.5vw,2.2rem);font-weight:700;margin-bottom:1.2rem;letter-spacing:-.02em;line-height:1.2}
+.editorial .kicker{font-family:'DM Sans',sans-serif;font-size:.72rem;font-weight:600;letter-spacing:.1em;text-transform:uppercase;color:var(--accent);margin-bottom:.6rem}
+.pullquote{border-left:3px solid var(--accent);padding:.5rem 0 .5rem 1.5rem;margin:2rem 0;font-family:'Source Serif 4',serif;font-size:1.2rem;font-weight:600;font-style:italic;color:var(--text);line-height:1.6}
+.pullquote cite{display:block;font-size:.85rem;font-weight:400;font-style:normal;color:var(--muted);margin-top:.5rem}
+.editorial figure{margin:2.5rem 0;width:100%}
+.editorial figure img{width:100%;height:auto;border-radius:6px;display:block}
+.editorial figcaption{font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);margin-top:.6rem;font-style:italic}
+.editorial .separator{width:60px;height:3px;background:var(--accent);margin:3rem auto;border-radius:2px}
+
+/* ── Scrollytelling ── */
+.scrolly{position:relative;margin:0 auto}
+.scrolly__graphic{position:sticky;top:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;padding:1.5rem 2rem 1rem 3vw;z-index:1}
+#chart-content{width:100%;max-width:1400px;margin:0 auto}
+.viz-header{width:100%;margin-bottom:.5rem;padding-left:.5rem}
+.viz-title{font-family:'Source Serif 4',serif;font-size:1.7rem;font-weight:700;line-height:1.25}
+.viz-sub{font-size:.85rem;color:var(--muted);margin-top:.15rem}
+.viz-source{width:100%;font-size:.62rem;color:var(--muted);opacity:.4;margin-top:.4rem;padding-left:.5rem}
+.viz-wrap{width:100%}
+.viz-wrap svg{display:block;width:100%;height:auto;max-height:70vh}
+
+/* Chart panel sits BEHIND the document flow (z-index:1 < editorial z:3).
+   JS drives transform so the chart slides up from below as a scrolly
+   section enters, sticks at top while the section is in view, then slides
+   up out of the way — exactly like a natural, in-flow block of content.
+   Editorial sections have opaque bg and higher z-index so they cover the
+   chart whenever they occupy the viewport. */
+.viz-panel{position:fixed;top:0;left:0;width:100%;height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1.5rem 2rem 1rem 2rem;z-index:1;pointer-events:none;background:var(--bg);transform:translateY(100vh);will-change:transform}
+
+.scrolly__steps{position:relative;z-index:10;width:440px;margin-left:auto;margin-right:5vw}
+.step{min-height:95vh;display:flex;align-items:center;padding:1.5rem 0}
+.step:first-child{padding-top:22vh}.step:last-child{margin-bottom:12vh}
+.sc{background:var(--card);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-radius:16px;padding:1.1rem 1.4rem 1.2rem;border:1px solid rgba(255,255,255,.35);max-width:440px;box-shadow:0 4px 28px rgba(0,0,0,.08);text-align:center;opacity:.35}
+.step.is-active .sc{opacity:1;box-shadow:0 6px 32px rgba(0,0,0,.13)}
+.badge{display:inline-block;font-size:.52rem;font-weight:600;letter-spacing:.07em;text-transform:uppercase;padding:.1rem .45rem;border-radius:20px;margin-bottom:.4rem;opacity:.75}
+.b-pyramid{background:#fde8d8;color:#c06830}
+.b-data{background:#d6e8f0;color:#3d7a94}
+.b-explain{background:#e8ddf5;color:#7a5a90}
+.b-future{background:#e3f0e3;color:#3d7a4a}
+.b-voice{background:#f0e3f0;color:#7a3d7a}
+.sc h3{font-family:'DM Sans',sans-serif;font-size:.95rem;font-weight:400;line-height:1.55;color:var(--text);margin:0}
+
+/* ── Outro ── */
+.outro{max-width:720px;margin:0 auto;padding:3rem 2rem 6rem;font-family:'Source Serif 4',serif;position:relative;z-index:3;background:var(--bg)}
+.outro h2{font-size:1.6rem;font-weight:700;margin-bottom:1rem;letter-spacing:-.02em;line-height:1.25}
+.outro p{font-size:1.1rem;line-height:1.8;color:var(--text);margin-bottom:1.2rem}
+.outro .final-line{font-size:1.25rem;font-weight:600;color:var(--accent);font-style:italic;margin-top:2rem;line-height:1.6}
+.outro .source-block{margin-top:3rem;padding-top:2rem;border-top:1px solid #e6e1da;font-family:'DM Sans',sans-serif;font-size:.78rem;color:var(--muted);line-height:1.6}
+
+/* ── Mobile ── */
+@media(max-width:900px){
+  .cin-main-title{font-size:clamp(1.8rem,8vw,2.8rem)}
+  .cin-svg-wrap{height:50%}
+  .cin-text-layer{top:50%;height:38%}
+  .cin-line{max-width:90vw}
+  .editorial{padding:2.5rem 1.25rem}
+  .editorial p{font-size:1.02rem;line-height:1.75}
+  .editorial h2{font-size:1.4rem}
+  .pullquote{font-size:1.05rem}
+  .scrolly__graphic{height:100vh;padding:.5rem .75rem .4rem;justify-content:flex-start;align-items:flex-start}
+  #chart-content{width:100%;max-width:100%}
+  .viz-header{margin-bottom:.1rem;width:100%}
+  .viz-title{font-size:.88rem;line-height:1.2}
+  .viz-sub{font-size:.65rem}
+  .viz-wrap svg{height:100vw;max-height:68vh}
+  .scrolly__steps{width:100%;margin-left:0;margin-right:0;padding:0}
+  .step{min-height:90vh;padding:0;align-items:flex-end;padding-bottom:1.5rem}
+  .step:first-child{min-height:90vh;padding-top:18vh}
+  .step:last-child{margin-bottom:20vh}
+  .sc{max-width:calc(100% - 2rem);width:calc(100% - 2rem);margin:0 1rem;padding:.85rem 1.2rem 1rem;border-radius:14px;pointer-events:auto}
+  .sc h3{font-size:.88rem}
+  .badge{font-size:.48rem}
+  .outro{padding:3rem 1.25rem 5rem}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="prog"></div>
+<div class="lang-sw"><button class="active" data-lang="de">DE</button></div>
+
+<!-- Page content is hydrated from content/index.json by js/render.js.
+     After hydration completes, js/page-init.js runs the cinematic intro,
+     D3 visualization, and scrollytelling observer — unchanged from the
+     original inline script. -->
+<main id="page-root"></main>
+
+<script type="module">
+  import { render } from './js/render.js';
+  try {
+    await render(undefined, '#page-root');
+  } catch (err) {
+    console.error('Render failed:', err);
+    document.body.innerHTML =
+      '<div style="max-width:720px;margin:2rem auto;padding:1rem 1.2rem;border:1px solid #e2b9a3;border-radius:10px;background:#fff4ec;color:#6f3f24;font-family:DM Sans,Arial,sans-serif;line-height:1.5;">Konnte Inhalte nicht laden ('
+      + (err && err.message ? err.message : 'unknown error')
+      + '). Bitte über einen lokalen Server öffnen, z.&nbsp;B. <code>python3 -m http.server 8000</code>, dann <strong>http://localhost:8000/index.rendered.html</strong>.</div>';
+    throw err;
+  }
+  // Inject the page-init script (cinematic intro, viz, scrolly observer).
+  // Done after render so all DOM nodes the script queries already exist.
+  const s = document.createElement('script');
+  s.src = './js/page-init.js';
+  document.body.appendChild(s);
+</script>
+</body>
+</html>
