@@ -323,60 +323,84 @@ function setDirty(d) {
   s.textContent = d ? '● Unsaved changes' : (state.savedVersion ? `Saved · v${state.savedVersion}` : 'Loaded');
   $('#btn-publish').disabled = !d;
 }
-async function api(method, path, body, isForm) {
-  const opts = { method, headers: {} };
-  if (body && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
-  if (body && isForm) opts.body = body;
-  let res;
-  try {
-    res = await fetch(path, opts);
-  } catch (err) {
-    // Network-level failure — most often: the server isn't running anymore.
-    throw new Error(`Cannot reach the server (${err.message || 'network error'}). Is admin/server.js still running in your terminal?`);
-  }
-  if (res.status === 401) { showLogin(); throw new Error('unauthorized'); }
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.error || res.statusText);
-  return data;
-}
+// ─────────────────────────── API (Supabase-backed) ─────────
+// SB.* functions from supabase-client.js replace the old fetch-based api().
 
 // ─────────────────────────── Auth ────────────────────────────
 async function checkSession() {
   try {
-    const { loggedIn } = await api('GET', '/admin/api/session');
-    if (loggedIn) showApp(); else showLogin();
-  } catch { showLogin(); }
+    const { loggedIn } = await SB.checkSession();
+    if (loggedIn) showApp(); else showAuth();
+  } catch { showAuth(); }
 }
-function showLogin() {
-  $('#login').classList.remove('hidden');
-  $('#app').classList.add('hidden');
+function showAuth() {
+  document.getElementById('auth').classList.remove('hidden');
+  document.getElementById('app').classList.add('hidden');
 }
 function showApp() {
-  $('#login').classList.add('hidden');
-  $('#app').classList.remove('hidden');
+  document.getElementById('auth').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
   loadPages();
 }
-$('#login-form').addEventListener('submit', async (e) => {
+
+// Tab switcher
+document.querySelectorAll('.auth-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.auth-tab').forEach(t => t.classList.remove('active'));
+    tab.classList.add('active');
+    const which = tab.dataset.tab;
+    document.getElementById('login-form').classList.toggle('hidden', which !== 'login');
+    document.getElementById('signup-form').classList.toggle('hidden', which !== 'signup');
+    document.getElementById('auth-success').classList.add('hidden');
+  });
+});
+
+// Login
+document.getElementById('login-form').addEventListener('submit', async (e) => {
   e.preventDefault();
-  const pwd = $('#login-pwd').value;
-  $('#login-error').textContent = '';
+  const email = document.getElementById('login-email').value.trim();
+  const pwd = document.getElementById('login-pwd').value;
+  document.getElementById('login-error').textContent = '';
   try {
-    await api('POST', '/admin/api/login', { password: pwd });
-    $('#login-pwd').value = '';
+    await SB.login(email, pwd);
+    document.getElementById('login-email').value = '';
+    document.getElementById('login-pwd').value = '';
     showApp();
   } catch (err) {
-    $('#login-error').textContent = err.message || 'Login failed';
+    document.getElementById('login-error').textContent = err.message || 'Login failed';
   }
 });
-$('#btn-logout').addEventListener('click', async () => {
-  await api('POST', '/admin/api/logout').catch(() => {});
+
+// Signup
+document.getElementById('signup-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const name = document.getElementById('signup-name').value.trim();
+  const email = document.getElementById('signup-email').value.trim();
+  const pwd = document.getElementById('signup-pwd').value;
+  document.getElementById('signup-error').textContent = '';
+  try {
+    const r = await SB.signup(email, pwd, name);
+    if (r.needsConfirmation) {
+      document.getElementById('signup-form').classList.add('hidden');
+      document.getElementById('auth-success').classList.remove('hidden');
+    } else {
+      showApp();
+    }
+  } catch (err) {
+    document.getElementById('signup-error').textContent = err.message || 'Signup failed';
+  }
+});
+
+// Logout
+document.getElementById('btn-logout').addEventListener('click', async () => {
+  await SB.logout().catch(() => {});
   state.doc = null;
-  showLogin();
+  showAuth();
 });
 
 // ─────────────────────────── Pages ───────────────────────────
 async function loadPages(preferId) {
-  const { pages } = await api('GET', '/admin/api/pages');
+  const { pages } = await SB.listPages();
   state.pages = pages;
   const sel = $('#page-select');
   sel.innerHTML = pages.map(id => `<option value="${id}">${id}</option>`).join('');
@@ -444,7 +468,7 @@ $('#btn-new-page').addEventListener('click', () => {
       if (id === 'admin') { err.textContent = '"admin" is reserved.'; return; }
       create.disabled = true;
       try {
-        await api('POST', '/admin/api/pages', { id, title: title || id });
+        await SB.createPage(id, title || id);
         toast(`Page "${id}" created`, 'success');
         closeModal();
         await loadPages(id);
@@ -461,10 +485,17 @@ $('#btn-new-page').addEventListener('click', () => {
 });
 
 // Update "View" link to point at the current page
-function updateViewLink() {
+async function updateViewLink() {
   const link = $('#link-view-page');
-  if (state.currentPageId === 'index') link.href = '/';
-  else link.href = `/${state.currentPageId}`;
+  try {
+    const profile = await SB.getProfile();
+    const base = `/p/${profile.site_slug}`;
+    link.href = state.currentPageId === 'index'
+      ? `${base}/`
+      : `${base}/${state.currentPageId}`;
+  } catch {
+    link.href = '#';
+  }
 }
 
 async function loadPage(id) {
@@ -473,7 +504,7 @@ async function loadPage(id) {
     return;
   }
   state.currentPageId = id;
-  state.doc = await api('GET', `/admin/api/pages/${id}`);
+  state.doc = await SB.getPage(id);
   state.savedVersion = state.doc.version || 0;
   state.selectedBlockId = null;
   state.selectedItemIdx = null;
@@ -483,7 +514,7 @@ async function loadPage(id) {
   updateViewLink();
   // Reload the preview iframe to show the new page
   const iframe = $('#preview-frame');
-  iframe.src = state.currentPageId === 'index' ? '/index.rendered.html' : `/${state.currentPageId}`;
+  iframe.src = pageUrl();
 }
 
 // ─────────────────────────── Blocks list ─────────────────────
@@ -645,13 +676,11 @@ function openClaudeModal(opts) {
     previewWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;';
     filePick.addEventListener('change', async () => {
       for (const f of Array.from(filePick.files)) {
-        const fd = new FormData();
-        fd.append('file', f);
         try {
-          const r = await api('POST', '/admin/api/upload', fd, true);
+          const r = await SB.uploadImage(f);
           uploadedImages.push(r.url);
           const thumb = document.createElement('div');
-          thumb.style.cssText = `width:60px;height:60px;background:url('/${encodeURI(r.url)}') center/cover no-repeat;border:1px solid #d0d7de;border-radius:4px;`;
+          thumb.style.cssText = `width:60px;height:60px;background:url('${encodeURI(r.url)}') center/cover no-repeat;border:1px solid #d0d7de;border-radius:4px;`;
           thumb.title = r.url;
           previewWrap.appendChild(thumb);
         } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
@@ -685,7 +714,7 @@ function openClaudeModal(opts) {
       spinner.textContent = 'Claude is writing… (this can take 30–60 seconds)';
       body.appendChild(spinner);
       try {
-        const r = await api('POST', '/admin/api/generate', {
+        const r = await SB.generate({
           type,
           prompt,
           images: uploadedImages,
@@ -1489,12 +1518,12 @@ function imageField(initial, onChange) {
   box.className = 'img-field';
   const thumb = document.createElement('div');
   thumb.className = 'img-thumb';
-  if (initial) thumb.style.backgroundImage = `url('/${encodeURI(initial)}')`;
+  if (initial) thumb.style.backgroundImage = `url('${encodeURI(initial)}')`;
   const inp = document.createElement('input');
   inp.type = 'text'; inp.value = initial; inp.placeholder = 'images/...';
   inp.addEventListener('input', () => {
     onChange(inp.value);
-    thumb.style.backgroundImage = inp.value ? `url('/${encodeURI(inp.value)}')` : '';
+    thumb.style.backgroundImage = inp.value ? `url('${encodeURI(inp.value)}')` : '';
   });
 
   const actions = document.createElement('div');
@@ -1508,13 +1537,11 @@ function imageField(initial, onChange) {
     file.accept = 'image/*';
     file.addEventListener('change', async () => {
       if (!file.files[0]) return;
-      const fd = new FormData();
-      fd.append('file', file.files[0]);
       try {
-        const r = await api('POST', '/admin/api/upload', fd, true);
+        const r = await SB.uploadImage(file.files[0]);
         inp.value = r.url;
         onChange(r.url);
-        thumb.style.backgroundImage = `url('/${encodeURI(r.url)}')`;
+        thumb.style.backgroundImage = `url('${encodeURI(r.url)}')`;
         toast('Uploaded · ' + r.url, 'success');
       } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
     });
@@ -1527,7 +1554,7 @@ function imageField(initial, onChange) {
     openImagePicker((url) => {
       inp.value = url;
       onChange(url);
-      thumb.style.backgroundImage = `url('/${encodeURI(url)}')`;
+      thumb.style.backgroundImage = `url('${encodeURI(url)}')`;
     });
   });
   actions.appendChild(uploadBtn);
@@ -1546,14 +1573,14 @@ async function openImagePicker(cb) {
   openModal('Pick image', async (body) => {
     body.innerHTML = 'Loading…';
     try {
-      const { images } = await api('GET', '/admin/api/images');
+      const { images } = await SB.listImages();
       body.innerHTML = '';
       const grid = document.createElement('div');
       grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px;';
       images.forEach(img => {
         const card = document.createElement('button');
         card.style.cssText = 'border:1px solid #d0d7de;border-radius:6px;padding:4px;background:#fff;cursor:pointer;display:flex;flex-direction:column;gap:4px;text-align:center;';
-        card.innerHTML = `<div style="width:100%;height:80px;background:#eaeef2 center/cover no-repeat;background-image:url('/${encodeURI(img.url)}');border-radius:4px;"></div>
+        card.innerHTML = `<div style="width:100%;height:80px;background:#eaeef2 center/cover no-repeat;background-image:url('${encodeURI(img.url)}');border-radius:4px;"></div>
                           <div style="font-size:10px;color:#57606a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${img.url.split('/').pop()}</div>`;
         card.title = img.url;
         card.addEventListener('click', () => { closeModal(); cb(img.url); });
@@ -1596,7 +1623,7 @@ $('#btn-publish').addEventListener('click', async () => {
   ensureScrollyIds(state.doc);
   $('#btn-publish').disabled = true;
   try {
-    const r = await api('PUT', `/admin/api/pages/${state.currentPageId}`, state.doc);
+    const r = await SB.saveDraft(state.currentPageId, state.doc);
     state.doc.version = r.version;
     state.savedVersion = r.version;
     setDirty(false);
@@ -1610,7 +1637,29 @@ $('#btn-publish').addEventListener('click', async () => {
 
 // Preview
 function pageUrl() {
-  return state.currentPageId === 'index' ? '/index.rendered.html' : `/${state.currentPageId}`;
+  return getPreviewBlobUrl();
+}
+
+function getPreviewBlobUrl() {
+  if (!state.doc) return 'about:blank';
+  const doc = state.doc;
+  const html = `<!DOCTYPE html>
+<html lang="${doc.lang || 'de'}">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<script>window.__PAGE_DATA__ = ${JSON.stringify(doc)};<\/script>
+<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"><\/script>
+</head>
+<body>
+<main id="page-root"></main>
+<script type="module">
+import { render } from '${location.origin}/js/render.js';
+render();
+<\/script>
+</body></html>`;
+  return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
 }
 function refreshPreview() {
   // Debounced reload of the iframe with cache-buster
@@ -1628,7 +1677,7 @@ $('#btn-history').addEventListener('click', async () => {
   openModal('Version history', async (body) => {
     body.innerHTML = 'Loading…';
     try {
-      const { snapshots } = await api('GET', `/admin/api/pages/${state.currentPageId}/history`);
+      const { snapshots } = await SB.listHistory(state.currentPageId);
       body.innerHTML = '';
       if (!snapshots.length) { body.textContent = 'No history yet. Publishing creates snapshots.'; return; }
       snapshots.forEach(s => {
@@ -1639,7 +1688,7 @@ $('#btn-history').addEventListener('click', async () => {
           e.stopPropagation();
           if (!confirm(`Restore snapshot from ${s.ts}? Current state will be snapshotted first.`)) return;
           try {
-            const r = await api('POST', `/admin/api/pages/${state.currentPageId}/restore/${s.file}`);
+            const r = await SB.restoreSnapshot(state.currentPageId, s.id);
             toast(`Restored · v${r.version}`, 'success');
             closeModal();
             await loadPage(state.currentPageId);
