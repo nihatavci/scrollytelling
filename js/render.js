@@ -68,10 +68,26 @@ const COMPONENT_CSS = `
 .chapter-subtitle{font-family:var(--font-body);font-size:1.0625rem;color:var(--graphite);font-weight:400;line-height:1.5;max-width:560px;margin:0 auto 1.6rem}
 .chapter-strip{width:120px;height:2px;background:var(--spectrum-gradient);margin:0 auto;border-radius:2px}
 
+/* ── Quote (featured) ── */
+.quote-block{max-width:860px;margin:4rem auto;padding:0 2rem;position:relative;z-index:3}
+.quote-figure{margin:0}
+.quote-text{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2.25rem);font-weight:300;color:var(--ink-black);line-height:1.25;letter-spacing:-.03em;position:relative;margin:0 0 1.4rem;padding-left:.2em}
+.quote-mark{position:absolute;left:-.45em;top:-.18em;font-size:1.5em;line-height:1;color:var(--ink-black);font-family:var(--font-display);font-weight:300;opacity:.18}
+.quote-body{display:inline}
+.quote-cap{display:flex;align-items:center;gap:1rem;margin-top:1.2rem;padding-left:.2em}
+.quote-portrait{width:56px;height:56px;border-radius:50%;object-fit:cover;flex-shrink:0;border:1px solid rgba(0,0,0,.06)}
+.quote-attr-wrap{display:flex;flex-direction:column;gap:.15rem;font-family:var(--font-body);min-width:0}
+.quote-attr{font-size:.95rem;font-weight:500;color:var(--ink-black);letter-spacing:-.005em}
+.quote-role{font-size:.82rem;color:var(--graphite);font-weight:400}
+.quote-source{font-size:.78rem;color:var(--ink-black);text-decoration:underline;text-decoration-color:var(--steel);text-underline-offset:3px;margin-top:.25rem;transition:text-decoration-color .2s}
+.quote-source:hover{text-decoration-color:var(--ink-black)}
+
 @media(max-width:900px){
   .timeline-block,.statrow-block{padding:3rem 1.25rem}
   .aside-block{margin:2.5rem 1.25rem}
   .chapter-divider{margin:3.5rem auto 2.5rem;padding:0 1.25rem}
+  .quote-block{margin:3rem auto;padding:0 1.25rem}
+  .quote-portrait{width:48px;height:48px}
 }
 `;
 
@@ -93,6 +109,7 @@ const BLOCK_RENDERERS = {
   Timeline:       renderTimeline,
   Aside:          renderAside,
   ChapterDivider: renderChapterDivider,
+  Quote:          renderQuote,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -449,6 +466,35 @@ function renderChapterDivider(d) {
   if (d.subtitle) sec.appendChild(el('div', { class: 'chapter-subtitle' }, d.subtitle));
   // Decorative gradient strip below the heading
   sec.appendChild(el('div', { class: 'chapter-strip', 'aria-hidden': 'true' }));
+  return sec;
+}
+
+function renderQuote(d) {
+  const sec = el('section', { class: 'quote-block' });
+  const fig = el('figure', { class: 'quote-figure' });
+  const bq = el('blockquote', { class: 'quote-text' });
+  // Decorative open-quote glyph
+  const openMark = el('span', { class: 'quote-mark', 'aria-hidden': 'true' }, '“');
+  bq.appendChild(openMark);
+  const span = el('span', { class: 'quote-body' });
+  span.innerHTML = d.text || '';
+  bq.appendChild(span);
+  fig.appendChild(bq);
+
+  const cap = el('figcaption', { class: 'quote-cap' });
+  if (d.portraitSrc) {
+    cap.appendChild(el('img', { class: 'quote-portrait', src: d.portraitSrc, alt: d.attribution || '' }));
+  }
+  const ttext = el('div', { class: 'quote-attr-wrap' });
+  if (d.attribution) ttext.appendChild(el('div', { class: 'quote-attr' }, d.attribution));
+  if (d.role)        ttext.appendChild(el('div', { class: 'quote-role' }, d.role));
+  if (d.sourceUrl)   {
+    const a = el('a', { class: 'quote-source', href: d.sourceUrl, target: '_blank', rel: 'noopener noreferrer' }, d.sourceLabel || 'Source');
+    ttext.appendChild(a);
+  }
+  cap.appendChild(ttext);
+  fig.appendChild(cap);
+  sec.appendChild(fig);
   return sec;
 }
 

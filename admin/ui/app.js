@@ -98,6 +98,18 @@ const BLOCK_SCHEMAS = {
       { key: 'subtitle', label: 'Subtitle (optional)',            kind: 'textarea' },
     ],
   },
+  Quote: {
+    name: 'Quote',
+    description: 'Featured money quote — large, optional portrait',
+    fields: [
+      { key: 'text',         label: 'Quote (without surrounding quote marks)', kind: 'textarea' },
+      { key: 'attribution',  label: 'Attribution (Name)',                       kind: 'text' },
+      { key: 'role',         label: 'Role / context (optional)',                kind: 'text' },
+      { key: 'portraitSrc',  label: 'Portrait (optional)',                      kind: 'image' },
+      { key: 'sourceUrl',    label: 'Source URL (optional)',                    kind: 'text' },
+      { key: 'sourceLabel',  label: 'Source link label (optional)',             kind: 'text' },
+    ],
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -229,6 +241,20 @@ const BLOCK_PREVIEWS = {
       <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.2em;color:#636363;text-transform:uppercase;">CHAPTER I</div>
       <div style="font:300 16px 'DM Sans',sans-serif;color:#000;margin-top:6px;letter-spacing:-.02em;">Chapter title</div>
       <div style="margin:6px auto 0;width:30px;height:2px;background:linear-gradient(90deg,#c679c4,#fa3d1d,#ffb005,#e1e1fe,#0358f7);border-radius:2px;"></div>
+    </div>`,
+  Quote: `
+    <div style="padding:8px 0;">
+      <div style="font:300 13px 'DM Sans',sans-serif;color:#000;line-height:1.25;letter-spacing:-.02em;position:relative;padding-left:10px;">
+        <span style="position:absolute;left:-3px;top:-4px;font-size:22px;color:#000;opacity:.2;line-height:1;">&ldquo;</span>
+        The single most-important quotation.
+      </div>
+      <div style="display:flex;gap:6px;align-items:center;margin-top:8px;padding-left:10px;">
+        <div style="width:18px;height:18px;border-radius:50%;background:#eaeef2;flex-shrink:0;"></div>
+        <div>
+          <div style="font:500 8px 'DM Sans',sans-serif;color:#000;">Speaker name</div>
+          <div style="font:400 7px 'DM Sans',sans-serif;color:#636363;">role · year</div>
+        </div>
+      </div>
     </div>`,
 };
 
@@ -678,6 +704,7 @@ function defaultDataFor(type) {
     case 'Timeline':  return { title: '', events: [{when:'',title:'',body:''}, {when:'',title:'',body:''}, {when:'',title:'',body:''}] };
     case 'Aside':     return { tone: 'info', title: '', body: '' };
     case 'ChapterDivider': return { number: '', title: 'Chapter title', subtitle: '' };
+    case 'Quote': return { text: 'Type the quote here.', attribution: 'Name', role: '', portraitSrc: '', sourceUrl: '', sourceLabel: '' };
     default:          return {};
   }
 }
