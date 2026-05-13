@@ -80,6 +80,8 @@ const BLOCK_RENDERERS = {
   Scrolly:    renderScrolly,
   Outro:      renderOutro,
   StatRow:    renderStatRow,
+  Timeline:   renderTimeline,
+  Aside:      renderAside,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -317,6 +319,15 @@ function renderEditorialItem(item) {
       return wrap;
     }
 
+    case 'callout': {
+      const wrap = el('div', { class: `callout callout-${item.tone || 'info'}` });
+      if (item.title) wrap.appendChild(el('div', { class: 'callout-title' }, item.title));
+      const body = el('div');
+      body.innerHTML = item.body || '';
+      wrap.appendChild(body);
+      return wrap;
+    }
+
     default:
       console.warn('Unknown editorial item kind:', item.kind);
       return null;
@@ -365,6 +376,37 @@ function renderStatRow(d) {
     grid.appendChild(cell);
   });
   sec.appendChild(grid);
+  return sec;
+}
+
+function renderTimeline(d) {
+  const sec = el('section', { class: 'timeline-block' });
+  if (d.title) sec.appendChild(el('h3', {}, d.title));
+  const list = el('div', { class: 'timeline-list' });
+  (d.events || []).forEach(ev => {
+    const item = el('div', { class: 'timeline-event' });
+    if (ev.when)  item.appendChild(el('div', { class: 'timeline-when' },  ev.when));
+    if (ev.title) item.appendChild(el('div', { class: 'timeline-title' }, ev.title));
+    if (ev.body) {
+      const body = el('div', { class: 'timeline-body' });
+      body.innerHTML = ev.body;  // allow inline <em>
+      item.appendChild(body);
+    }
+    list.appendChild(item);
+  });
+  sec.appendChild(list);
+  return sec;
+}
+
+function renderAside(d) {
+  const sec = el('aside', { class: `aside-block tone-${d.tone || 'info'}` });
+  if (d.title) sec.appendChild(el('h3', {}, d.title));
+  (String(d.body || '').split(/\n\n+/)).forEach(p => {
+    if (!p.trim()) return;
+    const para = el('p');
+    para.innerHTML = p;
+    sec.appendChild(para);
+  });
   return sec;
 }
 

@@ -72,6 +72,23 @@ const BLOCK_SCHEMAS = {
       { key: 'stats', label: 'Stats',              kind: 'stat_list' },
     ],
   },
+  Timeline: {
+    name: 'Timeline',
+    description: 'Vertical timeline — dated events with title and body',
+    fields: [
+      { key: 'title',  label: 'Heading (optional)', kind: 'text' },
+      { key: 'events', label: 'Events',             kind: 'timeline_events' },
+    ],
+  },
+  Aside: {
+    name: 'Aside',
+    description: 'Full-width highlighted callout box',
+    fields: [
+      { key: 'tone',  label: 'Tone', kind: 'tone_select' },
+      { key: 'title', label: 'Title (optional)', kind: 'text' },
+      { key: 'body',  label: 'Body (separate paragraphs with a blank line)', kind: 'textarea' },
+    ],
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -98,6 +115,7 @@ const EDITORIAL_ITEM_FRIENDLY = {
   whatsappCard:  { label: 'WhatsApp card',  hint: 'styled chat bubble' },
   bigNumber:     { label: 'Big number',     hint: 'large stat with label' },
   customHTML:    { label: 'Custom HTML',    hint: 'advanced — raw HTML escape hatch' },
+  callout:       { label: 'Callout', hint: 'highlighted box' },
 };
 
 const EDITORIAL_ITEM_KINDS = [
@@ -555,6 +573,8 @@ function defaultDataFor(type) {
     case 'Scrolly':   return { scrollyId: 'scrolly-X', stepsId: 'steps-X', steps: [{ stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Label', body: 'Step body.' }] };
     case 'Outro':     return { h2: 'Outro', paragraphs: ['Final paragraph.'], finalLine: '', sourcesHtml: '' };
     case 'StatRow':   return { title: '', stats: [{value:'',label:'',context:''}, {value:'',label:'',context:''}, {value:'',label:'',context:''}] };
+    case 'Timeline':  return { title: '', events: [{when:'',title:'',body:''}, {when:'',title:'',body:''}, {when:'',title:'',body:''}] };
+    case 'Aside':     return { tone: 'info', title: '', body: '' };
     default:          return {};
   }
 }
@@ -697,6 +717,29 @@ function renderField(field, data, onChange) {
       wrap.appendChild(addBtn);
       break;
     }
+    case 'tone_select': {
+      const sel = document.createElement('select');
+      ['info','note','warning'].forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt;
+        if ((val||'info') === opt) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => { data[field.key] = sel.value; onChange(); });
+      wrap.appendChild(sel);
+      break;
+    }
+    case 'timeline_events': {
+      const list = Array.isArray(val) ? val : [];
+      data[field.key] = list;
+      list.forEach((ev, i) => wrap.appendChild(timelineEventEditor(list, i, onChange)));
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+ Add event';
+      addBtn.className = 'small';
+      addBtn.addEventListener('click', (e) => { e.preventDefault(); list.push({ when:'', title:'', body:'' }); onChange(); renderEditor(); });
+      wrap.appendChild(addBtn);
+      break;
+    }
     case 'editorial_items': {
       const list = Array.isArray(val) ? val : [];
       data[field.key] = list;
@@ -775,6 +818,28 @@ function statRowEditor(list, i, onChange) {
   });
   row.querySelector('[data-a="up"]').addEventListener('click',  (e) => { e.preventDefault(); if (i>0)              { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
   row.querySelector('[data-a="down"]').addEventListener('click',(e) => { e.preventDefault(); if (i<list.length-1)  { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); onChange(); renderEditor(); });
+  return row;
+}
+
+function timelineEventEditor(list, i, onChange) {
+  const ev = list[i];
+  const row = document.createElement('div');
+  row.className = 'subitem';
+  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Event ${i+1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px 8px;align-items:center;';
+  grid.innerHTML = `
+    <label class="field-label">When</label>  <input type="text" data-k="when"  value="${escapeAttr(ev.when||'')}"  placeholder="e.g. 1969 or March 2020">
+    <label class="field-label">Title</label> <input type="text" data-k="title" value="${escapeAttr(ev.title||'')}" placeholder="short event title">
+    <label class="field-label" style="align-self:flex-start;padding-top:4px;">Body</label>
+    <textarea data-k="body" rows="2">${escapeText(ev.body||'')}</textarea>`;
+  row.appendChild(grid);
+  grid.querySelectorAll('[data-k]').forEach(el => {
+    el.addEventListener('input', () => { ev[el.dataset.k] = el.value; onChange(); });
+  });
+  row.querySelector('[data-a="up"]').addEventListener('click',  (e) => { e.preventDefault(); if (i>0)             { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="down"]').addEventListener('click',(e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
   row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); onChange(); renderEditor(); });
   return row;
 }
@@ -860,6 +925,12 @@ function editorialFieldsFor(kind) {
         { key: 'label',   label: 'Label',   kind: 'text' },
         { key: 'context', label: 'Context (optional small line)', kind: 'text' },
       ];
+    case 'callout':
+      return [
+        { key: 'tone',  label: 'Tone', kind: 'tone_select' },
+        { key: 'title', label: 'Title (optional)', kind: 'text' },
+        { key: 'body',  label: 'Body', kind: 'textarea' },
+      ];
     case 'customHTML':
       return [{ key: 'html', label: 'Raw HTML (be careful)', kind: 'textarea_html' }];
     default: return [];
@@ -880,6 +951,7 @@ function defaultItemFor(kind) {
     case 'captionCenter':  return { kind, text: 'Caption.' };
     case 'whatsappCard':   return { kind, senderInitial:'A', senderName:'Friend', message:'Hi!', time:'12:00 ✓✓', image:{src:'',alt:''} };
     case 'bigNumber':      return { kind, value: '0', label: 'label', context: '' };
+    case 'callout':        return { kind, tone: 'info', title: '', body: 'A short callout.' };
     case 'customHTML':     return { kind, html: '<div></div>' };
     default: return { kind };
   }
@@ -941,6 +1013,18 @@ function simpleField(f, obj, onChange) {
       ta.value = getVal() ?? '';
       ta.addEventListener('input', () => setVal(ta.value));
       wrap.appendChild(ta); break;
+    }
+    case 'tone_select': {
+      const sel = document.createElement('select');
+      ['info','note','warning'].forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt; o.textContent = opt;
+        if ((getVal()||'info') === opt) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => setVal(sel.value));
+      wrap.appendChild(sel);
+      break;
     }
     case 'bool': {
       const cb = document.createElement('input');
