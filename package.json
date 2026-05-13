@@ -5,8 +5,9 @@
   "description": "Admin dashboard + scrollytelling site",
   "type": "commonjs",
   "scripts": {
-    "start": "node admin/server.js",
-    "dev": "node admin/server.js"
+    "dev": "node dev-server.js",
+    "dev:pages": "npx wrangler pages dev . --port 4000",
+    "deploy": "npx wrangler pages deploy . --project-name scrollycms"
   },
   "dependencies": {
     "express": "^4.21.2",
