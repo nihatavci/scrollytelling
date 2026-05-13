@@ -1,0 +1,98 @@
+{
+  "id": "about",
+  "version": 6,
+  "lang": "de",
+  "meta": {
+    "title": "About",
+    "ogTitle": "About",
+    "ogDescription": "",
+    "description": ""
+  },
+  "blocks": [
+    {
+      "id": "b_eo59d21",
+      "type": "Hero",
+      "data": {
+        "brand": "ZWEITER AKT · DIE ENTHÜLLUNG",
+        "titleHtml": "Watergate<br>und der <span>investigative</span> Wendepunkt",
+        "subtitle": "Wie zwei Reporter der Washington Post die Spielregeln des Journalismus für immer veränderten.",
+        "scrollCueText": "Scrollen, um die Geschichte zu enthüllen",
+        "lines": [
+          {
+            "cls": "cin-l1",
+            "text": "Juni 1972. Ein Einbruch im Watergate-Hotel."
+          },
+          {
+            "cls": "cin-l2",
+            "text": "Bob Woodward und Carl Bernstein folgen einer Spur."
+          },
+          {
+            "cls": "cin-l3",
+            "text": "Eine anonyme Quelle, Deep Throat, weist den Weg."
+          },
+          {
+            "cls": "cin-l4",
+            "text": "Aus einer Polizeimeldung wird ein Staatsskandal."
+          },
+          {
+            "cls": "cin-l5",
+            "text": "Im August 1974 tritt Präsident Nixon zurück."
+          },
+          {
+            "cls": "cin-l6",
+            "text": "Der Journalismus entdeckt seine vierte Gewalt neu."
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_yomhr3h",
+      "type": "ChapterDivider",
+      "data": {
+        "number": "",
+        "title": "Chapter title",
+        "subtitle": ""
+      }
+    },
+    {
+      "id": "b_eudfy8i",
+      "type": "Outro",
+      "data": {
+        "h2": "",
+        "paragraphs": [],
+        "finalLine": "",
+        "sourcesHtml": ""
+      }
+    },
+    {
+      "id": "b_xx7x36l",
+      "type": "Scrolly",
+      "data": {
+        "scrollyId": "scrolly-1",
+        "stepsId": "steps-1",
+        "steps": [
+          {
+            "stepIndex": 0,
+            "badgeKind": "explain",
+            "badgeLabel": "Kontrollfunktion",
+            "body": "Watergate festigte das Selbstverständnis der Presse als vierte Gewalt. Die Aufdeckung des Einbruchs in das Hauptquartier der Demokraten durch die Washington Post zeigte, dass investigative Berichterstattung einen amtierenden Präsidenten zum Rücktritt zwingen kann."
+          },
+          {
+            "stepIndex": 1,
+            "badgeKind": "data",
+            "badgeLabel": "Methodik",
+            "body": "Die Affäre etablierte Standards, die bis heute prägen: der Schutz anonymer Quellen, die Bestätigung von Informationen durch mindestens zwei unabhängige Stellen und die geduldige Arbeit am Dokument. Bob Woodward und Carl Bernstein wurden zur Blaupause für eine Generation von Reporterinnen und Reportern."
+          },
+          {
+            "stepIndex": 2,
+            "badgeKind": "future",
+            "badgeLabel": "Nachwirkung",
+            "body": "Studiengänge für Journalismus verzeichneten in den Jahren nach 1974 stark steigende Bewerberzahlen, und Redaktionen weltweit bauten Rechercheressorts auf. Watergate verankerte die Erwartung, dass Journalismus Macht nicht nur begleitet, sondern überprüft."
+          }
+        ]
+      }
+    }
+  ],
+  "createdAt": "2026-05-13T07:55:23.495Z",
+  "updatedAt": "2026-05-13T11:25:16.608Z"
+}

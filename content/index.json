@@ -1,0 +1,519 @@
+{
+  "id": "index",
+  "version": 19,
+  "lang": "de",
+  "meta": {
+    "title": "Die Nachricht als Jahrhunderterfindung",
+    "ogTitle": "Die Nachricht als Jahrhunderterfindung",
+    "ogDescription": "Das Pyramidenprinzip im deutschen Journalismus seit 1924 — eine interaktive Scrollytelling-Erfahrung.",
+    "description": "Interaktive Visualisierung: 100 Jahre Pyramidenprinzip im deutschen Journalismus. 8.500+ Artikel analysiert."
+  },
+  "ui": {
+    "langSwitcher": [
+      {
+        "code": "de",
+        "label": "DE",
+        "active": true
+      }
+    ]
+  },
+  "blocks": [
+    {
+      "id": "b_hero",
+      "type": "Hero",
+      "data": {
+        "brand": "Thomas Birkner präsentiert",
+        "lines": [
+          {
+            "cls": "cin-l1",
+            "text": "1605: die Zeitung. 1870: die Idee. Das Wichtigste kommt zuerst."
+          },
+          {
+            "cls": "cin-l2",
+            "text": "Wer. Was. Wann. Wo. — Nicht die Mächtigen entscheiden. Journalist:innen."
+          },
+          {
+            "cls": "cin-l3",
+            "text": "NS-Diktatur. Zweiter Weltkrieg. DDR. Die Pyramide: unerschüttert."
+          },
+          {
+            "cls": "cin-l4",
+            "text": "Dann brach das Finanzierungsmodell. Dann kam der Algorithmus."
+          },
+          {
+            "cls": "cin-l5",
+            "text": "8.527 Artikel. 100 Jahre. 15 Journalist:innen. Drei Generationen."
+          },
+          {
+            "cls": "cin-l6",
+            "text": "Die Pyramide stirbt nicht. Sie verwandelt sich."
+          }
+        ],
+        "titleHtml": "Die Nachricht als<br><span>Jahrhunderterfindung</span>",
+        "subtitle": "Das Pyramidenprinzip im deutschen Journalismus seit 1924",
+        "scrollCueText": "Nach unten scrollen"
+      }
+    },
+    {
+      "id": "b_viz_panel",
+      "type": "VizPanel",
+      "data": {
+        "initialTitle": "Die umgekehrte Pyramide",
+        "initialSub": "nach Marinos (2021, S. 10)"
+      }
+    },
+    {
+      "id": "b_ed_1",
+      "type": "Editorial",
+      "data": {
+        "content": [
+          {
+            "kind": "kicker",
+            "text": "Erster Akt · Die Erfindung"
+          },
+          {
+            "kind": "h2",
+            "text": "Das Wichtigste steht am Anfang"
+          },
+          {
+            "kind": "lead",
+            "text": "Es gibt zwei Arten, die Dinge zu erzählen: Von Anfang bis Ende oder direkt vom Ende her. Die kurze Textmessage an die beste Freundin wird ganz sicher lauten: „Wir haben uns geküsst!\" Das ist die zentrale Botschaft. Und so funktioniert auch die journalistische Nachricht."
+          },
+          {
+            "kind": "p",
+            "html": "Sie stellt die wichtigste Information ganz nach vorne, in den „summary lead\". Diese Form entstand Ende des 19. Jahrhunderts im US-amerikanischen Journalismus. Als Erklärung dienten zunächst die unsicheren Telegrafenleitungen — das Wichtigste gleich zu Beginn, falls die Leitung zusammenbrach."
+          },
+          {
+            "kind": "whatsappCard",
+            "senderInitial": "B",
+            "senderName": "Beste Freundin",
+            "image": {
+              "src": "images/Wir haben uns geküsst.jpg",
+              "alt": "WhatsApp Nachricht"
+            },
+            "message": "Wir haben uns geküsst! 😍",
+            "time": "22:47 ✓✓"
+          },
+          {
+            "kind": "captionCenter",
+            "text": "Das Wichtigste zuerst: Der „Summary Lead\" funktioniert auch im Chat."
+          },
+          {
+            "kind": "pullquote",
+            "text": "\"The summary lead was a literary invention that asserted the journalist's authority to define for readers the most important element of a news event.\"",
+            "cite": "— Michael Schudson, 1991"
+          },
+          {
+            "kind": "p",
+            "html": "Mit dieser Erfindung war es die Aufgabe des Journalismus, zu entscheiden, was das Wichtigste sei. Nicht mehr die Mächtigen erklären, was wichtig ist, sondern Journalist:innen übernehmen dies für die Bürger:innen. Eine demokratische Idee in ihrer besten Form."
+          },
+          {
+            "kind": "figurePair",
+            "images": [
+              {
+                "src": "images/Lucky1.png",
+                "alt": "Lucky Luke Telegraf",
+                "flex": 1,
+                "minWidth": 140
+              },
+              {
+                "src": "images/Lucky2.jpg",
+                "alt": "Lucky Luke Telegraf 2",
+                "flex": 1,
+                "minWidth": 140
+              }
+            ]
+          },
+          {
+            "kind": "captionInline",
+            "text": "Lucky Luke am Telegraf: Im Amerikanischen Bürgerkrieg entstand unter dem Druck unsicherer Leitungen das Prinzip „Das Wichtigste zuerst\"."
+          },
+          {
+            "kind": "figureSingle",
+            "src": "images/FAZ.png",
+            "alt": "FAZ Weltmeister",
+            "maxWidth": "100%",
+            "caption": "FAZ, 13. Juli 2014: „Deutschland ist Weltmeister!\" — Die Schlagzeile beantwortet alle W-Fragen in vier Worten."
+          },
+          {
+            "kind": "figurePair",
+            "images": [
+              {
+                "src": "images/Buch Warren 1934/Warren Cover.jpg",
+                "alt": "Warren 1934 Buchcover",
+                "flex": 1,
+                "minWidth": 120
+              },
+              {
+                "src": "images/Buch Warren 1934/Elements Warren.png",
+                "alt": "Warren Elemente",
+                "flex": 2,
+                "minWidth": 180
+              }
+            ]
+          },
+          {
+            "kind": "captionInline",
+            "text": "Carl N. Warrens Standardwerk (1934) — das erste deutschsprachige Lehrbuch, das das Pyramidenprinzip systematisch vermittelte."
+          },
+          {
+            "kind": "separator"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_scrolly_1",
+      "type": "Scrolly",
+      "data": {
+        "scrollyId": "scrolly-1",
+        "stepsId": "steps-1",
+        "steps": [
+          {
+            "stepIndex": 0,
+            "badgeKind": "pyramid",
+            "badgeLabel": "Pyramide",
+            "body": "Eine Form erfindet die demokratische Öffentlichkeit: Journalist:innen — nicht Mächtige — bestimmen, was das Wichtigste ist. Diese Entscheidung trägt eine Struktur: die umgekehrte Pyramide."
+          },
+          {
+            "stepIndex": 1,
+            "badgeKind": "pyramid",
+            "badgeLabel": "Summary Lead",
+            "body": "„Deutschland ist Weltmeister.\" — FAZ, 13. Juli 2014. Vier Wörter, vier W-Fragen beantwortet. Der Summary Lead in seiner reinsten Form: kein Spannungsbogen, kein Vorenthalten — das Ergebnis zuerst."
+          },
+          {
+            "stepIndex": 2,
+            "badgeKind": "future",
+            "badgeLabel": "Umgelegte Pyramide",
+            "body": "Canavilhas (2006) dreht die Logik um: statt von wichtig nach unwichtig — von innen nach außen. Schicht 1: das nackte Was. Schicht 4: voller Kontext. Nutzer:innen wählen ihre eigene Tiefe."
+          },
+          {
+            "stepIndex": 3,
+            "badgeKind": "future",
+            "badgeLabel": "Rubik-Würfel",
+            "body": "Trillo-Domínguez (2017) radikalisiert das: Die Nachricht hat keinen Anfang. Je nach Einstieg — Wer, Was, Wo — entsteht eine andere Geschichte aus denselben Fakten."
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_ed_2",
+      "type": "Editorial",
+      "data": {
+        "content": [
+          {
+            "kind": "kicker",
+            "text": "Zweiter Akt · Die Stabilität"
+          },
+          {
+            "kind": "h2",
+            "text": "Ein Jahrhundert der Kontinuität"
+          },
+          {
+            "kind": "p",
+            "html": "Die amerikanischen Journalismusforscher Kevin Barnhurst und John Nerone haben beobachtet, dass „the capacity to change news design had been available for quite some time, but journalists considered the existing form of news fully functional.\" Es hat also keinen Anlass für Veränderungen gegeben — bis ins Zeitalter der Digitalisierung."
+          },
+          {
+            "kind": "p",
+            "html": "Unsere Forschung hat über 8.500 Artikel aus den wichtigsten deutschen Zeitungen über 100 Jahre analysiert — von der Weimarer Republik über den Nationalsozialismus, die Teilung Deutschlands bis zur Wiedervereinigung und Digitalisierung. Das Ergebnis: Das Pyramidenprinzip lag zumeist über 40 Prozent."
+          },
+          {
+            "kind": "pullquote",
+            "text": "\"It is the 'inverted triangle', with all the essential information squat at the top, and the less relevant stuff dribbling down towards the end-point.\"",
+            "cite": "— Andrew Marr, My Trade, 2005"
+          },
+          {
+            "kind": "p",
+            "html": "Und es waren nicht etwa die Nationalsozialisten oder die DDR-Führung, welche den Journalismus deformierten — es sind die mit der Digitalisierung einhergehenden Veränderungen, die das Pyramidenprinzip herausfordern."
+          },
+          {
+            "kind": "figurePair",
+            "images": [
+              {
+                "src": "images/awawinvoiceforwebsitedesigndevelopmentscrolli/Berliner Zeitung1.png",
+                "alt": "Berliner Zeitung Beispiel 1",
+                "flex": 1,
+                "minWidth": 200
+              },
+              {
+                "src": "images/awawinvoiceforwebsitedesigndevelopmentscrolli/Berliner Zeitung2.png",
+                "alt": "Berliner Zeitung Beispiel 2",
+                "flex": 1,
+                "minWidth": 200
+              }
+            ]
+          },
+          {
+            "kind": "captionInline",
+            "text": "Berliner Zeitung 1924 und heute: Das Pyramidenprinzip ist in beiden Epochen erkennbar — W-Fragen-Lead, abnehmende Wichtigkeit der Absätze."
+          },
+          {
+            "kind": "separator"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_scrolly_2",
+      "type": "Scrolly",
+      "data": {
+        "scrollyId": "scrolly-2",
+        "stepsId": "steps-2",
+        "steps": [
+          {
+            "stepIndex": 4,
+            "badgeKind": "data",
+            "badgeLabel": "Korpus",
+            "body": "FAZ, SZ, Kölner Stadt-Anzeiger, Neues Deutschland, Münsterländische Volkszeitung. Manche seit 1924, manche nach 1945 gegründet, manche verschwunden. 8.527 Artikel. 100 Jahre."
+          },
+          {
+            "stepIndex": 5,
+            "badgeKind": "data",
+            "badgeLabel": "NLP-Methode",
+            "body": "Wie erkennt eine Maschine den Summary Lead? Named Entity Recognition sucht das WER. POS-Tagging findet das WAS. Temporal Extraction das WANN. Mindestens 3 von 4 in den ersten 300 Zeichen — Pyramide erkannt."
+          },
+          {
+            "stepIndex": 6,
+            "badgeKind": "data",
+            "badgeLabel": "Die Überraschung",
+            "body": "NS-Propaganda-Apparat, DDR-Parteipresse — beide haben die Pyramide nicht gebrochen. 40–50% über Jahrzehnte. Erst nach 2004 sinkt der Wert auf 30–35%. Nicht die Diktatur. Der Newsfeed."
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_ed_3",
+      "type": "Editorial",
+      "data": {
+        "content": [
+          {
+            "kind": "kicker",
+            "text": "Dritter Akt · Der Wandel"
+          },
+          {
+            "kind": "h2",
+            "text": "Das Internet und das Geschäftsmodell"
+          },
+          {
+            "kind": "p",
+            "html": "Die Stabilität der Pyramide war auch eng verbunden mit dem Finanzierungsmodell: zwei Drittel Anzeigenerlöse, ein Drittel Verkaufserlöse. Vereinfacht gesagt, finanzierte in den 1980er Jahren eine Anzeige für Wodka Gorbatschow die Berichterstattung über Michail Gorbatschow."
+          },
+          {
+            "kind": "p",
+            "html": "Als das Internet kam, wanderte ein erheblicher Teil des gesamten Anzeigenvolumens ins Netz. Nachrichten waren lange völlig kostenlos verfügbar. Die Verlage suchen nach wie vor nach Refinanzierungsmodellen: Paywalls, Freemium, Metered-Modelle."
+          },
+          {
+            "kind": "pullquote",
+            "text": "\"Der kurze Anreißer-Text auf der Startseite einer Homepage fungiert als Einstieg in einen ausführlichen Beitrag. Dabei darf der Teaser die Quintessenz noch nicht vorwegnehmen.\"",
+            "cite": "— Kerstin Liesem, 2015"
+          },
+          {
+            "kind": "p",
+            "html": "Neue Formen des Storytellings und neue Bezahlmodelle erklären, warum das Beantworten der W-Fragen am Beginn abnimmt. Clickbait, SEO-Optimierung und die Ökonomie der Aufmerksamkeit verändern das Nachrichtenschreiben fundamental."
+          },
+          {
+            "kind": "separator"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_scrolly_3",
+      "type": "Scrolly",
+      "data": {
+        "scrollyId": "scrolly-3",
+        "stepsId": "steps-3",
+        "steps": [
+          {
+            "stepIndex": 7,
+            "badgeKind": "explain",
+            "badgeLabel": "Finanzierung",
+            "body": "Die Mischfinanzierung aus Verkaufs- und Anzeigenerlösen funktionierte bis ins neue Jahrtausend — etwa ⅓ Verkauf, ⅔ Anzeigen. Dann kam das Internet."
+          },
+          {
+            "stepIndex": 8,
+            "badgeKind": "explain",
+            "badgeLabel": "Darstellungsformen",
+            "body": "Nicht alle Texte folgen der Pyramide. Weischenberg unterscheidet: Nachrichten-Formen (Meldung, Bericht), Meinungs-Formen (Kommentar, Glosse) und Unterhaltungs-Formen (Reportage, Feature)."
+          },
+          {
+            "stepIndex": 9,
+            "badgeKind": "explain",
+            "badgeLabel": "Vier Dimensionen",
+            "body": "Klaus Meier beschreibt vier Dimensionen journalistischer Wahrnehmung: Darstellungsformen, Ressorts, Medienplattformen und Berichterstattungsmuster — sie konstruieren gemeinsam die Medienrealität."
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_ed_4",
+      "type": "Editorial",
+      "data": {
+        "content": [
+          {
+            "kind": "kicker",
+            "text": "Vierter Akt · Die Vielfalt"
+          },
+          {
+            "kind": "h2",
+            "text": "Nachrichtenwerte und neue Erzählformen"
+          },
+          {
+            "kind": "p",
+            "html": "Nicht alle Ereignisse werden zu Nachrichten. Was als berichtenswert gilt, beschrieben Galtung und Ruge 1965 in ihren zwölf <em>Nachrichtenfaktoren</em>. Doch Walter Lippmann warnte schon 1922: Nachrichten und Wahrheit sind nicht dasselbe. Die Medien konstruieren Realität — und das Internet verändert die Regeln der Konstruktion fundamental."
+          },
+          {
+            "kind": "figurePair",
+            "align": "center",
+            "gap": "2rem",
+            "wrap": false,
+            "images": [
+              {
+                "src": "images/Gorbatschow1.jpg",
+                "alt": "Wodka Gorbatschow Werbung",
+                "flex": 1,
+                "maxWidth": "250px"
+              },
+              {
+                "src": "images/Gorbatschow2.jpg",
+                "alt": "Spiegel Titel Gorbatschow",
+                "flex": 1,
+                "maxWidth": "250px"
+              }
+            ]
+          },
+          {
+            "kind": "captionInline",
+            "variant": "light",
+            "text": "Links: Werbung für Wodka Gorbatschow. Rechts: SPIEGEL-Titel 1985. Die Anzeige finanzierte die Berichterstattung."
+          },
+          {
+            "kind": "p",
+            "html": "Canavilhas schlug 2006 vor, die Pyramide umzulegen — vom linearen Text zum vernetzten Hypertext. Trillo-Domínguez geht noch weiter: Die Nachricht wird zum multidimensionalen <em>Rubik-Würfel</em>, in dem Nutzer:innen selbst entscheiden, welchen Pfad sie durch die Information nehmen."
+          },
+          {
+            "kind": "pullquote",
+            "text": "\"News and truth are not the same thing, and must be clearly distinguished.\"",
+            "cite": "— Walter Lippmann, 1922"
+          },
+          {
+            "kind": "separator"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_scrolly_4",
+      "type": "Scrolly",
+      "data": {
+        "scrollyId": "scrolly-4",
+        "stepsId": "steps-4",
+        "steps": [
+          {
+            "stepIndex": 10,
+            "badgeKind": "future",
+            "badgeLabel": "Nachrichtenwerte",
+            "body": "Galtung & Ruge identifizierten 12 Faktoren, die bestimmen, ob ein Ereignis zur Nachricht wird — von Frequenz über Eindeutigkeit bis Negativismus."
+          },
+          {
+            "stepIndex": 11,
+            "badgeKind": "future",
+            "badgeLabel": "Bezahlmodelle",
+            "body": "Die Verlage suchen nach Refinanzierung: Harte Paywall, Freemium, Metered — und Clickbaiting als Gegenteil der Pyramide verändert den Nachrichtenaufbau."
+          },
+          {
+            "stepIndex": 12,
+            "badgeKind": "future",
+            "badgeLabel": "Neue Formen",
+            "body": "Canavilhas legt die Pyramide um — zum Hypertext. Trillo-Domínguez geht weiter: Die Nachricht wird zum multidimensionalen Rubik-Würfel."
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_ed_5",
+      "type": "Editorial",
+      "data": {
+        "content": [
+          {
+            "kind": "kicker",
+            "text": "Fünfter Akt · Die Stimmen"
+          },
+          {
+            "kind": "h2",
+            "text": "Drei Generationen, 15 Stimmen"
+          },
+          {
+            "kind": "p",
+            "html": "Um zu verstehen, wie Journalist:innen die Pyramide tatsächlich nutzen, wurden 15 Journalist:innen aus drei Generationskohorten befragt. Von Pensionär:innen, die noch mit der Schreibmaschine anfingen, über mittelalte Journalist:innen, die die digitale Transformation erlebten, bis zu jungen Redakteur:innen, für die Social Media Normalität ist."
+          },
+          {
+            "kind": "pullquote",
+            "text": "\"Redaktionen messen, mit welchen Beiträgen sie besonders viele Klicks generieren, wie lange die Personen am Ball bleiben, an welchem Punkt im Beitrag sie aussteigen.\"",
+            "cite": "— Meier et al., 2024"
+          },
+          {
+            "kind": "figureSingle",
+            "src": "images/Nackt.jpg",
+            "alt": "John Cena Oscar",
+            "maxWidth": "100%",
+            "captionFontSize": ".9rem",
+            "captionMarginTop": ".8rem",
+            "italic": false,
+            "caption": "Nachrichtenfaktor „Nähe\": John Cena überreicht den Oscar nackt — Der Spiegel betont: „in Birkenstocks.\" Es gibt immer einen lokalen Blickwinkel."
+          },
+          {
+            "kind": "p",
+            "html": "Marinos spricht davon, Meldungen „anzufeaturen\" — der Pyramide ein Sahnehäubchen aufzusetzen. Die Form wird flexibler, aber das Prinzip bleibt."
+          },
+          {
+            "kind": "separator"
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_scrolly_5",
+      "type": "Scrolly",
+      "data": {
+        "scrollyId": "scrolly-5",
+        "stepsId": "steps-5",
+        "steps": [
+          {
+            "stepIndex": 13,
+            "badgeKind": "voice",
+            "badgeLabel": "Drei Generationen",
+            "body": "Eine 81-Jährige, die mit der Schreibmaschine begann. Ein 25-Jähriger, dem Social Media normal ist. 13 weitere dazwischen. Alle gefragt: Brauchen Sie noch die Pyramide?"
+          },
+          {
+            "stepIndex": 14,
+            "badgeKind": "voice",
+            "badgeLabel": "Kern des Berufs",
+            "body": "Die Antwort war generationsübergreifend: Alle 15 kennen und verwenden die Pyramide. Aber jüngere Journalist:innen „featuren an\" — sie setzen einen erzählerischen Vorspann, bevor die Pyramide beginnt."
+          },
+          {
+            "stepIndex": 15,
+            "badgeKind": "voice",
+            "badgeLabel": "Jahrhundertform",
+            "body": "Die Pyramide verschwindet nicht. Sie passt sich an. Vielleicht ist sie nicht die Form des 20. Jahrhunderts — vielleicht ist sie die Form des Journalismus schlechthin. Solange Demokratie Information braucht."
+          }
+        ]
+      }
+    },
+    {
+      "id": "b_outro",
+      "type": "Outro",
+      "data": {
+        "h2": "Die Pyramide transformiert sich",
+        "paragraphs": [
+          "Der Rückgang des Pyramidenprinzips von etwa 40–50 % auf 30–35 % ist kein Verschwinden, sondern eine Transformation. Neue Erzählformen und neue Geschäftsmodelle erklären den Wandel. Doch paradoxerweise profitiert die Pyramide auch vom Internet: Google liest Überschriften nur bis zum 60. Zeichen (Liesem, 2015). Die klare Struktur — die wichtigsten Informationen zuerst — bleibt eine SEO-freundliche Praktik.",
+          "Noch wichtiger: Die demokratische Funktion der Pyramide ist ungebrochen. In einer Welt von Überfülle und Desinformation braucht es Journalist:innen, die das Wesentliche herausfiltern, strukturiert darstellen und damit Bürger:innen befähigen, informierte Entscheidungen zu treffen.",
+          "„Der Journalismus, dessen Kerntextsorte die Nachricht ist, wird weiterhin für diese Form der Informationsübermittlung von der Gesellschaft benötigt — sich zugleich aber stets weiterentwickeln muss.\" (Weischenberg, 2001)"
+        ],
+        "finalLine": "Das Wichtigste zuerst — dieser Grundsatz bleibt.",
+        "sourcesHtml": "<strong>Quellen:</strong> Schudson 1991 · Pöttker 2003, 2005 · Birkner 2012, 2016 · Canavilhas 2006 · Trillo-Domínguez & Alberich-Pascual 2017 · Meier 2018 · Marinos 2021 · Marr 2005 · Liesem 2015 · Weischenberg 2001 · Reumann 1968 · Warren 1934 · Galtung & Ruge 1965 · Barnhurst & Nerone 2001 · Neuberger 2025 · Lippmann 1922 · Galtung & Ruge 1965<br><br><strong>Daten:</strong> 8.500+ Artikel aus FAZ, SZ, Kölner Stadt-Anzeiger, Grafschafter Nachrichten, Münsterländische Volkszeitung, Neues Deutschland, FAZ.net, SZ.de, KStA.de, Welt.de · Analysezeitraum: 1924–2024"
+      }
+    }
+  ],
+  "updatedAt": "2026-05-13T12:07:00.419Z"
+}

@@ -1,0 +1,36 @@
+{
+  "id": "testpage",
+  "version": 1,
+  "lang": "de",
+  "meta": {
+    "title": "Test Sayfa",
+    "ogTitle": "Test Sayfa",
+    "ogDescription": "",
+    "description": ""
+  },
+  "blocks": [
+    {
+      "id": "b_9ga7301",
+      "type": "Hero",
+      "data": {
+        "brand": "Test Sayfa",
+        "lines": [],
+        "titleHtml": "Test Sayfa",
+        "subtitle": "",
+        "scrollCueText": "Scroll"
+      }
+    },
+    {
+      "id": "b_v4apnut",
+      "type": "Outro",
+      "data": {
+        "h2": "",
+        "paragraphs": [],
+        "finalLine": "",
+        "sourcesHtml": ""
+      }
+    }
+  ],
+  "createdAt": "2026-05-13T07:53:25.815Z",
+  "updatedAt": "2026-05-13T07:53:25.815Z"
+}

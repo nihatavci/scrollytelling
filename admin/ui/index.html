@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin · Scrollytelling CMS</title>
+<link rel="stylesheet" href="/admin/static/styles.css">
+</head>
+<body>
+
+<!-- ───────── Login screen ───────── -->
+<div id="login" class="login hidden">
+  <form id="login-form" class="login-card">
+    <div class="login-title">Admin Login</div>
+    <input id="login-pwd" type="password" placeholder="Password" autocomplete="current-password" required>
+    <button type="submit">Sign in</button>
+    <div id="login-error" class="error"></div>
+  </form>
+</div>
+
+<!-- ───────── Dashboard ───────── -->
+<div id="app" class="app hidden">
+
+  <header class="topbar">
+    <div class="brand">Scrollytelling · Admin</div>
+    <div class="topbar-page">
+      <label>Page:</label>
+      <select id="page-select"></select>
+      <button id="btn-new-page" class="small" title="Create a new page">+ New page</button>
+      <a id="link-view-page" href="/" target="_blank" class="small" style="text-decoration:none;color:#0969da;font-size:12px;padding:4px 8px;">View ↗</a>
+      <span id="page-status" class="status"></span>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-preview" title="Open rendered page in a new tab">Preview</button>
+      <button id="btn-history" title="Snapshots history">History</button>
+      <button id="btn-publish" class="primary">Save &amp; Publish</button>
+      <button id="btn-logout" class="ghost">Logout</button>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- Blocks list -->
+    <aside class="blocks">
+      <div class="aside-head">
+        <span>Blocks</span>
+        <button id="btn-add-block" class="small" title="Add a new block">+ Add</button>
+      </div>
+      <ol id="block-list" class="block-list"></ol>
+    </aside>
+
+    <!-- Editor / preview area -->
+    <main class="editor">
+      <div id="editor-empty" class="empty">
+        Select a block on the left to edit it.
+      </div>
+      <div id="editor-form" class="form hidden"></div>
+    </main>
+
+    <!-- Live preview -->
+    <aside class="preview">
+      <div class="aside-head">
+        <span>Preview</span>
+        <button id="btn-refresh-preview" class="small">Reload</button>
+      </div>
+      <iframe id="preview-frame" src="/index.rendered.html"></iframe>
+    </aside>
+  </div>
+</div>
+
+<!-- ───────── Modals ───────── -->
+<div id="modal-root"></div>
+
+<script src="/admin/static/app.js"></script>
+</body>
+</html>
