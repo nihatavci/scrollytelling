@@ -119,6 +119,17 @@ const BLOCK_SCHEMAS = {
       { key: 'credit',  label: 'Credit (optional)', kind: 'text', hint: 'e.g. <code>via NYT</code>' },
     ],
   },
+  DataScrolly: {
+    name: 'Data scrolly',
+    description: 'Sticky chart + stepped narrative — each step updates the chart',
+    fields: [
+      { key: 'title',     label: 'Chart title',     kind: 'text' },
+      { key: 'subtitle',  label: 'Chart subtitle',  kind: 'text' },
+      { key: 'source',    label: 'Data source',     kind: 'text', hint: 'Citation or <code>[estimated illustrative values]</code>' },
+      { key: 'chartSpec', label: 'Chart',           kind: 'chart_spec' },
+      { key: 'steps',     label: 'Steps',           kind: 'data_scrolly_steps' },
+    ],
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -180,7 +191,8 @@ const PALETTE_BLOCKS = [
   { type: 'Hero',           desc: 'Title section at the top of a page' },
   { type: 'ChapterDivider', desc: 'Chapter break — number, title, optional subtitle' },
   { type: 'Editorial',      desc: 'Long-form text with paragraphs, images, quotes' },
-  { type: 'Scrolly',        desc: 'Scroll-driven stepped narrative with a sticky chart' },
+  { type: 'DataScrolly',    desc: 'Sticky chart + stepped narrative (data-driven)' },
+  { type: 'Scrolly',        desc: 'Legacy scrolly tied to the journalism viz (existing pages)' },
   { type: 'Quote',          desc: 'Featured money quote — large, optional portrait' },
   { type: 'VideoEmbed',     desc: 'YouTube or Vimeo video with caption' },
   { type: 'Timeline',       desc: 'Vertical dated events' },
@@ -270,6 +282,22 @@ const BLOCK_PREVIEWS = {
       <div style="width:0;height:0;border-left:11px solid #aeaeae;border-top:7px solid transparent;border-bottom:7px solid transparent;margin-left:3px;"></div>
     </div>
     <div style="font:400 7px 'DM Sans',sans-serif;color:#636363;margin-top:5px;line-height:1.4;">Caption goes here · <span style="font-style:italic;color:#7c7c7c;">credit</span></div>`,
+  DataScrolly: `
+    <div style="display:flex;gap:8px;">
+      <div style="flex:1.4;background:#fff;border:1px solid #eaeef2;border-radius:6px;padding:6px 7px;">
+        <div style="font:500 7px 'DM Sans',sans-serif;color:#000;margin-bottom:4px;">Chart title</div>
+        <svg viewBox="0 0 80 30" style="width:100%;height:30px;">
+          <polyline points="2,26 18,22 34,16 50,18 66,10 78,6" stroke="#000" stroke-width="1.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <line x1="50" y1="4" x2="50" y2="28" stroke="#fa3d1d" stroke-width="1" stroke-dasharray="2 2"/>
+          <circle cx="50" cy="18" r="2.2" fill="#fa3d1d"/>
+        </svg>
+      </div>
+      <div style="flex:1;display:flex;flex-direction:column;gap:3px;">
+        <div style="background:#fff;border:1px solid #d6e8f0;border-radius:4px;padding:3px 4px;font:600 6px 'DM Sans',sans-serif;color:#3d7a94;">DATA · STEP 1</div>
+        <div style="background:#fff;border:1px solid #eaeef2;border-radius:4px;padding:3px 4px;font:600 6px 'DM Sans',sans-serif;color:#8c8078;opacity:.55;">STEP 2</div>
+        <div style="background:#fff;border:1px solid #eaeef2;border-radius:4px;padding:3px 4px;font:600 6px 'DM Sans',sans-serif;color:#8c8078;opacity:.55;">STEP 3</div>
+      </div>
+    </div>`,
 };
 
 // ─────────────────────────── DOM refs ────────────────────────
@@ -720,6 +748,24 @@ function defaultDataFor(type) {
     case 'ChapterDivider': return { number: '', title: 'Chapter title', subtitle: '' };
     case 'Quote': return { text: 'Type the quote here.', attribution: 'Name', role: '', portraitSrc: '', sourceUrl: '', sourceLabel: '' };
     case 'VideoEmbed': return { url: '', caption: '', credit: '' };
+    case 'DataScrolly': return {
+      title: 'New chart',
+      subtitle: '',
+      source: '[estimated illustrative values]',
+      chartSpec: {
+        kind: 'line',
+        data: [{ year: 2000, value: 10 }, { year: 2010, value: 25 }, { year: 2020, value: 40 }],
+        xField: 'year',
+        yField: 'value',
+        xLabel: 'Year',
+        yLabel: 'Value',
+      },
+      steps: [
+        { badgeKind: 'data', badgeLabel: 'Start',   body: 'In 2000 the value started at 10.', vizState: { highlightX: 2000, annotation: '10' } },
+        { badgeKind: 'data', badgeLabel: 'Middle',  body: 'By 2010 it had grown to 25.',      vizState: { highlightX: 2010, annotation: '25' } },
+        { badgeKind: 'data', badgeLabel: 'Today',   body: 'In 2020 it reached 40.',           vizState: { highlightX: 2020, annotation: '40' } },
+      ],
+    };
     default:          return {};
   }
 }
@@ -896,6 +942,75 @@ function renderField(field, data, onChange) {
       wrap.appendChild(addBtn);
       break;
     }
+    case 'chart_spec': {
+      const spec = (val && typeof val === 'object') ? val : {};
+      data[field.key] = spec;
+      // chart kind (line only for MVP — display read-only)
+      const kindRow = document.createElement('div');
+      kindRow.className = 'field';
+      kindRow.innerHTML = `<label class="field-label">Chart kind</label>
+        <div style="font-family:'SF Mono','Menlo',monospace;font-size:11px;color:#8c959f;padding:6px 9px;border:1px solid #d0d7de;border-radius:6px;background:#fafbfc;">line <span style="margin-left:8px;color:#8c8078;font-style:normal;">(MVP — only line supported)</span></div>`;
+      spec.kind = spec.kind || 'line';
+      wrap.appendChild(kindRow);
+
+      function smallField(label, key, placeholder) {
+        const w = document.createElement('div');
+        w.className = 'field';
+        const lab = document.createElement('label'); lab.className = 'field-label'; lab.textContent = label;
+        w.appendChild(lab);
+        const inp = document.createElement('input');
+        inp.type = 'text'; inp.value = spec[key] || ''; inp.placeholder = placeholder || '';
+        inp.addEventListener('input', () => { spec[key] = inp.value; onChange(); });
+        w.appendChild(inp);
+        return w;
+      }
+      wrap.appendChild(smallField('X field name', 'xField', 'e.g. year'));
+      wrap.appendChild(smallField('Y field name', 'yField', 'e.g. value'));
+      wrap.appendChild(smallField('X axis label', 'xLabel', 'e.g. Year'));
+      wrap.appendChild(smallField('Y axis label', 'yLabel', 'e.g. Daily copies'));
+
+      // Data rows: JSON textarea with parse-on-change
+      const dataField = document.createElement('div');
+      dataField.className = 'field';
+      const dl = document.createElement('label'); dl.className = 'field-label'; dl.textContent = 'Data rows (JSON array)';
+      dataField.appendChild(dl);
+      const hint = document.createElement('div');
+      hint.style.cssText = 'font-size:11px;color:#8c959f;margin-bottom:5px;line-height:1.45;';
+      hint.innerHTML = 'One row per data point. Use the field names above for keys.';
+      dataField.appendChild(hint);
+      const ta = document.createElement('textarea');
+      ta.rows = 8;
+      ta.style.fontFamily = "'SF Mono','Menlo',monospace";
+      ta.value = JSON.stringify(spec.data || [], null, 2);
+      const errBox = document.createElement('div');
+      errBox.style.cssText = 'font-size:11px;color:#cf222e;margin-top:4px;min-height:14px;';
+      ta.addEventListener('input', () => {
+        try {
+          const parsed = JSON.parse(ta.value);
+          if (!Array.isArray(parsed)) throw new Error('Must be a JSON array.');
+          spec.data = parsed;
+          errBox.textContent = '';
+          onChange();
+        } catch (e) {
+          errBox.textContent = 'JSON parse error: ' + e.message;
+        }
+      });
+      dataField.appendChild(ta);
+      dataField.appendChild(errBox);
+      wrap.appendChild(dataField);
+      break;
+    }
+    case 'data_scrolly_steps': {
+      const list = Array.isArray(val) ? val : [];
+      data[field.key] = list;
+      list.forEach((step, i) => wrap.appendChild(dataScrollyStepEditor(list, i, onChange)));
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+ Add step';
+      addBtn.className = 'small';
+      addBtn.addEventListener('click', (e) => { e.preventDefault(); list.push({ badgeKind: 'data', badgeLabel: 'Step', body: '', vizState: { highlightX: null, annotation: '' } }); onChange(); renderEditor(); });
+      wrap.appendChild(addBtn);
+      break;
+    }
     default:
       wrap.appendChild(document.createTextNode(`Unsupported field kind: ${field.kind}`));
   }
@@ -943,6 +1058,48 @@ function scrollyStepEditor(list, i, onChange) {
   row.querySelector('[data-a="up"]').addEventListener('click', (e) => { e.preventDefault(); if (i>0) { [list[i-1], list[i]] = [list[i], list[i-1]]; reindexSteps(list); onChange(); renderEditor(); } });
   row.querySelector('[data-a="down"]').addEventListener('click', (e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; reindexSteps(list); onChange(); renderEditor(); } });
   row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); reindexSteps(list); onChange(); renderEditor(); });
+  return row;
+}
+
+function dataScrollyStepEditor(list, i, onChange) {
+  const step = list[i];
+  if (!step.vizState) step.vizState = { highlightX: null, annotation: '' };
+  const row = document.createElement('div');
+  row.className = 'subitem';
+  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Step ${i+1}</span><span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span></div>`;
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px 8px;align-items:center;';
+  grid.innerHTML = `
+    <label class="field-label">Badge color</label>
+    <select data-k="badgeKind">${BADGE_OPTIONS.map(o=>`<option value="${o.value}"${step.badgeKind===o.value?' selected':''}>${o.label}</option>`).join('')}</select>
+    <label class="field-label">Badge text</label>
+    <input type="text" data-k="badgeLabel" value="${escapeAttr(step.badgeLabel||'')}" placeholder="Short label">
+    <label class="field-label" style="align-self:flex-start;padding-top:4px;">Body</label>
+    <textarea data-k="body" rows="3" placeholder="1–2 sentences referencing the data…">${escapeText(step.body||'')}</textarea>
+    <label class="field-label">Highlight X</label>
+    <input type="text" data-vk="highlightX" value="${escapeAttr(step.vizState.highlightX ?? '')}" placeholder="x value to mark (e.g. 2010)">
+    <label class="field-label">Annotation</label>
+    <input type="text" data-vk="annotation" value="${escapeAttr(step.vizState.annotation||'')}" placeholder="Label at the marked point">`;
+  row.appendChild(grid);
+  grid.querySelectorAll('[data-k]').forEach(el => {
+    el.addEventListener('input',  () => { step[el.dataset.k] = el.value; onChange(); });
+    el.addEventListener('change', () => { step[el.dataset.k] = el.value; onChange(); });
+  });
+  grid.querySelectorAll('[data-vk]').forEach(el => {
+    el.addEventListener('input', () => {
+      const k = el.dataset.vk;
+      let v = el.value;
+      if (k === 'highlightX') {
+        const n = Number(v);
+        v = (v === '' || Number.isNaN(n)) ? null : n;
+      }
+      step.vizState[k] = v;
+      onChange();
+    });
+  });
+  row.querySelector('[data-a="up"]').addEventListener('click',  (e) => { e.preventDefault(); if (i>0)             { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="down"]').addEventListener('click',(e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); onChange(); renderEditor(); });
   return row;
 }
 
