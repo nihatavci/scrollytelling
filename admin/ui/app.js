@@ -1,0 +1,1141 @@
+// Admin dashboard — vanilla JS, no build.
+// State + UI for editing a page document loaded from /admin/api/pages/:id.
+
+(() => {
+'use strict';
+
+// ─────────────────────────── State ───────────────────────────
+const state = {
+  pages: [],
+  currentPageId: null,
+  doc: null,             // The page document being edited
+  selectedBlockId: null,
+  selectedItemIdx: null, // For editorial sub-items
+  dirty: false,
+  savedVersion: null,
+};
+
+// ─────────────────────────── Block type schemas ──────────────
+// Drives the form generator. Each block type lists its top-level fields.
+// Editorial uses a separate content[] editor for inline items.
+const BLOCK_SCHEMAS = {
+  Hero: {
+    name: 'Hero',
+    description: 'Top of page — brand line, big title, animated intro lines',
+    fields: [
+      { key: 'brand',          label: 'Brand line (small caps at top)',     kind: 'text' },
+      { key: 'titleHtml',      label: 'Title',                              kind: 'textarea',
+        hint: 'Wrap a word in <code>&lt;span&gt;…&lt;/span&gt;</code> to highlight it in orange. Use <code>&lt;br&gt;</code> for a line break.' },
+      { key: 'subtitle',       label: 'Subtitle',      kind: 'text' },
+      { key: 'scrollCueText',  label: 'Scroll-down cue text',   kind: 'text' },
+      { key: 'lines',          label: 'Intro lines (appear one by one before the title)', kind: 'lines' },
+    ],
+  },
+  VizPanel: {
+    name: 'Visualization',
+    description: 'Shared interactive chart that scrolly sections drive',
+    fields: [
+      { key: 'initialTitle', label: 'Chart title (initial)',    kind: 'text' },
+      { key: 'initialSub',   label: 'Chart subtitle (initial)', kind: 'text' },
+    ],
+  },
+  Editorial: {
+    name: 'Editorial',
+    description: 'Long-form text section — paragraphs, quotes, images',
+    fields: [
+      { key: 'content', label: 'Content', kind: 'editorial_items' },
+    ],
+  },
+  Scrolly: {
+    name: 'Scrolly',
+    description: 'Sticky-chart section with stepped narrative on the side',
+    fields: [
+      { key: 'steps',     label: 'Steps', kind: 'scrolly_steps' },
+    ],
+  },
+  Outro: {
+    name: 'Outro',
+    description: 'Closing section — paragraphs, final emphasized line, sources',
+    fields: [
+      { key: 'h2',          label: 'Heading',     kind: 'text' },
+      { key: 'paragraphs',  label: 'Paragraphs',  kind: 'string_list' },
+      { key: 'finalLine',   label: 'Final emphasized line',  kind: 'text' },
+      { key: 'sourcesHtml', label: 'Sources',     kind: 'textarea_html',
+        hint: 'Separate citations with " · ". Use <code>&lt;br&gt;</code> for line breaks.' },
+    ],
+  },
+};
+
+// Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
+const BADGE_OPTIONS = [
+  { value: 'pyramid', label: 'Orange',  color: '#c06830' },
+  { value: 'data',    label: 'Blue',    color: '#3d7a94' },
+  { value: 'explain', label: 'Purple',  color: '#7a5a90' },
+  { value: 'future',  label: 'Green',   color: '#3d7a4a' },
+  { value: 'voice',   label: 'Pink',    color: '#7a3d7a' },
+];
+
+// Friendly labels for Editorial item kinds
+const EDITORIAL_ITEM_FRIENDLY = {
+  kicker:        { label: 'Kicker',         hint: 'small caps label above the heading' },
+  h2:            { label: 'Heading',        hint: '' },
+  lead:          { label: 'Lead',           hint: 'larger opening paragraph' },
+  p:             { label: 'Paragraph',      hint: '' },
+  pullquote:     { label: 'Pull quote',     hint: 'with citation' },
+  separator:     { label: 'Separator',      hint: 'horizontal line' },
+  figureSingle:  { label: 'Image',          hint: '' },
+  figurePair:    { label: 'Image pair',     hint: 'two images side by side' },
+  captionInline: { label: 'Caption',        hint: 'italic, under a figure' },
+  captionCenter: { label: 'Caption (centered)', hint: '' },
+  whatsappCard:  { label: 'WhatsApp card',  hint: 'styled chat bubble' },
+  customHTML:    { label: 'Custom HTML',    hint: 'advanced — raw HTML escape hatch' },
+};
+
+const EDITORIAL_ITEM_KINDS = [
+  { kind: 'h2',            label: 'Heading' },
+  { kind: 'kicker',        label: 'Kicker' },
+  { kind: 'lead',          label: 'Lead' },
+  { kind: 'p',             label: 'Paragraph' },
+  { kind: 'pullquote',     label: 'Pull quote' },
+  { kind: 'figureSingle',  label: 'Image' },
+  { kind: 'figurePair',    label: 'Image pair' },
+  { kind: 'captionInline', label: 'Caption' },
+  { kind: 'captionCenter', label: 'Caption (centered)' },
+  { kind: 'separator',     label: 'Separator' },
+  { kind: 'whatsappCard',  label: 'WhatsApp card' },
+  // customHTML is intentionally omitted from the palette (advanced/escape hatch)
+];
+
+const PALETTE_BLOCKS = [
+  { type: 'Hero',      desc: 'Title section at the top of a page' },
+  { type: 'Editorial', desc: 'Long-form text with paragraphs, images, quotes' },
+  { type: 'Scrolly',   desc: 'Scroll-driven stepped narrative with a sticky chart' },
+  { type: 'Outro',     desc: 'Closing section with paragraphs and sources' },
+  { type: 'VizPanel',  desc: 'Advanced — visualization container' },
+];
+
+// ─────────────────────────── DOM refs ────────────────────────
+const $ = (sel, root = document) => root.querySelector(sel);
+const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
+
+// ─────────────────────────── Util ────────────────────────────
+function uid(prefix = 'b') {
+  return prefix + '_' + Math.random().toString(36).slice(2, 9);
+}
+function clone(x) { return JSON.parse(JSON.stringify(x)); }
+function toast(msg, kind = '') {
+  const t = document.createElement('div');
+  t.className = 'toast ' + kind;
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2400);
+}
+function setDirty(d) {
+  state.dirty = d;
+  const s = $('#page-status');
+  s.className = 'status ' + (d ? 'dirty' : 'saved');
+  s.textContent = d ? '● Unsaved changes' : (state.savedVersion ? `Saved · v${state.savedVersion}` : 'Loaded');
+  $('#btn-publish').disabled = !d;
+}
+async function api(method, path, body, isForm) {
+  const opts = { method, headers: {} };
+  if (body && !isForm) { opts.headers['Content-Type'] = 'application/json'; opts.body = JSON.stringify(body); }
+  if (body && isForm) opts.body = body;
+  let res;
+  try {
+    res = await fetch(path, opts);
+  } catch (err) {
+    // Network-level failure — most often: the server isn't running anymore.
+    throw new Error(`Cannot reach the server (${err.message || 'network error'}). Is admin/server.js still running in your terminal?`);
+  }
+  if (res.status === 401) { showLogin(); throw new Error('unauthorized'); }
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || res.statusText);
+  return data;
+}
+
+// ─────────────────────────── Auth ────────────────────────────
+async function checkSession() {
+  try {
+    const { loggedIn } = await api('GET', '/admin/api/session');
+    if (loggedIn) showApp(); else showLogin();
+  } catch { showLogin(); }
+}
+function showLogin() {
+  $('#login').classList.remove('hidden');
+  $('#app').classList.add('hidden');
+}
+function showApp() {
+  $('#login').classList.add('hidden');
+  $('#app').classList.remove('hidden');
+  loadPages();
+}
+$('#login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const pwd = $('#login-pwd').value;
+  $('#login-error').textContent = '';
+  try {
+    await api('POST', '/admin/api/login', { password: pwd });
+    $('#login-pwd').value = '';
+    showApp();
+  } catch (err) {
+    $('#login-error').textContent = err.message || 'Login failed';
+  }
+});
+$('#btn-logout').addEventListener('click', async () => {
+  await api('POST', '/admin/api/logout').catch(() => {});
+  state.doc = null;
+  showLogin();
+});
+
+// ─────────────────────────── Pages ───────────────────────────
+async function loadPages(preferId) {
+  const { pages } = await api('GET', '/admin/api/pages');
+  state.pages = pages;
+  const sel = $('#page-select');
+  sel.innerHTML = pages.map(id => `<option value="${id}">${id}</option>`).join('');
+  const toLoad = preferId && pages.includes(preferId) ? preferId : (state.currentPageId && pages.includes(state.currentPageId) ? state.currentPageId : pages[0]);
+  if (toLoad) {
+    sel.value = toLoad;
+    loadPage(toLoad);
+  }
+}
+$('#page-select').addEventListener('change', (e) => loadPage(e.target.value));
+
+// + New page
+$('#btn-new-page').addEventListener('click', () => {
+  openModal('Create a new page', (body) => {
+    body.innerHTML = '';
+    const hint = document.createElement('p');
+    hint.style.cssText = 'color:#57606a;font-size:12.5px;margin-bottom:12px;line-height:1.5;';
+    hint.innerHTML = `Each page has its own URL. Use lowercase letters, numbers and dashes only.<br>Example: <code>pressefreiheit</code> → reachable at <code>http://localhost:4000/pressefreiheit</code>`;
+    body.appendChild(hint);
+
+    const slugLabel = document.createElement('label');
+    slugLabel.className = 'field-label';
+    slugLabel.textContent = 'Page ID (URL slug)';
+    body.appendChild(slugLabel);
+    const slugInp = document.createElement('input');
+    slugInp.type = 'text';
+    slugInp.placeholder = 'my-new-page';
+    slugInp.style.marginBottom = '12px';
+    body.appendChild(slugInp);
+
+    const titleLabel = document.createElement('label');
+    titleLabel.className = 'field-label';
+    titleLabel.textContent = 'Page title (shown in browser tab)';
+    body.appendChild(titleLabel);
+    const titleInp = document.createElement('input');
+    titleInp.type = 'text';
+    titleInp.placeholder = 'My new page';
+    body.appendChild(titleInp);
+
+    // Live slugify hint
+    titleInp.addEventListener('input', () => {
+      if (!slugInp.value && titleInp.value) {
+        slugInp.value = titleInp.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
+      }
+    });
+
+    const err = document.createElement('div');
+    err.className = 'error';
+    err.style.textAlign = 'left';
+    body.appendChild(err);
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'margin-top:14px;display:flex;gap:8px;justify-content:flex-end;';
+    const cancel = document.createElement('button');
+    cancel.className = 'ghost';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', closeModal);
+    const create = document.createElement('button');
+    create.className = 'primary';
+    create.textContent = 'Create page';
+    create.addEventListener('click', async () => {
+      const id = slugInp.value.trim();
+      const title = titleInp.value.trim();
+      if (!/^[a-z0-9-]+$/.test(id)) { err.textContent = 'ID must be lowercase letters, numbers, and dashes only.'; return; }
+      if (id === 'admin') { err.textContent = '"admin" is reserved.'; return; }
+      create.disabled = true;
+      try {
+        await api('POST', '/admin/api/pages', { id, title: title || id });
+        toast(`Page "${id}" created`, 'success');
+        closeModal();
+        await loadPages(id);
+      } catch (e) {
+        err.textContent = e.message;
+        create.disabled = false;
+      }
+    });
+    actions.appendChild(cancel);
+    actions.appendChild(create);
+    body.appendChild(actions);
+    setTimeout(() => titleInp.focus(), 50);
+  }, '');
+});
+
+// Update "View" link to point at the current page
+function updateViewLink() {
+  const link = $('#link-view-page');
+  if (state.currentPageId === 'index') link.href = '/';
+  else link.href = `/${state.currentPageId}`;
+}
+
+async function loadPage(id) {
+  if (state.dirty && !confirm('Discard unsaved changes?')) {
+    $('#page-select').value = state.currentPageId;
+    return;
+  }
+  state.currentPageId = id;
+  state.doc = await api('GET', `/admin/api/pages/${id}`);
+  state.savedVersion = state.doc.version || 0;
+  state.selectedBlockId = null;
+  state.selectedItemIdx = null;
+  setDirty(false);
+  renderBlockList();
+  renderEditor();
+  updateViewLink();
+  // Reload the preview iframe to show the new page
+  const iframe = $('#preview-frame');
+  iframe.src = state.currentPageId === 'index' ? '/index.rendered.html' : `/${state.currentPageId}`;
+}
+
+// ─────────────────────────── Blocks list ─────────────────────
+function renderBlockList() {
+  const ol = $('#block-list');
+  ol.innerHTML = '';
+  if (!state.doc) return;
+  state.doc.blocks.forEach((block, idx) => {
+    const li = document.createElement('li');
+    li.className = 'block-item' + (block.id === state.selectedBlockId ? ' active' : '');
+    li.innerHTML = `
+      <span class="block-type">${block.type}</span>
+      <span class="block-title">${blockSummary(block)}</span>
+      <span class="block-ctrl">
+        <button data-act="claude" title="Improve with Claude" class="claude-btn">✨</button>
+        <button data-act="up"     title="Move up">↑</button>
+        <button data-act="down"   title="Move down">↓</button>
+        <button data-act="dup"    title="Duplicate">⧉</button>
+        <button data-act="del"    title="Delete">✕</button>
+      </span>`;
+    li.addEventListener('click', (e) => {
+      if (e.target.closest('.block-ctrl')) return;
+      state.selectedBlockId = block.id;
+      state.selectedItemIdx = null;
+      renderBlockList();
+      renderEditor();
+    });
+    li.querySelector('[data-act="claude"]').addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
+    li.querySelector('[data-act="up"]').addEventListener('click', (e) => { e.stopPropagation(); moveBlock(idx, -1); });
+    li.querySelector('[data-act="down"]').addEventListener('click', (e) => { e.stopPropagation(); moveBlock(idx, 1); });
+    li.querySelector('[data-act="dup"]').addEventListener('click', (e) => { e.stopPropagation(); duplicateBlock(idx); });
+    li.querySelector('[data-act="del"]').addEventListener('click', (e) => { e.stopPropagation(); deleteBlock(idx); });
+    ol.appendChild(li);
+  });
+}
+
+function blockSummary(block) {
+  const d = block.data || {};
+  switch (block.type) {
+    case 'Hero':      return d.brand || 'Hero';
+    case 'VizPanel':  return d.initialTitle || 'Viz';
+    case 'Editorial': {
+      const h2 = (d.content || []).find(c => c.kind === 'h2');
+      return h2?.text || 'Editorial';
+    }
+    case 'Scrolly':   return d.scrollyId || `${(d.steps || []).length} steps`;
+    case 'Outro':     return d.h2 || 'Outro';
+    default:          return block.id;
+  }
+}
+
+function moveBlock(idx, dir) {
+  const j = idx + dir;
+  if (j < 0 || j >= state.doc.blocks.length) return;
+  const arr = state.doc.blocks;
+  [arr[idx], arr[j]] = [arr[j], arr[idx]];
+  setDirty(true);
+  renderBlockList();
+}
+function duplicateBlock(idx) {
+  const copy = clone(state.doc.blocks[idx]);
+  copy.id = uid('b');
+  state.doc.blocks.splice(idx + 1, 0, copy);
+  setDirty(true);
+  renderBlockList();
+}
+function deleteBlock(idx) {
+  const block = state.doc.blocks[idx];
+  if (!confirm(`Delete this ${block.type} block? This cannot be undone (until you Publish — drafts revert on reload).`)) return;
+  if (block.id === state.selectedBlockId) state.selectedBlockId = null;
+  state.doc.blocks.splice(idx, 1);
+  setDirty(true);
+  renderBlockList();
+  renderEditor();
+}
+
+// Add block palette
+$('#btn-add-block').addEventListener('click', () => {
+  openModal('Add a block', renderPalette, '');
+});
+function renderPalette(body) {
+  body.innerHTML = '';
+  const intro = document.createElement('p');
+  intro.style.cssText = 'margin-bottom:14px;color:#57606a;font-size:12.5px;';
+  intro.textContent = 'Pick the kind of section you want to add. Claude will write the content for you on the next step.';
+  body.appendChild(intro);
+  const grid = document.createElement('div');
+  grid.className = 'palette-grid';
+  PALETTE_BLOCKS.forEach(({ type, desc }) => {
+    const card = document.createElement('button');
+    card.className = 'palette-card';
+    card.innerHTML = `<span class="name">${type}</span><span class="desc">${desc}</span>`;
+    card.addEventListener('click', () => {
+      closeModal();
+      openClaudeModal({ mode: 'create', type });
+    });
+    grid.appendChild(card);
+  });
+  body.appendChild(grid);
+}
+// Legacy name kept for backwards-compat; routes through the Claude flow.
+function addBlock(type) { openClaudeModal({ mode: 'create', type }); }
+// ─────────────────────────── Claude-powered create / improve ──
+// opts: { mode: 'create' | 'improve', type, block? (for improve) }
+function openClaudeModal(opts) {
+  const isImprove = opts.mode === 'improve';
+  const type = isImprove ? opts.block.type : opts.type;
+  const title = isImprove ? `✨ Improve ${type}` : `✨ New ${type} — Describe with Claude`;
+  let uploadedImages = [];
+
+  openModal(title, (body) => {
+    body.innerHTML = '';
+
+    const hint = document.createElement('p');
+    hint.style.cssText = 'margin-bottom:12px;color:#57606a;font-size:12.5px;line-height:1.5;';
+    hint.innerHTML = isImprove
+      ? `Tell Claude how to <strong>change</strong> this block. Examples:<br>• "Make it more dramatic"<br>• "Add a pull quote from Hannah Arendt"<br>• "Rewrite in a more conversational tone"`
+      : `Describe what this section should be about. Claude writes the content (German, matching the existing voice). Examples:<br>• "A section about how Watergate changed investigative journalism"<br>• "3 scrolly steps explaining what NLP is"<br>• "A pull quote from Hannah Arendt and 2 paragraphs about press freedom"`;
+    body.appendChild(hint);
+
+    // Prompt textarea
+    const ta = document.createElement('textarea');
+    ta.rows = 5;
+    ta.placeholder = isImprove
+      ? 'Describe the change you want…'
+      : `Describe the ${type.toLowerCase()} you want…`;
+    body.appendChild(ta);
+
+    // Image upload area (only for create, since improve preserves existing images)
+    const imgsWrap = document.createElement('div');
+    imgsWrap.style.cssText = 'margin-top:14px;';
+    const imgsLabel = document.createElement('label');
+    imgsLabel.className = 'field-label';
+    imgsLabel.textContent = 'Images (optional) — Claude will use these in the section';
+    imgsWrap.appendChild(imgsLabel);
+    const filePick = document.createElement('input');
+    filePick.type = 'file';
+    filePick.accept = 'image/*';
+    filePick.multiple = true;
+    filePick.style.cssText = 'margin-top:4px;';
+    const previewWrap = document.createElement('div');
+    previewWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;';
+    filePick.addEventListener('change', async () => {
+      for (const f of Array.from(filePick.files)) {
+        const fd = new FormData();
+        fd.append('file', f);
+        try {
+          const r = await api('POST', '/admin/api/upload', fd, true);
+          uploadedImages.push(r.url);
+          const thumb = document.createElement('div');
+          thumb.style.cssText = `width:60px;height:60px;background:url('/${encodeURI(r.url)}') center/cover no-repeat;border:1px solid #d0d7de;border-radius:4px;`;
+          thumb.title = r.url;
+          previewWrap.appendChild(thumb);
+        } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
+      }
+      filePick.value = '';
+    });
+    imgsWrap.appendChild(filePick);
+    imgsWrap.appendChild(previewWrap);
+    body.appendChild(imgsWrap);
+
+    // Actions
+    const actions = document.createElement('div');
+    actions.style.cssText = 'margin-top:16px;display:flex;gap:8px;justify-content:flex-end;';
+    const manualBtn = document.createElement('button');
+    manualBtn.className = 'ghost';
+    manualBtn.textContent = isImprove ? 'Cancel' : 'Skip — add empty block';
+    manualBtn.addEventListener('click', () => {
+      closeModal();
+      if (!isImprove) addEmptyBlock(type);
+    });
+    const genBtn = document.createElement('button');
+    genBtn.className = 'primary';
+    genBtn.textContent = '✨ Generate with Claude';
+    genBtn.addEventListener('click', async () => {
+      const prompt = ta.value.trim();
+      if (!prompt) { ta.focus(); return; }
+      genBtn.disabled = true;
+      manualBtn.disabled = true;
+      const spinner = document.createElement('div');
+      spinner.style.cssText = 'margin-top:14px;padding:10px;background:#ddf4ff;border-radius:6px;font-size:12.5px;color:#0969da;';
+      spinner.textContent = 'Claude is writing… (this can take 30–60 seconds)';
+      body.appendChild(spinner);
+      try {
+        const r = await api('POST', '/admin/api/generate', {
+          type,
+          prompt,
+          images: uploadedImages,
+          currentData: isImprove ? opts.block.data : null,
+          mode: isImprove ? 'improve' : 'create',
+          pageId: state.currentPageId,
+        });
+        if (isImprove) {
+          opts.block.data = r.data;
+          setDirty(true);
+          renderBlockList();
+          if (opts.block.id === state.selectedBlockId) renderEditor();
+          toast('Block updated by Claude', 'success');
+        } else {
+          const newBlock = { id: uid('b'), type, data: r.data };
+          state.doc.blocks.push(newBlock);
+          state.selectedBlockId = newBlock.id;
+          setDirty(true);
+          renderBlockList();
+          renderEditor();
+          toast(`${type} block created by Claude`, 'success');
+        }
+        closeModal();
+        refreshPreview();
+      } catch (e) {
+        spinner.style.background = '#ffebe9';
+        spinner.style.color = '#cf222e';
+        spinner.textContent = 'Failed: ' + e.message;
+        genBtn.disabled = false;
+        manualBtn.disabled = false;
+      }
+    });
+    actions.appendChild(manualBtn);
+    actions.appendChild(genBtn);
+    body.appendChild(actions);
+
+    setTimeout(() => ta.focus(), 50);
+  }, '');
+}
+
+function addEmptyBlock(type) {
+  const block = { id: uid('b'), type, data: defaultDataFor(type) };
+  state.doc.blocks.push(block);
+  state.selectedBlockId = block.id;
+  setDirty(true);
+  renderBlockList();
+  renderEditor();
+}
+
+function defaultDataFor(type) {
+  switch (type) {
+    case 'Hero':      return { brand: 'New brand', lines: [], titleHtml: 'Title', subtitle: 'Subtitle', scrollCueText: 'Scroll down' };
+    case 'VizPanel':  return { initialTitle: 'Title', initialSub: 'Subtitle' };
+    case 'Editorial': return { content: [{ kind: 'h2', text: 'New section' }, { kind: 'p', html: 'New paragraph.' }] };
+    case 'Scrolly':   return { scrollyId: 'scrolly-X', stepsId: 'steps-X', steps: [{ stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Label', body: 'Step body.' }] };
+    case 'Outro':     return { h2: 'Outro', paragraphs: ['Final paragraph.'], finalLine: '', sourcesHtml: '' };
+    default:          return {};
+  }
+}
+
+// ─────────────────────────── Editor form ─────────────────────
+function renderEditor() {
+  const empty = $('#editor-empty');
+  const form  = $('#editor-form');
+  if (!state.selectedBlockId) {
+    empty.classList.remove('hidden');
+    form.classList.add('hidden');
+    form.innerHTML = '';
+    return;
+  }
+  const block = state.doc.blocks.find(b => b.id === state.selectedBlockId);
+  if (!block) { state.selectedBlockId = null; renderEditor(); return; }
+  const schema = BLOCK_SCHEMAS[block.type];
+  empty.classList.add('hidden');
+  form.classList.remove('hidden');
+  form.innerHTML = '';
+
+  // Form title — pill shows type, text shows description, ✨ Improve button
+  const title = document.createElement('div');
+  title.className = 'form-title';
+  const desc = schema?.description || '';
+  title.innerHTML = `<span class="type-pill">${block.type}</span>` +
+    (desc ? `<span style="font-weight:400;color:#57606a;font-size:13px;flex:1;">${desc}</span>` : '<span style="flex:1;"></span>') +
+    `<button id="form-claude-btn" style="background:#f3f0ff;color:#6639ba;border-color:#d4c5ff;font-weight:600;">✨ Improve with Claude</button>`;
+  form.appendChild(title);
+  title.querySelector('#form-claude-btn').addEventListener('click', () => openClaudeModal({ mode: 'improve', block }));
+
+  if (!schema) {
+    const p = document.createElement('p');
+    p.textContent = `Unknown block type: ${block.type}. Raw JSON editing not yet supported in v1.`;
+    form.appendChild(p);
+    return;
+  }
+
+  schema.fields.forEach(field => {
+    form.appendChild(renderField(field, block.data, () => { setDirty(true); refreshPreview(); updateBlockSummary(); }));
+  });
+}
+
+function renderField(field, data, onChange) {
+  const wrap = document.createElement('div');
+  wrap.className = 'field';
+  const label = document.createElement('label');
+  label.className = 'field-label';
+  label.textContent = field.label;
+  wrap.appendChild(label);
+  if (field.hint) {
+    const hint = document.createElement('div');
+    hint.style.cssText = 'font-size:11px;color:#8c959f;margin-bottom:5px;line-height:1.45;';
+    hint.innerHTML = field.hint;
+    wrap.appendChild(hint);
+  }
+
+  const val = data[field.key];
+
+  switch (field.kind) {
+    case 'text': {
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = val ?? '';
+      input.addEventListener('input', () => { data[field.key] = input.value; onChange(); updateBlockSummary(); });
+      wrap.appendChild(input);
+      break;
+    }
+    case 'textarea':
+    case 'textarea_html': {
+      const ta = document.createElement('textarea');
+      ta.rows = field.kind === 'textarea_html' ? 6 : 3;
+      ta.value = val ?? '';
+      ta.addEventListener('input', () => { data[field.key] = ta.value; onChange(); updateBlockSummary(); });
+      wrap.appendChild(ta);
+      break;
+    }
+    case 'string_list': {
+      const list = Array.isArray(val) ? val : [];
+      data[field.key] = list;
+      list.forEach((str, i) => wrap.appendChild(stringListRow(list, i, onChange)));
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+ Add paragraph';
+      addBtn.className = 'small';
+      addBtn.addEventListener('click', (e) => { e.preventDefault(); list.push(''); onChange(); renderEditor(); });
+      wrap.appendChild(addBtn);
+      break;
+    }
+    case 'lines': {
+      const list = Array.isArray(val) ? val : [];
+      data[field.key] = list;
+      // Auto-assign style class (cin-l1..cin-l6) based on position. Hidden from user.
+      const ensureCls = () => list.forEach((l, i) => { l.cls = `cin-l${(i % 6) + 1}`; });
+      ensureCls();
+      list.forEach((line, i) => {
+        const row = document.createElement('div');
+        row.className = 'subitem';
+        row.innerHTML = `
+          <div class="subitem-head">
+            <span class="subitem-kind">Line ${i + 1}</span>
+            <span class="subitem-actions">
+              <button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button>
+            </span>
+          </div>`;
+        const ta = document.createElement('textarea'); ta.rows = 2; ta.value = line.text || '';
+        ta.placeholder = 'One line of intro narration…';
+        ta.addEventListener('input', () => { line.text = ta.value; onChange(); });
+        row.appendChild(ta);
+        row.querySelector('[data-a="up"]').addEventListener('click', (e) => { e.preventDefault(); if (i>0) { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
+        row.querySelector('[data-a="down"]').addEventListener('click', (e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
+        row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); ensureCls(); onChange(); renderEditor(); });
+        wrap.appendChild(row);
+      });
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+ Add line';
+      addBtn.className = 'small';
+      addBtn.addEventListener('click', (e) => { e.preventDefault(); list.push({ cls: '', text: '' }); ensureCls(); onChange(); renderEditor(); });
+      wrap.appendChild(addBtn);
+      break;
+    }
+    case 'scrolly_steps': {
+      const list = Array.isArray(val) ? val : [];
+      data[field.key] = list;
+      list.forEach((step, i) => wrap.appendChild(scrollyStepEditor(list, i, onChange)));
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+ Add step';
+      addBtn.className = 'small';
+      addBtn.addEventListener('click', (e) => { e.preventDefault(); list.push({ stepIndex: list.length ? list[list.length-1].stepIndex+1 : 0, badgeKind: 'pyramid', badgeLabel: 'Label', body: 'Step body.' }); onChange(); renderEditor(); });
+      wrap.appendChild(addBtn);
+      break;
+    }
+    case 'editorial_items': {
+      const list = Array.isArray(val) ? val : [];
+      data[field.key] = list;
+      list.forEach((item, i) => wrap.appendChild(editorialItemEditor(list, i, onChange)));
+      const addBtn = document.createElement('button');
+      addBtn.textContent = '+ Add item';
+      addBtn.className = 'small';
+      addBtn.addEventListener('click', (e) => { e.preventDefault(); openItemKindPicker(kind => { list.push(defaultItemFor(kind)); onChange(); renderEditor(); }); });
+      wrap.appendChild(addBtn);
+      break;
+    }
+    default:
+      wrap.appendChild(document.createTextNode(`Unsupported field kind: ${field.kind}`));
+  }
+  return wrap;
+}
+
+function stringListRow(list, i, onChange) {
+  const row = document.createElement('div');
+  row.className = 'subitem';
+  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Item ${i + 1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
+  const ta = document.createElement('textarea');
+  ta.rows = 3;
+  ta.value = list[i] || '';
+  ta.addEventListener('input', () => { list[i] = ta.value; onChange(); });
+  row.appendChild(ta);
+  row.querySelector('[data-a="up"]').addEventListener('click', (e) => { e.preventDefault(); if (i>0) { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="down"]').addEventListener('click', (e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); onChange(); renderEditor(); });
+  return row;
+}
+
+function scrollyStepEditor(list, i, onChange) {
+  const step = list[i];
+  // stepIndex is auto-managed (hidden from user) — but we still need unique values per page.
+  // Keep the existing value if present; otherwise assign sequentially.
+  if (typeof step.stepIndex !== 'number') step.stepIndex = i;
+
+  const row = document.createElement('div');
+  row.className = 'subitem';
+  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Step ${i + 1}</span><span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span></div>`;
+  const grid = document.createElement('div');
+  grid.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px 8px;align-items:center;';
+  grid.innerHTML = `
+    <label class="field-label">Badge color</label>
+    <select data-k="badgeKind">${BADGE_OPTIONS.map(o=>`<option value="${o.value}"${step.badgeKind===o.value?' selected':''}>${o.label}</option>`).join('')}</select>
+    <label class="field-label">Badge text</label>
+    <input type="text" data-k="badgeLabel" value="${escapeAttr(step.badgeLabel||'')}" placeholder="Short label, e.g. Korpus">
+    <label class="field-label" style="align-self:flex-start;padding-top:4px;">Text</label>
+    <textarea data-k="body" rows="3" placeholder="1–2 sentences for this step…">${escapeText(step.body||'')}</textarea>`;
+  row.appendChild(grid);
+  grid.querySelectorAll('[data-k]').forEach(el => {
+    el.addEventListener('input', () => { step[el.dataset.k] = el.value; onChange(); });
+    el.addEventListener('change', () => { step[el.dataset.k] = el.value; onChange(); });
+  });
+  row.querySelector('[data-a="up"]').addEventListener('click', (e) => { e.preventDefault(); if (i>0) { [list[i-1], list[i]] = [list[i], list[i-1]]; reindexSteps(list); onChange(); renderEditor(); } });
+  row.querySelector('[data-a="down"]').addEventListener('click', (e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; reindexSteps(list); onChange(); renderEditor(); } });
+  row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); reindexSteps(list); onChange(); renderEditor(); });
+  return row;
+}
+
+// Assign stepIndex sequentially within a Scrolly block.
+// Across the whole page, we make sure each Scrolly's steps occupy a unique
+// range by offsetting per block at save time (see ensureScrollyIds).
+function reindexSteps(list) { list.forEach((s, i) => { s.stepIndex = i; }); }
+
+// Editorial content[] item editor — fields vary by kind.
+function editorialItemEditor(list, i, onChange) {
+  const item = list[i];
+  const friendly = EDITORIAL_ITEM_FRIENDLY[item.kind] || { label: item.kind, hint: '' };
+  const row = document.createElement('div');
+  row.className = 'subitem';
+  row.innerHTML = `<div class="subitem-head">
+    <span class="subitem-kind">${friendly.label}</span>
+    ${friendly.hint ? `<span style="font-weight:400;color:#8c959f;font-size:11px;">${friendly.hint}</span>` : ''}
+    <span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span>
+  </div>`;
+  const fieldsBox = document.createElement('div');
+  row.appendChild(fieldsBox);
+
+  const fields = editorialFieldsFor(item.kind);
+  fields.forEach(f => {
+    if (f.advanced) return; // skip; rendered inside the Advanced section below
+    fieldsBox.appendChild(simpleField(f, item, onChange));
+  });
+  // Advanced section (collapsed by default) for power-user-only fields
+  const advFields = fields.filter(f => f.advanced);
+  if (advFields.length) {
+    const det = document.createElement('details');
+    det.style.cssText = 'margin-top:6px;';
+    const sum = document.createElement('summary');
+    sum.textContent = 'Advanced';
+    sum.style.cssText = 'font-size:11.5px;color:#8c959f;cursor:pointer;user-select:none;';
+    det.appendChild(sum);
+    advFields.forEach(f => det.appendChild(simpleField(f, item, onChange)));
+    fieldsBox.appendChild(det);
+  }
+
+  row.querySelector('[data-a="up"]').addEventListener('click', (e) => { e.preventDefault(); if (i>0) { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="down"]').addEventListener('click', (e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
+  row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); onChange(); renderEditor(); });
+  return row;
+}
+
+function editorialFieldsFor(kind) {
+  switch (kind) {
+    case 'kicker':
+    case 'h2':
+    case 'lead':
+    case 'captionInline':
+    case 'captionCenter':
+      return [{ key: 'text', label: 'Text', kind: 'textarea' }];
+    case 'p':
+      return [{ key: 'html', label: 'Text', kind: 'textarea' }];
+    case 'pullquote':
+      return [{ key: 'text', label: 'Quote', kind: 'textarea' },
+              { key: 'cite', label: 'Attribution',     kind: 'text' }];
+    case 'separator':
+      return [];
+    case 'figureSingle':
+      return [{ key: 'src',     label: 'Image',   kind: 'image' },
+              { key: 'alt',     label: 'Alt text (for accessibility)', kind: 'text' },
+              { key: 'caption', label: 'Caption (optional)', kind: 'textarea' },
+              { key: 'italic',  label: 'Show caption in italic', kind: 'bool', defaultTrue: true, advanced: true }];
+    case 'figurePair':
+      return [{ key: 'images', label: 'Images', kind: 'image_pair' },
+              { key: 'align',  label: 'Vertical align (advanced — flex-start / center)', kind: 'text', advanced: true },
+              { key: 'gap',    label: 'Gap between images (advanced — e.g. 1.5rem)',     kind: 'text', advanced: true },
+              { key: 'wrap',   label: 'Wrap each image in a flex container (advanced)',  kind: 'bool', defaultTrue: true, advanced: true }];
+    case 'whatsappCard':
+      return [{ key: 'senderName',    label: 'Sender name', kind: 'text' },
+              { key: 'senderInitial', label: 'Avatar letter (1 char)', kind: 'text' },
+              { key: 'message',       label: 'Message',     kind: 'text' },
+              { key: 'time',          label: 'Time stamp',  kind: 'text' },
+              { key: 'image.src',     label: 'Attached image (optional)', kind: 'image_nested', subKey: 'image' },
+              { key: 'image.alt',     label: 'Alt text', kind: 'text_nested', subKey: 'image', advanced: true }];
+    case 'customHTML':
+      return [{ key: 'html', label: 'Raw HTML (be careful)', kind: 'textarea_html' }];
+    default: return [];
+  }
+}
+
+function defaultItemFor(kind) {
+  switch (kind) {
+    case 'kicker':         return { kind, text: 'Kicker text' };
+    case 'h2':             return { kind, text: 'New heading' };
+    case 'lead':           return { kind, text: 'Lead paragraph.' };
+    case 'p':              return { kind, html: 'New paragraph.' };
+    case 'pullquote':      return { kind, text: '"Pull quote."', cite: '— Author' };
+    case 'separator':      return { kind };
+    case 'figureSingle':   return { kind, src: '', alt: '', caption: '' };
+    case 'figurePair':     return { kind, images: [{ src:'', alt:'' }, { src:'', alt:'' }] };
+    case 'captionInline':  return { kind, text: 'Caption.' };
+    case 'captionCenter':  return { kind, text: 'Caption.' };
+    case 'whatsappCard':   return { kind, senderInitial:'A', senderName:'Friend', message:'Hi!', time:'12:00 ✓✓', image:{src:'',alt:''} };
+    case 'customHTML':     return { kind, html: '<div></div>' };
+    default: return { kind };
+  }
+}
+
+function openItemKindPicker(cb) {
+  openModal('Add content item', (body) => {
+    body.innerHTML = '';
+    const grid = document.createElement('div');
+    grid.className = 'palette-grid';
+    EDITORIAL_ITEM_KINDS.forEach(({ kind, label }) => {
+      const hint = EDITORIAL_ITEM_FRIENDLY[kind]?.hint || '';
+      const c = document.createElement('button');
+      c.className = 'palette-card';
+      c.innerHTML = `<span class="name">${label}</span>${hint ? `<span class="desc">${hint}</span>` : ''}`;
+      c.addEventListener('click', () => { closeModal(); cb(kind); });
+      grid.appendChild(c);
+    });
+    body.appendChild(grid);
+  }, '');
+}
+
+function simpleField(f, obj, onChange) {
+  const wrap = document.createElement('div');
+  wrap.className = 'field';
+  const lab = document.createElement('label');
+  lab.className = 'field-label';
+  lab.textContent = f.label;
+  wrap.appendChild(lab);
+
+  const setVal = (v) => {
+    if (f.subKey) {
+      if (!obj[f.subKey]) obj[f.subKey] = {};
+      const tail = f.key.split('.').slice(1).join('.');
+      obj[f.subKey][tail] = v;
+    } else obj[f.key] = v;
+    onChange();
+  };
+  const getVal = () => {
+    if (f.subKey) {
+      const tail = f.key.split('.').slice(1).join('.');
+      return obj[f.subKey]?.[tail];
+    }
+    return obj[f.key];
+  };
+
+  switch (f.kind) {
+    case 'text':
+    case 'text_nested': {
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.value = getVal() ?? '';
+      inp.addEventListener('input', () => setVal(inp.value));
+      wrap.appendChild(inp); break;
+    }
+    case 'textarea':
+    case 'textarea_html': {
+      const ta = document.createElement('textarea');
+      ta.rows = f.kind === 'textarea_html' ? 5 : 3;
+      ta.value = getVal() ?? '';
+      ta.addEventListener('input', () => setVal(ta.value));
+      wrap.appendChild(ta); break;
+    }
+    case 'bool': {
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      const curr = getVal();
+      cb.checked = curr === undefined ? !!f.defaultTrue : !!curr;
+      cb.addEventListener('change', () => setVal(cb.checked));
+      const lbl = document.createElement('label');
+      lbl.style.cssText = 'display:flex;gap:6px;align-items:center;font-weight:normal;';
+      lbl.appendChild(cb);
+      lbl.appendChild(document.createTextNode(' ' + f.label));
+      wrap.innerHTML = '';
+      wrap.appendChild(lbl);
+      break;
+    }
+    case 'image':
+    case 'image_nested': {
+      wrap.appendChild(imageField(getVal() ?? '', (v) => setVal(v)));
+      break;
+    }
+    case 'image_pair': {
+      let arr = getVal();
+      const needInit = !Array.isArray(arr);
+      if (needInit) arr = [];
+      let padded = false;
+      while (arr.length < 2) { arr.push({ src: '', alt: '' }); padded = true; }
+      // Only mark dirty if we actually had to backfill missing data
+      if (needInit) setVal(arr);
+      else if (padded) { if (f.subKey) { /* not used here */ } else obj[f.key] = arr; }
+      arr.forEach((img, idx) => {
+        const sub = document.createElement('div');
+        sub.style.cssText = 'border-left:3px solid #d0d7de;padding-left:8px;margin-bottom:6px;';
+        const lbl = document.createElement('div');
+        lbl.className = 'field-label';
+        lbl.textContent = `Image ${idx + 1}`;
+        sub.appendChild(lbl);
+        sub.appendChild(imageField(img.src || '', (v) => { img.src = v; onChange(); }));
+        const altInp = document.createElement('input');
+        altInp.type='text'; altInp.placeholder='Alt text'; altInp.value = img.alt || '';
+        altInp.style.marginTop = '4px';
+        altInp.addEventListener('input', () => { img.alt = altInp.value; onChange(); });
+        sub.appendChild(altInp);
+        wrap.appendChild(sub);
+      });
+      break;
+    }
+    default:
+      wrap.appendChild(document.createTextNode(`?? ${f.kind}`));
+  }
+  return wrap;
+}
+
+function imageField(initial, onChange) {
+  const box = document.createElement('div');
+  box.className = 'img-field';
+  const thumb = document.createElement('div');
+  thumb.className = 'img-thumb';
+  if (initial) thumb.style.backgroundImage = `url('/${encodeURI(initial)}')`;
+  const inp = document.createElement('input');
+  inp.type = 'text'; inp.value = initial; inp.placeholder = 'images/...';
+  inp.addEventListener('input', () => {
+    onChange(inp.value);
+    thumb.style.backgroundImage = inp.value ? `url('/${encodeURI(inp.value)}')` : '';
+  });
+
+  const actions = document.createElement('div');
+  actions.className = 'img-field-actions';
+  const uploadBtn = document.createElement('button');
+  uploadBtn.textContent = 'Upload…';
+  uploadBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const file = document.createElement('input');
+    file.type = 'file';
+    file.accept = 'image/*';
+    file.addEventListener('change', async () => {
+      if (!file.files[0]) return;
+      const fd = new FormData();
+      fd.append('file', file.files[0]);
+      try {
+        const r = await api('POST', '/admin/api/upload', fd, true);
+        inp.value = r.url;
+        onChange(r.url);
+        thumb.style.backgroundImage = `url('/${encodeURI(r.url)}')`;
+        toast('Uploaded · ' + r.url, 'success');
+      } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
+    });
+    file.click();
+  });
+  const browseBtn = document.createElement('button');
+  browseBtn.textContent = 'Browse…';
+  browseBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    openImagePicker((url) => {
+      inp.value = url;
+      onChange(url);
+      thumb.style.backgroundImage = `url('/${encodeURI(url)}')`;
+    });
+  });
+  actions.appendChild(uploadBtn);
+  actions.appendChild(browseBtn);
+
+  box.appendChild(thumb);
+  const col = document.createElement('div');
+  col.style.cssText = 'flex:1;display:flex;flex-direction:column;gap:4px;';
+  col.appendChild(inp);
+  box.appendChild(col);
+  box.appendChild(actions);
+  return box;
+}
+
+async function openImagePicker(cb) {
+  openModal('Pick image', async (body) => {
+    body.innerHTML = 'Loading…';
+    try {
+      const { images } = await api('GET', '/admin/api/images');
+      body.innerHTML = '';
+      const grid = document.createElement('div');
+      grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px;';
+      images.forEach(img => {
+        const card = document.createElement('button');
+        card.style.cssText = 'border:1px solid #d0d7de;border-radius:6px;padding:4px;background:#fff;cursor:pointer;display:flex;flex-direction:column;gap:4px;text-align:center;';
+        card.innerHTML = `<div style="width:100%;height:80px;background:#eaeef2 center/cover no-repeat;background-image:url('/${encodeURI(img.url)}');border-radius:4px;"></div>
+                          <div style="font-size:10px;color:#57606a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${img.url.split('/').pop()}</div>`;
+        card.title = img.url;
+        card.addEventListener('click', () => { closeModal(); cb(img.url); });
+        grid.appendChild(card);
+      });
+      body.appendChild(grid);
+    } catch (e) { body.textContent = 'Error: ' + e.message; }
+  }, '');
+}
+
+function updateBlockSummary() {
+  // Re-render only the active row's title text without rebuilding the list
+  const block = state.doc.blocks.find(b => b.id === state.selectedBlockId);
+  if (!block) return;
+  const li = document.querySelector(`.block-item.active .block-title`);
+  if (li) li.textContent = blockSummary(block);
+}
+
+// ─────────────────────────── Save / Publish ──────────────────
+// Right before save: auto-assign scrollyId, stepsId, and unique stepIndex across the page.
+// These are technical identifiers the user shouldn't have to think about — we manage them.
+function ensureScrollyIds(doc) {
+  let scrollyNum = 0;
+  let stepCounter = 0;
+  for (const block of doc.blocks) {
+    if (block.type === 'Scrolly') {
+      scrollyNum++;
+      if (!block.data) block.data = {};
+      if (!block.data.scrollyId) block.data.scrollyId = `scrolly-${scrollyNum}`;
+      if (!block.data.stepsId)   block.data.stepsId   = `steps-${scrollyNum}`;
+      if (Array.isArray(block.data.steps)) {
+        block.data.steps.forEach(s => { s.stepIndex = stepCounter++; });
+      }
+    }
+  }
+}
+
+$('#btn-publish').addEventListener('click', async () => {
+  if (!state.doc) return;
+  ensureScrollyIds(state.doc);
+  $('#btn-publish').disabled = true;
+  try {
+    const r = await api('PUT', `/admin/api/pages/${state.currentPageId}`, state.doc);
+    state.doc.version = r.version;
+    state.savedVersion = r.version;
+    setDirty(false);
+    toast(`Published · v${r.version}`, 'success');
+    refreshPreview();
+  } catch (e) {
+    toast('Save failed: ' + e.message, 'error');
+    $('#btn-publish').disabled = false;
+  }
+});
+
+// Preview
+function pageUrl() {
+  return state.currentPageId === 'index' ? '/index.rendered.html' : `/${state.currentPageId}`;
+}
+function refreshPreview() {
+  // Debounced reload of the iframe with cache-buster
+  clearTimeout(refreshPreview._t);
+  refreshPreview._t = setTimeout(() => {
+    const iframe = $('#preview-frame');
+    iframe.src = `${pageUrl()}?t=${Date.now()}`;
+  }, 400);
+}
+$('#btn-preview').addEventListener('click', () => window.open(pageUrl(), '_blank'));
+$('#btn-refresh-preview').addEventListener('click', () => { $('#preview-frame').src = `${pageUrl()}?t=${Date.now()}`; });
+
+// History
+$('#btn-history').addEventListener('click', async () => {
+  openModal('Version history', async (body) => {
+    body.innerHTML = 'Loading…';
+    try {
+      const { snapshots } = await api('GET', `/admin/api/pages/${state.currentPageId}/history`);
+      body.innerHTML = '';
+      if (!snapshots.length) { body.textContent = 'No history yet. Publishing creates snapshots.'; return; }
+      snapshots.forEach(s => {
+        const row = document.createElement('div');
+        row.className = 'history-row';
+        row.innerHTML = `<span class="history-ts">${s.ts}</span><span class="history-size">${(s.size/1024).toFixed(1)} KB</span><button class="small">Restore</button>`;
+        row.querySelector('button').addEventListener('click', async (e) => {
+          e.stopPropagation();
+          if (!confirm(`Restore snapshot from ${s.ts}? Current state will be snapshotted first.`)) return;
+          try {
+            const r = await api('POST', `/admin/api/pages/${state.currentPageId}/restore/${s.file}`);
+            toast(`Restored · v${r.version}`, 'success');
+            closeModal();
+            await loadPage(state.currentPageId);
+            refreshPreview();
+          } catch (err) { toast('Restore failed: ' + err.message, 'error'); }
+        });
+        body.appendChild(row);
+      });
+    } catch (e) { body.textContent = 'Error: ' + e.message; }
+  });
+});
+
+// ─────────────────────────── Modal ────────────────────────────
+function openModal(title, renderBody, footerBtn) {
+  closeModal();
+  const root = $('#modal-root');
+  const backdrop = document.createElement('div');
+  backdrop.className = 'modal-backdrop';
+  backdrop.innerHTML = `
+    <div class="modal">
+      <div class="modal-head"><span>${escapeText(title)}</span><button class="ghost close-x">✕</button></div>
+      <div class="modal-body"></div>
+      ${footerBtn === '' ? '' : `<div class="modal-foot"><button class="close-x">Close</button></div>`}
+    </div>`;
+  root.appendChild(backdrop);
+  const body = backdrop.querySelector('.modal-body');
+  const res = renderBody(body);
+  if (res instanceof Promise) res.catch(e => { body.textContent = 'Error: ' + e.message; });
+  backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
+  backdrop.querySelectorAll('.close-x').forEach(b => b.addEventListener('click', closeModal));
+}
+function closeModal() { $('#modal-root').innerHTML = ''; }
+
+// ─────────────────────────── Helpers ──────────────────────────
+function escapeText(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
+function escapeAttr(s) { return String(s ?? '').replace(/"/g, '&quot;'); }
+
+// Beforeunload warning
+window.addEventListener('beforeunload', (e) => {
+  if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// Kickoff
+checkSession();
+})();
