@@ -95,6 +95,20 @@ const COMPONENT_CSS = `
 .video-caption{flex:1;min-width:200px}
 .video-credit{color:var(--ash);font-style:italic;font-size:.78rem}
 
+/* ── Footnote (inline ref + endnotes section) ── */
+.fn-ref{font-size:.65em;line-height:0;vertical-align:super}
+.fn-ref a{color:var(--ink-black);text-decoration:none;border-bottom:1px solid var(--steel);padding:0 1px;font-weight:500;transition:border-color .2s,color .2s}
+.fn-ref a:hover{color:var(--spectrum-red);border-bottom-color:var(--spectrum-red)}
+.endnotes{max-width:720px;margin:4rem auto 5rem;padding:2rem;background:var(--canvas);border-top:1px solid var(--fog);position:relative;z-index:3}
+.endnotes-head{font-family:var(--font-body);font-size:.78rem;font-weight:500;color:var(--graphite);text-transform:uppercase;letter-spacing:.2em;margin-bottom:1rem}
+.endnotes-list{list-style:decimal;padding-left:1.4rem;font-family:var(--font-body);font-size:.92rem;color:var(--graphite);line-height:1.6}
+.endnotes-list li{margin-bottom:.6rem}
+.endnote-back{color:var(--ink-black);text-decoration:none;margin-left:.3rem;font-size:.85rem;opacity:.6;transition:opacity .2s}
+.endnote-back:hover{opacity:1}
+
+/* ── Highlight (marker style) ── */
+.highlight{background:linear-gradient(180deg,transparent 55%,#ffe98a 55%);padding:0 .15em;color:var(--ink-black);border-radius:1px}
+
 @media(max-width:900px){
   .timeline-block,.statrow-block{padding:3rem 1.25rem}
   .aside-block{margin:2.5rem 1.25rem}
@@ -160,6 +174,45 @@ export async function render(jsonUrl, rootSelector = '#page-root') {
     }
     const node = fn(block.data || {}, block);
     if (node) root.appendChild(node);
+  }
+
+  // Collect all footnote refs into a single endnotes section at the bottom.
+  const refs = root.querySelectorAll('sup.fn-ref');
+  if (refs.length) {
+    // De-dupe by (ref number) — first occurrence wins for note text.
+    const seen = new Map();
+    refs.forEach(s => {
+      const n = s.firstChild?.textContent;
+      const note = s.getAttribute('data-note') || '';
+      if (n && !seen.has(n)) seen.set(n, note);
+    });
+    const endnotes = document.createElement('aside');
+    endnotes.className = 'endnotes';
+    endnotes.setAttribute('aria-label', 'Footnotes');
+    const head = document.createElement('h3');
+    head.className = 'endnotes-head';
+    head.textContent = 'Notes';
+    endnotes.appendChild(head);
+    const ol = document.createElement('ol');
+    ol.className = 'endnotes-list';
+    for (const [n, note] of seen) {
+      const li = document.createElement('li');
+      li.id = 'fn-' + n;
+      li.className = 'endnote';
+      const noteSpan = document.createElement('span');
+      noteSpan.innerHTML = note;
+      li.appendChild(noteSpan);
+      const back = document.createElement('a');
+      back.href = '#fnref-' + n;
+      back.className = 'endnote-back';
+      back.setAttribute('aria-label', 'Back to reference ' + n);
+      back.textContent = '↩';
+      li.appendChild(document.createTextNode(' '));
+      li.appendChild(back);
+      ol.appendChild(li);
+    }
+    endnotes.appendChild(ol);
+    root.appendChild(endnotes);
   }
 
   document.dispatchEvent(new CustomEvent('content:ready', { detail: { doc } }));
@@ -388,6 +441,23 @@ function renderEditorialItem(item) {
       return list;
     }
 
+    case 'footnote': {
+      // Render an inline numbered superscript link. The actual note text travels
+      // through an attribute; the post-render collector reads it.
+      const sup = el('sup', { class: 'fn-ref', 'data-note': item.note || '' });
+      const a = el('a', {
+        href: '#fn-' + (item.ref || 1),
+        id: 'fnref-' + (item.ref || 1),
+        'aria-label': 'Footnote ' + (item.ref || 1),
+      }, String(item.ref || 1));
+      sup.appendChild(a);
+      return sup;
+    }
+    case 'highlight': {
+      const wrap = el('mark', { class: 'highlight' });
+      wrap.innerHTML = item.html || '';
+      return wrap;
+    }
     default:
       console.warn('Unknown editorial item kind:', item.kind);
       return null;

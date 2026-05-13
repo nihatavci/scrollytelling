@@ -1085,6 +1085,15 @@ function editorialFieldsFor(kind) {
         { key: 'ordered', label: 'Numbered list (uncheck for bullets)', kind: 'bool' },
         { key: 'items',   label: 'Items',                                kind: 'string_list_inline' },
       ];
+    case 'footnote':
+      return [
+        { key: 'ref',  label: 'Reference number', kind: 'text', hint: 'Numeric, e.g. <code>1</code>. Used to link to the endnote.' },
+        { key: 'note', label: 'Note text',        kind: 'textarea' },
+      ];
+    case 'highlight':
+      return [
+        { key: 'html', label: 'Highlighted text', kind: 'textarea' },
+      ];
     default: return [];
   }
 }
@@ -1107,6 +1116,8 @@ function defaultItemFor(kind) {
     case 'callout':        return { kind, tone: 'info', title: '', body: 'A short callout.' };
     case 'customHTML':     return { kind, html: '<div></div>' };
     case 'list':           return { kind, ordered: false, items: ['First item', 'Second item'] };
+    case 'footnote':       return { kind, ref: 1, note: 'The note text.' };
+    case 'highlight':      return { kind, html: 'A short highlighted phrase.' };
     default: return { kind };
   }
 }
