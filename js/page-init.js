@@ -57,9 +57,9 @@ if(!window.d3){
 
   nodeGrps.append('text')
     .attr('text-anchor','middle').attr('dominant-baseline','central')
-    .attr('font-family', d => d.cat==='w' ? "'Source Serif 4',serif" : "'DM Sans',sans-serif")
+    .attr('font-family', "'DM Sans',sans-serif")
     .attr('font-size',   d => `${BASE_FS * d.sz * 0.28}px`)
-    .attr('font-weight', d => d.cat==='w' ? '700' : '500')
+    .attr('font-weight', d => d.cat==='w' ? '500' : '300')
     .attr('fill', d => catColor[d.cat])
     .attr('opacity', 0)
     .style('paint-order','stroke')
@@ -313,9 +313,9 @@ if(!window.d3){
     setTimeout(() => {
       gOver.append('text').attr('class','cin-arrow')
         .attr('x',W/2).attr('y',H*0.52).attr('text-anchor','middle')
-        .attr('font-family',"'Source Serif 4',serif")
+        .attr('font-family',"'DM Sans',sans-serif")
         .attr('font-size',`${Math.min(BASE_FS*3.2, H*0.25)}px`)
-        .attr('font-weight','700').attr('fill','var(--accent)').attr('opacity',0)
+        .attr('font-weight','300').attr('fill','var(--accent)').attr('opacity',0)
         .text('→')
         .transition().duration(1000).attr('opacity',0.75);
     }, 900);
@@ -613,7 +613,7 @@ function drawState(idx){
     // Main title
     g.append('text').attr('x',cx).attr('y',150).attr('text-anchor','middle')
       .attr('fill','#fff').attr('font-size','24').attr('font-weight','700')
-      .attr('font-family','Source Serif 4,serif').text('Das Wichtigste:')
+      .attr('font-family','DM Sans,sans-serif').text('Das Wichtigste:')
       .attr('opacity',1);
     // W-questions — primary row
     const wqs=['Wer?','Was?','Wann?','Wo?'];
