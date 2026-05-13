@@ -116,6 +116,7 @@ const EDITORIAL_ITEM_FRIENDLY = {
   bigNumber:     { label: 'Big number',     hint: 'large stat with label' },
   customHTML:    { label: 'Custom HTML',    hint: 'advanced — raw HTML escape hatch' },
   callout:       { label: 'Callout', hint: 'highlighted box' },
+  dropcap:       { label: 'Drop-cap paragraph', hint: 'paragraph with large initial letter' },
 };
 
 const EDITORIAL_ITEM_KINDS = [
@@ -897,6 +898,8 @@ function editorialFieldsFor(kind) {
       return [{ key: 'text', label: 'Text', kind: 'textarea' }];
     case 'p':
       return [{ key: 'html', label: 'Text', kind: 'textarea' }];
+    case 'dropcap':
+      return [{ key: 'html', label: 'Text', kind: 'textarea' }];
     case 'pullquote':
       return [{ key: 'text', label: 'Quote', kind: 'textarea' },
               { key: 'cite', label: 'Attribution',     kind: 'text' }];
@@ -943,6 +946,7 @@ function defaultItemFor(kind) {
     case 'h2':             return { kind, text: 'New heading' };
     case 'lead':           return { kind, text: 'Lead paragraph.' };
     case 'p':              return { kind, html: 'New paragraph.' };
+    case 'dropcap':        return { kind, html: 'A first paragraph with a large drop-capital initial.' };
     case 'pullquote':      return { kind, text: '"Pull quote."', cite: '— Author' };
     case 'separator':      return { kind };
     case 'figureSingle':   return { kind, src: '', alt: '', caption: '' };

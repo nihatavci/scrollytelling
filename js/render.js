@@ -328,6 +328,12 @@ function renderEditorialItem(item) {
       return wrap;
     }
 
+    case 'dropcap': {
+      const p = el('p', { class: 'has-dropcap' });
+      p.innerHTML = item.html ?? item.text ?? '';
+      return p;
+    }
+
     default:
       console.warn('Unknown editorial item kind:', item.kind);
       return null;
