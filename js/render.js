@@ -9,6 +9,137 @@
 // Each block type has its own render function. Add new types by adding
 // a function to BLOCK_RENDERERS.
 
+// ─────────────────────────── Vega-Lite ──────────────────────────────
+// Vega-Lite libraries are loaded lazily — pages without a DataScrolly never
+// pull them. First call kicks off a cached promise; subsequent calls await it.
+
+let _vegaLoadPromise = null;
+
+function loadScript(localSrc, cdnSrc) {
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.src = localSrc;
+    s.onload = () => resolve();
+    s.onerror = () => {
+      // Fallback to CDN if vendored file fails (mirrors the d3 loader pattern)
+      const s2 = document.createElement('script');
+      s2.src = cdnSrc;
+      s2.onload = () => resolve();
+      s2.onerror = () => reject(new Error('Failed to load ' + cdnSrc));
+      document.head.appendChild(s2);
+    };
+    document.head.appendChild(s);
+  });
+}
+
+function ensureVegaLoaded() {
+  if (window.vegaEmbed) return Promise.resolve();
+  if (_vegaLoadPromise) return _vegaLoadPromise;
+  _vegaLoadPromise = (async () => {
+    await loadScript('./vendor/vega.min.js',       'https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js');
+    await loadScript('./vendor/vega-lite.min.js',  'https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js');
+    await loadScript('./vendor/vega-embed.min.js', 'https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js');
+  })();
+  return _vegaLoadPromise;
+}
+
+// Build a Vega-Lite spec from our chartSpec + an optional per-step vizState.
+// chartSpec: { kind, data, xField, yField, xLabel, yLabel, yDomain? }
+// vizState:  { highlightX?, annotation? }
+function buildVegaLiteSpec(chartSpec, vizState) {
+  vizState = vizState || {};
+  const cs = chartSpec || {};
+  const xField = cs.xField || 'x';
+  const yField = cs.yField || 'y';
+  const data = Array.isArray(cs.data) ? cs.data : [];
+
+  const ACCENT = '#fa3d1d';   // spectrum-red — single chromatic moment
+  const INK = '#000000';
+  const GRAPHITE = '#636363';
+  const FOG = '#efefef';
+
+  const layers = [];
+
+  if (cs.kind === 'line') {
+    layers.push({
+      mark: { type: 'line', strokeWidth: 1.75, color: INK, interpolate: 'monotone' },
+      encoding: {
+        x: { field: xField, type: 'quantitative', title: cs.xLabel || xField, axis: { format: 'd', labelAngle: 0 } },
+        y: { field: yField, type: 'quantitative', title: cs.yLabel || yField,
+             scale: cs.yDomain ? { domain: cs.yDomain, nice: false } : { nice: true } },
+      },
+    });
+    // All-points dot layer (small, low-contrast) so reader can see the data resolution
+    layers.push({
+      mark: { type: 'circle', size: 30, color: INK, opacity: 0.55 },
+      encoding: {
+        x: { field: xField, type: 'quantitative' },
+        y: { field: yField, type: 'quantitative' },
+      },
+    });
+  } else {
+    // Unknown kind — render a placeholder text mark so the chart slot is not empty
+    layers.push({
+      data: { values: [{ msg: 'Unsupported chartSpec.kind: ' + (cs.kind || '(none)') }] },
+      mark: { type: 'text', fontSize: 13, color: GRAPHITE },
+      encoding: { text: { field: 'msg', type: 'nominal' } },
+    });
+  }
+
+  // Optional highlight rule + dot + annotation text
+  if (vizState.highlightX !== undefined && vizState.highlightX !== null && cs.kind === 'line') {
+    const x = Number(vizState.highlightX);
+    const matchPoint = data.find(d => Number(d[xField]) === x);
+    layers.push({
+      data: { values: [{ [xField]: x }] },
+      mark: { type: 'rule', stroke: ACCENT, strokeDash: [4, 4], strokeWidth: 1.25, opacity: 0.85 },
+      encoding: { x: { field: xField, type: 'quantitative' } },
+    });
+    if (matchPoint) {
+      layers.push({
+        data: { values: [matchPoint] },
+        mark: { type: 'point', size: 140, color: ACCENT, filled: true, opacity: 1 },
+        encoding: {
+          x: { field: xField, type: 'quantitative' },
+          y: { field: yField, type: 'quantitative' },
+        },
+      });
+      if (vizState.annotation) {
+        layers.push({
+          data: { values: [{ ...matchPoint, _label: vizState.annotation }] },
+          mark: { type: 'text', dy: -18, fontSize: 13, color: INK, fontWeight: 500 },
+          encoding: {
+            x: { field: xField, type: 'quantitative' },
+            y: { field: yField, type: 'quantitative' },
+            text: { field: '_label', type: 'nominal' },
+          },
+        });
+      }
+    }
+  }
+
+  return {
+    $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
+    width: 'container',
+    height: 380,
+    data: { values: data },
+    layer: layers,
+    background: 'transparent',
+    config: {
+      font: "'DM Sans', sans-serif",
+      axis: {
+        labelFont: "'DM Sans', sans-serif", titleFont: "'DM Sans', sans-serif",
+        labelColor: GRAPHITE, titleColor: INK,
+        labelFontSize: 11, titleFontSize: 12,
+        titlePadding: 12,
+        grid: true, gridColor: FOG, gridOpacity: 1,
+        domain: false, ticks: false,
+      },
+      view: { stroke: null },
+    },
+  };
+}
+
 // CSS for components introduced after the original site. Injected once on first render
 // so every page that uses render.js automatically picks up the new component styles.
 const COMPONENT_CSS = `
