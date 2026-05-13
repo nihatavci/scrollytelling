@@ -493,6 +493,48 @@ Use at most one per page — the single most-important quotation.`,
   "credit": string              // optional small attribution (e.g. "via NYT")
 }
 Only YouTube and Vimeo are supported. Other URLs render as a link with a warning placeholder.`,
+
+  DataScrolly: `A "DataScrolly" data-driven scrollytelling block: a sticky chart that updates as the reader scrolls through narrative steps.
+
+data shape:
+{
+  "title": string,            // chart title (above the chart)
+  "subtitle": string,         // smaller subtitle / what the chart shows
+  "source": string,           // REQUIRED — where the data came from (see DATA RULES)
+  "chartSpec": {
+    "kind": "line",           // MVP only supports "line"
+    "data": [                 // array of rows; numbers only for both fields
+      { "<xField>": <number>, "<yField>": <number> }
+    ],
+    "xField": string,         // name of the x column in the rows (e.g. "year")
+    "yField": string,         // name of the y column in the rows (e.g. "circulation")
+    "xLabel": string,         // x-axis label text
+    "yLabel": string,         // y-axis label text
+    "yDomain": [number, number]?    // optional [min, max] override; omit for auto-scale
+  },
+  "steps": [                  // 3-5 narrative steps
+    {
+      "badgeKind": "pyramid"|"data"|"explain"|"future"|"voice",  // color key only
+      "badgeLabel": string,   // 1-3 word chip
+      "body": string,         // 1-2 sentences that reference the data
+      "vizState": {           // chart overlay at this step
+        "highlightX": <number>,   // optional — an x value present in chartSpec.data
+        "annotation": string      // optional — short label (1-4 words) shown at the highlighted point
+      }
+    }
+  ]
+}
+
+DATA RULES (CRITICAL):
+1. If the topic has real, verifiable, public data AND you have web research available, USE IT.
+   Cite the exact source in "source", e.g. "BDZV / Destatis (2024)" or "Eurostat, Newspaper Circulation Series (2023)".
+2. If you don't have research access or the topic has no published series, generate plausible illustrative numbers
+   consistent with general knowledge, AND set "source" to the EXACT string "[estimated illustrative values]".
+3. Each step's body MUST reference the data — mention specific x/y values from the chart so the prose is anchored.
+4. Generate 3-5 steps. Each step's vizState.highlightX should equal one of the x values in chartSpec.data
+   so the chart can mark that point with a vertical rule, a dot, and the annotation label.
+5. badgeKind values are color keys only: pyramid=orange, data=blue, explain=purple, future=green, voice=pink.
+   They are NOT topic tags. Pick whichever color fits the narrative beat.`,
 };
 
 function buildClaudePrompt({ type, userPrompt, images, currentData, mode, doc }) {
@@ -545,7 +587,7 @@ CRITICAL RULES:
 Respond with ONLY a single valid JSON object — no markdown fences, no commentary, no preamble. The JSON must match the "data" shape for a ${type} block exactly. Do not include outer "type" or "id" fields; only the data shape.`;
 }
 
-function runClaude(prompt, timeoutMs = 90000) {
+function runClaude(prompt, timeoutMs = 180000) {
   return new Promise((resolve, reject) => {
     const proc = spawn('claude', ['-p', prompt, '--output-format', 'text'], { stdio: ['ignore', 'pipe', 'pipe'] });
     let out = '', err = '';
