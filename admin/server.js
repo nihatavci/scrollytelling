@@ -384,8 +384,9 @@ const BLOCK_GUIDES = {
   "subtitle": string,               // one-line subtitle under the title
   "scrollCueText": string,          // text next to the down-arrow cue (e.g. "Scroll", "Read on")
   "lines": [                        // OPTIONAL narrative lines that fade in one-by-one BEFORE the title
-    { "cls": "cin-l1", "text": string }   // 0..6 items; if you set this, keep each line under 90 characters
+    { "cls": "cin-l1", "text": string }
   ]
+  // 0..6 lines total; if you set them, keep each line under 90 characters.
 }
 "lines" is optional and most pages leave it empty (omit or use []). Only fill it when the user explicitly asks for
 animated intro lines. Never invent year-prefixed lines or thematic motifs that the user did not ask for.`,
@@ -468,7 +469,7 @@ function buildClaudePrompt({ type, userPrompt, images, currentData, mode, doc })
 
   // Domain-neutral style guidance. We deliberately give NO topical context from the
   // existing page so Claude does not borrow motifs (pyramid, year-prefixed lines, etc.).
-  const lang = (doc && doc.lang) || 'en';
+  const lang = (doc && doc.lang) || 'de';
   const style = `
 Output language: ${lang}.
 Tone: clean, factual longform editorial prose. Match a serious newspaper voice (NYT / Reuters / The Atlantic).
