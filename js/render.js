@@ -267,6 +267,23 @@ const COMPONENT_CSS = `
 .factcheck-explanation{font-family:var(--font-body);font-size:.95rem;color:var(--ink-black);line-height:1.55;margin-bottom:.6rem;font-weight:400}
 .factcheck-source{font-family:var(--font-body);font-size:.78rem;color:var(--graphite);font-style:normal;font-weight:400}
 
+/* ── DataScrolly ── */
+.data-scrolly{display:grid;grid-template-columns:1fr 420px;gap:4vw;max-width:1400px;margin:4rem auto;padding:0 2rem;position:relative;z-index:3}
+.ds-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:1.5rem 0}
+.ds-chart-title{font-family:var(--font-display);font-size:clamp(1.3rem,2.2vw,1.6rem);font-weight:500;color:var(--ink-black);letter-spacing:-.02em;line-height:1.25}
+.ds-chart-sub{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.3rem;line-height:1.45;margin-bottom:1rem}
+.ds-chart{width:100%;max-width:760px;min-height:380px;position:relative}
+.ds-chart svg{width:100%!important;height:auto!important;display:block}
+.ds-chart-error{font-family:var(--font-body);font-size:.85rem;color:var(--spectrum-red);padding:1rem;background:rgba(250,61,29,.05);border-radius:8px}
+.ds-chart-source{font-family:var(--font-body);font-size:.7rem;color:var(--ash);margin-top:1rem;font-style:normal}
+.ds-steps{padding:30vh 0;display:flex;flex-direction:column}
+.ds-step{min-height:85vh;display:flex;align-items:center;padding:1.5rem 0}
+.ds-step:first-child{padding-top:8vh}.ds-step:last-child{margin-bottom:20vh}
+.ds-step-card{background:rgba(255,255,255,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.4rem 1.6rem 1.5rem;border:none;max-width:420px;box-shadow:var(--shadow-card);opacity:.4;transition:opacity .3s,box-shadow .3s}
+.ds-step.is-active .ds-step-card{opacity:1;box-shadow:rgba(0,0,0,.12) 0 0 16px 0}
+.ds-step-badge{display:inline-block;margin-bottom:.7rem}
+.ds-step-body{font-family:var(--font-body);font-size:1rem;line-height:1.55;color:var(--ink-black);font-weight:400}
+
 @media(max-width:900px){
   .timeline-block,.statrow-block{padding:3rem 1.25rem}
   .aside-block{margin:2.5rem 1.25rem}
@@ -274,6 +291,12 @@ const COMPONENT_CSS = `
   .quote-block{margin:3rem auto;padding:0 1.25rem}
   .quote-portrait{width:48px;height:48px}
   .video-embed{margin:3rem auto;padding:0 1.25rem}
+  .data-scrolly{grid-template-columns:1fr;gap:0;margin:3rem auto;padding:0 1.25rem}
+  .ds-graphic{position:relative;height:auto;padding:2rem 0;align-items:center}
+  .ds-chart{max-width:100%}
+  .ds-steps{padding:0}
+  .ds-step{min-height:auto;padding:1rem 0}
+  .ds-step-card{opacity:1;max-width:100%}
 }
 `;
 
@@ -297,6 +320,7 @@ const BLOCK_RENDERERS = {
   ChapterDivider: renderChapterDivider,
   Quote:          renderQuote,
   VideoEmbed:     renderVideoEmbed,
+  DataScrolly:    renderDataScrolly,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -742,6 +766,101 @@ function renderAside(d) {
     sec.appendChild(para);
   });
   return sec;
+}
+
+// ─────────────────────────── DataScrolly ──────────────────────────────
+// A new block type — its own sticky chart per block, driven by Vega-Lite.
+// Each step's vizState updates the chart by re-embedding with a new spec.
+
+function renderDataScrolly(d, block) {
+  const sec = el('section', { class: 'data-scrolly', 'data-ds-id': block.id });
+
+  // Sticky graphic on the left
+  const graphic = el('div', { class: 'ds-graphic' });
+  if (d.title) graphic.appendChild(el('div', { class: 'ds-chart-title' }, d.title));
+  if (d.subtitle) graphic.appendChild(el('div', { class: 'ds-chart-sub' }, d.subtitle));
+  const chartHost = el('div', { class: 'ds-chart', id: 'ds-chart-' + block.id });
+  graphic.appendChild(chartHost);
+  if (d.source) graphic.appendChild(el('div', { class: 'ds-chart-source' }, 'Source: ' + d.source));
+  sec.appendChild(graphic);
+
+  // Steps on the right
+  const stepsCol = el('div', { class: 'ds-steps' });
+  (d.steps || []).forEach((step, i) => {
+    const stepEl = el('div', {
+      class: 'ds-step',
+      'data-ds-id': block.id,
+      'data-ds-idx': String(i),
+    });
+    const card = el('div', { class: 'ds-step-card' });
+    card.appendChild(el('div', {
+      class: 'ds-step-badge badge b-' + (step.badgeKind || 'data'),
+    }, step.badgeLabel || ''));
+    const body = el('div', { class: 'ds-step-body' });
+    body.innerHTML = step.body || '';
+    card.appendChild(body);
+    stepEl.appendChild(card);
+    stepsCol.appendChild(stepEl);
+  });
+  sec.appendChild(stepsCol);
+
+  // Schedule chart wiring after the section is inserted into the DOM.
+  // The render() caller appends `sec` to root immediately after this returns,
+  // so a microtask is enough to ensure the chartHost is reachable.
+  Promise.resolve().then(() => wireDataScrolly(block.id, d));
+  return sec;
+}
+
+// One observer per DataScrolly. Steps fire as they cross the trigger band.
+// On step change, we re-embed the chart with the new vizState.
+async function wireDataScrolly(blockId, d) {
+  try {
+    await ensureVegaLoaded();
+  } catch (err) {
+    console.error('Vega failed to load:', err);
+    const host = document.getElementById('ds-chart-' + blockId);
+    if (host) host.innerHTML = '<div class="ds-chart-error">Chart libraries failed to load. Refresh to try again.</div>';
+    return;
+  }
+  const host = document.getElementById('ds-chart-' + blockId);
+  if (!host) return;
+  const steps = Array.from(document.querySelectorAll('.ds-step[data-ds-id="' + blockId + '"]'));
+  if (!steps.length) return;
+
+  let currentIdx = -1;
+
+  async function showStep(idx) {
+    if (idx === currentIdx) return;
+    currentIdx = idx;
+    const step = (d.steps || [])[idx];
+    const vizState = step ? (step.vizState || {}) : {};
+    const spec = buildVegaLiteSpec(d.chartSpec || {}, vizState);
+    try {
+      await window.vegaEmbed(host, spec, { renderer: 'svg', actions: false });
+    } catch (err) {
+      console.error('vegaEmbed failed:', err);
+      host.innerHTML = '<div class="ds-chart-error">Chart render failed: ' + (err.message || err) + '</div>';
+    }
+  }
+
+  // Initial render = first step's vizState
+  await showStep(0);
+
+  const obs = new IntersectionObserver((entries) => {
+    // Pick the entry closest to the trigger band's center that is intersecting
+    const intersecting = entries.filter(e => e.isIntersecting);
+    if (!intersecting.length) return;
+    // Sort by data-ds-idx descending — most-recently-entered step wins
+    intersecting.sort((a, b) => Number(b.target.dataset.dsIdx) - Number(a.target.dataset.dsIdx));
+    const idx = Number(intersecting[0].target.dataset.dsIdx);
+    if (!Number.isNaN(idx)) {
+      showStep(idx);
+      // Active class for opacity transition
+      steps.forEach(s => s.classList.toggle('is-active', Number(s.dataset.dsIdx) === idx));
+    }
+  }, { rootMargin: '-40% 0px -55% 0px' });
+
+  steps.forEach(s => obs.observe(s));
 }
 
 function renderChapterDivider(d) {
