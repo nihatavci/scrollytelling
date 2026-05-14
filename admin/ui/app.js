@@ -309,12 +309,65 @@ function uid(prefix = 'b') {
   return prefix + '_' + Math.random().toString(36).slice(2, 9);
 }
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
+// Production domain for public pages
+const PROD_DOMAIN = 'https://scrollycms.pages.dev';
+
 function toast(msg, kind = '') {
   const t = document.createElement('div');
   t.className = 'toast ' + kind;
   t.textContent = msg;
   document.body.appendChild(t);
   setTimeout(() => t.remove(), 2400);
+}
+
+// Show a persistent banner with live URL after publish
+function showPublishedBanner(url) {
+  // Remove any existing banner
+  const old = document.getElementById('published-banner');
+  if (old) old.remove();
+
+  const banner = document.createElement('div');
+  banner.id = 'published-banner';
+  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#000;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;font-family:var(--font-body);font-size:14px;box-shadow:0 -4px 24px rgba(0,0,0,.15);animation:slideUp .3s ease';
+  banner.innerHTML = `
+    <span style="color:#4ade80;font-weight:600;">● Live</span>
+    <a href="${url}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;text-underline-offset:3px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${url}</a>
+    <button id="copy-url-btn" style="background:#333;color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;font-weight:500;white-space:nowrap;">Copy URL</button>
+    <button style="background:none;border:none;color:#666;cursor:pointer;font-size:18px;padding:4px 8px;" onclick="this.parentElement.remove()">✕</button>
+  `;
+  document.body.appendChild(banner);
+
+  // Inject slideUp keyframes if not present
+  if (!document.getElementById('__slideup_kf__')) {
+    const style = document.createElement('style');
+    style.id = '__slideup_kf__';
+    style.textContent = '@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}';
+    document.head.appendChild(style);
+  }
+
+  banner.querySelector('#copy-url-btn').addEventListener('click', () => {
+    navigator.clipboard.writeText(url).then(() => {
+      const btn = banner.querySelector('#copy-url-btn');
+      btn.textContent = 'Copied!';
+      btn.style.background = '#4ade80';
+      btn.style.color = '#000';
+      setTimeout(() => { btn.textContent = 'Copy URL'; btn.style.background = '#333'; btn.style.color = '#fff'; }, 1500);
+    });
+  });
+
+  // Auto-dismiss after 15 seconds
+  setTimeout(() => { if (banner.parentElement) banner.remove(); }, 15000);
+}
+
+async function getPublicUrl() {
+  try {
+    const profile = await SB.getProfile();
+    const slug = state.currentPageId || 'index';
+    const pageSlug = slug === 'index' ? '' : `/${slug}`;
+    return `${PROD_DOMAIN}/p/${profile.site_slug}${pageSlug}`;
+  } catch {
+    return null;
+  }
 }
 function setDirty(d) {
   state.dirty = d;
@@ -499,15 +552,12 @@ $('#btn-new-page').addEventListener('click', () => {
   }, '');
 });
 
-// Update "View" link to point at the current page
+// Update "View" link to point at the current page (full production URL)
 async function updateViewLink() {
   const link = $('#link-view-page');
   try {
-    const profile = await SB.getProfile();
-    const base = `/p/${profile.site_slug}`;
-    link.href = state.currentPageId === 'index'
-      ? `${base}/`
-      : `${base}/${state.currentPageId}`;
+    const url = await getPublicUrl();
+    link.href = url || '#';
   } catch {
     link.href = '#';
   }
@@ -1900,6 +1950,10 @@ $('#btn-publish').addEventListener('click', async () => {
     setDirty(false);
     toast(`Published · v${r.version}`, 'success');
     refreshPreview();
+
+    // Show live URL banner
+    const liveUrl = await getPublicUrl();
+    if (liveUrl) showPublishedBanner(liveUrl);
   } catch (e) {
     toast('Save failed: ' + e.message, 'error');
     $('#btn-publish').disabled = false;
