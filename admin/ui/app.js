@@ -440,6 +440,21 @@ $('#btn-new-page').addEventListener('click', () => {
     titleInp.placeholder = 'My new page';
     body.appendChild(titleInp);
 
+    // Theme picker
+    const themeLabel = document.createElement('label');
+    themeLabel.className = 'field-label';
+    themeLabel.textContent = 'Theme';
+    themeLabel.style.marginTop = '12px';
+    body.appendChild(themeLabel);
+    const themeSel = document.createElement('select');
+    themeSel.innerHTML = `
+      <option value="dia">Dia — Warm editorial (default)</option>
+      <option value="claude">Claude — Clean modern</option>
+      <option value="miranda">Miranda — Vintage newsprint (dark)</option>
+    `;
+    themeSel.style.marginBottom = '12px';
+    body.appendChild(themeSel);
+
     // Live slugify hint
     titleInp.addEventListener('input', () => {
       if (!slugInp.value && titleInp.value) {
@@ -468,7 +483,7 @@ $('#btn-new-page').addEventListener('click', () => {
       if (id === 'admin') { err.textContent = '"admin" is reserved.'; return; }
       create.disabled = true;
       try {
-        await SB.createPage(id, title || id);
+        await SB.createPage(id, title || id, themeSel.value);
         toast(`Page "${id}" created`, 'success');
         closeModal();
         await loadPages(id);
@@ -517,38 +532,243 @@ async function loadPage(id) {
   iframe.src = pageUrl();
 }
 
-// ─────────────────────────── Blocks list ─────────────────────
+// ─────────────────────────── Blocks list (with drag & drop) ──
+let _dragIdx = null;
+
+// ─── Touch drag polyfill ───
+// Touch devices don't support HTML5 drag & drop natively. This adds
+// touch-move-based reorder to any list. `kind` is 'block' or 'subitem'.
+function setupTouchDrag(el, idx, listEl, kind) {
+  let _touchStartY = 0;
+  let _touchClone = null;
+  let _touchActive = false;
+  const handle = el.querySelector('.drag-handle');
+  const target = handle || el;
+
+  target.addEventListener('touchstart', (e) => {
+    if (e.touches.length !== 1) return;
+    _touchStartY = e.touches[0].clientY;
+    _touchActive = false;
+    // Long-press detection — start drag after 150ms hold
+    el._touchTimer = setTimeout(() => {
+      _touchActive = true;
+      _dragIdx = idx;
+      el.classList.add('dragging');
+      // Create floating clone
+      _touchClone = el.cloneNode(true);
+      _touchClone.style.cssText = `position:fixed;left:16px;right:16px;top:${_touchStartY - 20}px;z-index:9999;opacity:0.9;background:white;border-radius:12px;padding:8px 12px;box-shadow:0 8px 24px rgba(0,0,0,.2);pointer-events:none;font-size:12px;`;
+      _touchClone.classList.remove('dragging');
+      document.body.appendChild(_touchClone);
+      // Haptic feedback if available
+      if (navigator.vibrate) navigator.vibrate(30);
+    }, 150);
+  }, { passive: true });
+
+  target.addEventListener('touchmove', (e) => {
+    if (!_touchActive) {
+      // Cancel if moved too far before long-press fires
+      const dy = Math.abs(e.touches[0].clientY - _touchStartY);
+      if (dy > 10) { clearTimeout(el._touchTimer); return; }
+      return;
+    }
+    e.preventDefault();
+    const y = e.touches[0].clientY;
+    if (_touchClone) _touchClone.style.top = (y - 20) + 'px';
+
+    // Find which item we're over
+    const items = Array.from(listEl.querySelectorAll(kind === 'block' ? '.block-item' : '.subitem'));
+    listEl.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    for (const item of items) {
+      const rect = item.getBoundingClientRect();
+      if (y > rect.top && y < rect.bottom && item !== el) {
+        item.classList.add('drag-over');
+        break;
+      }
+    }
+  }, { passive: false });
+
+  const endTouch = () => {
+    clearTimeout(el._touchTimer);
+    if (!_touchActive) return;
+    _touchActive = false;
+    el.classList.remove('dragging');
+    if (_touchClone) { _touchClone.remove(); _touchClone = null; }
+
+    // Find the drop target
+    const items = Array.from(listEl.querySelectorAll(kind === 'block' ? '.block-item' : '.subitem'));
+    const overItem = items.find(it => it.classList.contains('drag-over'));
+    listEl.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+
+    if (overItem && _dragIdx !== null) {
+      const targetIdx = Number(overItem.dataset.idx);
+      if (!isNaN(targetIdx) && targetIdx !== _dragIdx) {
+        if (kind === 'block') {
+          const blocks = state.doc.blocks;
+          const [moved] = blocks.splice(_dragIdx, 1);
+          blocks.splice(targetIdx, 0, moved);
+          state.selectedBlockId = moved.id;
+          setDirty(true);
+          renderBlockList();
+          renderEditor();
+          refreshPreview();
+        }
+        // Sub-item reorder is handled by the caller via a callback
+      }
+    }
+    _dragIdx = null;
+  };
+  target.addEventListener('touchend', endTouch);
+  target.addEventListener('touchcancel', endTouch);
+}
+
+// Reusable drag handlers for sub-item rows (.subitem)
+function attachSubitemDrag(row, list, i, onChange) {
+  row.draggable = true;
+  row.dataset.idx = i;
+
+  row.addEventListener('dragstart', (e) => {
+    e.stopPropagation();
+    row.classList.add('dragging');
+    e.dataTransfer.effectAllowed = 'move';
+    e.dataTransfer.setData('text/plain', String(i));
+  });
+  row.addEventListener('dragend', () => {
+    row.classList.remove('dragging');
+    document.querySelectorAll('.subitem.drag-over').forEach(el => el.classList.remove('drag-over'));
+  });
+  row.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    e.dataTransfer.dropEffect = 'move';
+    document.querySelectorAll('.subitem.drag-over').forEach(el => el.classList.remove('drag-over'));
+    const dragging = row.parentElement?.querySelector('.subitem.dragging');
+    if (dragging && dragging !== row) row.classList.add('drag-over');
+  });
+  row.addEventListener('dragleave', () => row.classList.remove('drag-over'));
+  row.addEventListener('drop', (e) => {
+    e.preventDefault();
+    e.stopPropagation();
+    row.classList.remove('drag-over');
+    const dragging = row.parentElement?.querySelector('.subitem.dragging');
+    if (!dragging) return;
+    const fromIdx = Number(dragging.dataset.idx);
+    const toIdx = i;
+    if (isNaN(fromIdx) || fromIdx === toIdx) return;
+    const [moved] = list.splice(fromIdx, 1);
+    list.splice(toIdx > fromIdx ? toIdx - 1 : toIdx, 0, moved);
+    onChange();
+    renderEditor();
+  });
+}
+
 function renderBlockList() {
   const ol = $('#block-list');
   ol.innerHTML = '';
   if (!state.doc) return;
+
   state.doc.blocks.forEach((block, idx) => {
     const li = document.createElement('li');
     li.className = 'block-item' + (block.id === state.selectedBlockId ? ' active' : '');
+    li.draggable = true;
+    li.dataset.idx = idx;
     li.innerHTML = `
+      <span class="drag-handle" title="Drag to reorder">⠿</span>
       <span class="block-type">${block.type}</span>
       <span class="block-title">${blockSummary(block)}</span>
       <span class="block-ctrl">
         <button data-act="claude" title="Improve with Claude" class="claude-btn">✨</button>
-        <button data-act="up"     title="Move up">↑</button>
-        <button data-act="down"   title="Move down">↓</button>
         <button data-act="dup"    title="Duplicate">⧉</button>
         <button data-act="del"    title="Delete">✕</button>
       </span>`;
+
+    // Drag & drop handlers
+    li.addEventListener('dragstart', (e) => {
+      _dragIdx = idx;
+      li.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(idx));
+      // Custom drag image (compact)
+      const ghost = li.cloneNode(true);
+      ghost.style.cssText = 'position:fixed;top:-999px;left:-999px;width:200px;opacity:0.9;background:white;border-radius:12px;padding:6px 10px;box-shadow:0 4px 12px rgba(0,0,0,.15);font-size:12px;';
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 20, 15);
+      requestAnimationFrame(() => document.body.removeChild(ghost));
+    });
+    li.addEventListener('dragend', () => {
+      li.classList.remove('dragging');
+      _dragIdx = null;
+      ol.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    });
+    li.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      ol.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+      if (_dragIdx !== null && _dragIdx !== idx) {
+        li.classList.add('drag-over');
+      }
+    });
+    li.addEventListener('dragleave', () => {
+      li.classList.remove('drag-over');
+    });
+    li.addEventListener('drop', (e) => {
+      e.preventDefault();
+      li.classList.remove('drag-over');
+      if (_dragIdx === null || _dragIdx === idx) return;
+      const blocks = state.doc.blocks;
+      const [moved] = blocks.splice(_dragIdx, 1);
+      blocks.splice(idx, 0, moved);
+      _dragIdx = null;
+      // Preserve selection
+      state.selectedBlockId = moved.id;
+      setDirty(true);
+      renderBlockList();
+      renderEditor();
+      refreshPreview();
+    });
+
+    // Touch drag support
+    setupTouchDrag(li, idx, ol, 'block');
+
+    // Click to select
     li.addEventListener('click', (e) => {
-      if (e.target.closest('.block-ctrl')) return;
+      if (e.target.closest('.block-ctrl') || e.target.closest('.drag-handle')) return;
       state.selectedBlockId = block.id;
       state.selectedItemIdx = null;
       renderBlockList();
       renderEditor();
     });
     li.querySelector('[data-act="claude"]').addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
-    li.querySelector('[data-act="up"]').addEventListener('click', (e) => { e.stopPropagation(); moveBlock(idx, -1); });
-    li.querySelector('[data-act="down"]').addEventListener('click', (e) => { e.stopPropagation(); moveBlock(idx, 1); });
     li.querySelector('[data-act="dup"]').addEventListener('click', (e) => { e.stopPropagation(); duplicateBlock(idx); });
     li.querySelector('[data-act="del"]').addEventListener('click', (e) => { e.stopPropagation(); deleteBlock(idx); });
     ol.appendChild(li);
   });
+
+  // Drop-at-end zone
+  const endZone = document.createElement('li');
+  endZone.className = 'drop-end-zone';
+  endZone.textContent = 'Drop here';
+  endZone.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    ol.querySelectorAll('.drag-over').forEach(el => el.classList.remove('drag-over'));
+    endZone.classList.add('drag-over');
+  });
+  endZone.addEventListener('dragleave', () => endZone.classList.remove('drag-over'));
+  endZone.addEventListener('drop', (e) => {
+    e.preventDefault();
+    endZone.classList.remove('drag-over');
+    if (_dragIdx === null) return;
+    const blocks = state.doc.blocks;
+    const [moved] = blocks.splice(_dragIdx, 1);
+    blocks.push(moved);
+    _dragIdx = null;
+    state.selectedBlockId = moved.id;
+    setDirty(true);
+    renderBlockList();
+    renderEditor();
+    refreshPreview();
+  });
+  ol.appendChild(endZone);
 }
 
 function blockSummary(block) {
@@ -566,14 +786,6 @@ function blockSummary(block) {
   }
 }
 
-function moveBlock(idx, dir) {
-  const j = idx + dir;
-  if (j < 0 || j >= state.doc.blocks.length) return;
-  const arr = state.doc.blocks;
-  [arr[idx], arr[j]] = [arr[j], arr[idx]];
-  setDirty(true);
-  renderBlockList();
-}
 function duplicateBlock(idx) {
   const copy = clone(state.doc.blocks[idx]);
   copy.id = uid('b');
@@ -729,6 +941,16 @@ function openClaudeModal(opts) {
           if (opts.block.id === state.selectedBlockId) renderEditor();
           toast('Block updated by Claude', 'success');
         } else {
+          // If no page is loaded yet, auto-create one first
+          if (!state.doc) {
+            const title = prompt.slice(0, 40) || 'New Page';
+            const slug = title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'page';
+            const created = await SB.createPage(slug, title);
+            state.currentPageId = created.id;
+            state.doc = await SB.getPage(created.id);
+            state.savedVersion = state.doc.version || 0;
+            await loadPages(created.id);
+          }
           const newBlock = { id: uid('b'), type, data: r.data };
           state.doc.blocks.push(newBlock);
           state.selectedBlockId = newBlock.id;
@@ -755,7 +977,11 @@ function openClaudeModal(opts) {
   }, '');
 }
 
-function addEmptyBlock(type) {
+async function addEmptyBlock(type) {
+  if (!state.doc) {
+    toast('Please create or select a page first', 'error');
+    return;
+  }
   const block = { id: uid('b'), type, data: defaultDataFor(type) };
   state.doc.blocks.push(block);
   state.selectedBlockId = block.id;
@@ -894,6 +1120,7 @@ function renderField(field, data, onChange) {
         row.className = 'subitem';
         row.innerHTML = `
           <div class="subitem-head">
+            <span class="drag-handle" title="Drag to reorder">⠿</span>
             <span class="subitem-kind">Line ${i + 1}</span>
             <span class="subitem-actions">
               <button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button>
@@ -903,6 +1130,7 @@ function renderField(field, data, onChange) {
         ta.placeholder = 'One line of intro narration…';
         ta.addEventListener('input', () => { line.text = ta.value; onChange(); });
         row.appendChild(ta);
+        attachSubitemDrag(row, list, i, onChange);
         row.querySelector('[data-a="up"]').addEventListener('click', (e) => { e.preventDefault(); if (i>0) { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
         row.querySelector('[data-a="down"]').addEventListener('click', (e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
         row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); ensureCls(); onChange(); renderEditor(); });
@@ -1049,12 +1277,13 @@ function renderField(field, data, onChange) {
 function stringListRow(list, i, onChange) {
   const row = document.createElement('div');
   row.className = 'subitem';
-  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Item ${i + 1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
+  row.innerHTML = `<div class="subitem-head"><span class="drag-handle" title="Drag to reorder">⠿</span><span class="subitem-kind">Item ${i + 1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
   const ta = document.createElement('textarea');
   ta.rows = 3;
   ta.value = list[i] || '';
   ta.addEventListener('input', () => { list[i] = ta.value; onChange(); });
   row.appendChild(ta);
+  attachSubitemDrag(row, list, i, onChange);
   row.querySelector('[data-a="up"]').addEventListener('click', (e) => { e.preventDefault(); if (i>0) { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
   row.querySelector('[data-a="down"]').addEventListener('click', (e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
   row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); onChange(); renderEditor(); });
@@ -1069,7 +1298,7 @@ function scrollyStepEditor(list, i, onChange) {
 
   const row = document.createElement('div');
   row.className = 'subitem';
-  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Step ${i + 1}</span><span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span></div>`;
+  row.innerHTML = `<div class="subitem-head"><span class="drag-handle" title="Drag to reorder">⠿</span><span class="subitem-kind">Step ${i + 1}</span><span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span></div>`;
   const grid = document.createElement('div');
   grid.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px 8px;align-items:center;';
   grid.innerHTML = `
@@ -1080,6 +1309,7 @@ function scrollyStepEditor(list, i, onChange) {
     <label class="field-label" style="align-self:flex-start;padding-top:4px;">Text</label>
     <textarea data-k="body" rows="3" placeholder="1–2 sentences for this step…">${escapeText(step.body||'')}</textarea>`;
   row.appendChild(grid);
+  attachSubitemDrag(row, list, i, onChange);
   grid.querySelectorAll('[data-k]').forEach(el => {
     el.addEventListener('input', () => { step[el.dataset.k] = el.value; onChange(); });
     el.addEventListener('change', () => { step[el.dataset.k] = el.value; onChange(); });
@@ -1095,7 +1325,7 @@ function dataScrollyStepEditor(list, i, onChange) {
   if (!step.vizState) step.vizState = { highlightX: null, annotation: '' };
   const row = document.createElement('div');
   row.className = 'subitem';
-  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Step ${i+1}</span><span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span></div>`;
+  row.innerHTML = `<div class="subitem-head"><span class="drag-handle" title="Drag to reorder">⠿</span><span class="subitem-kind">Step ${i+1}</span><span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span></div>`;
   const grid = document.createElement('div');
   grid.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px 8px;align-items:center;';
   grid.innerHTML = `
@@ -1110,6 +1340,7 @@ function dataScrollyStepEditor(list, i, onChange) {
     <label class="field-label">Annotation</label>
     <input type="text" data-vk="annotation" value="${escapeAttr(step.vizState.annotation||'')}" placeholder="Label at the marked point">`;
   row.appendChild(grid);
+  attachSubitemDrag(row, list, i, onChange);
   grid.querySelectorAll('[data-k]').forEach(el => {
     el.addEventListener('input',  () => { step[el.dataset.k] = el.value; onChange(); });
     el.addEventListener('change', () => { step[el.dataset.k] = el.value; onChange(); });
@@ -1136,7 +1367,7 @@ function statRowEditor(list, i, onChange) {
   const stat = list[i];
   const row = document.createElement('div');
   row.className = 'subitem';
-  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Stat ${i+1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
+  row.innerHTML = `<div class="subitem-head"><span class="drag-handle" title="Drag to reorder">⠿</span><span class="subitem-kind">Stat ${i+1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
   const grid = document.createElement('div');
   grid.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px 8px;align-items:center;';
   grid.innerHTML = `
@@ -1144,6 +1375,7 @@ function statRowEditor(list, i, onChange) {
     <label class="field-label">Label</label>    <input type="text" data-k="label"   value="${escapeAttr(stat.label||'')}"   placeholder="what the number means">
     <label class="field-label">Context</label>  <input type="text" data-k="context" value="${escapeAttr(stat.context||'')}" placeholder="optional sub-line">`;
   row.appendChild(grid);
+  attachSubitemDrag(row, list, i, onChange);
   grid.querySelectorAll('[data-k]').forEach(el => {
     el.addEventListener('input', () => { stat[el.dataset.k] = el.value; onChange(); });
   });
@@ -1157,7 +1389,7 @@ function timelineEventEditor(list, i, onChange) {
   const ev = list[i];
   const row = document.createElement('div');
   row.className = 'subitem';
-  row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Event ${i+1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
+  row.innerHTML = `<div class="subitem-head"><span class="drag-handle" title="Drag to reorder">⠿</span><span class="subitem-kind">Event ${i+1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
   const grid = document.createElement('div');
   grid.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px 8px;align-items:center;';
   grid.innerHTML = `
@@ -1166,6 +1398,7 @@ function timelineEventEditor(list, i, onChange) {
     <label class="field-label" style="align-self:flex-start;padding-top:4px;">Body</label>
     <textarea data-k="body" rows="2">${escapeText(ev.body||'')}</textarea>`;
   row.appendChild(grid);
+  attachSubitemDrag(row, list, i, onChange);
   grid.querySelectorAll('[data-k]').forEach(el => {
     el.addEventListener('input', () => { ev[el.dataset.k] = el.value; onChange(); });
   });
@@ -1187,12 +1420,14 @@ function editorialItemEditor(list, i, onChange) {
   const row = document.createElement('div');
   row.className = 'subitem';
   row.innerHTML = `<div class="subitem-head">
+    <span class="drag-handle" title="Drag to reorder">⠿</span>
     <span class="subitem-kind">${friendly.label}</span>
     ${friendly.hint ? `<span style="font-weight:400;color:#8c959f;font-size:11px;">${friendly.hint}</span>` : ''}
     <span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span>
   </div>`;
   const fieldsBox = document.createElement('div');
   row.appendChild(fieldsBox);
+  attachSubitemDrag(row, list, i, onChange);
 
   const fields = editorialFieldsFor(item.kind);
   fields.forEach(f => {
@@ -1471,7 +1706,7 @@ function simpleField(f, obj, onChange) {
       arr.forEach((step, i) => {
         const row = document.createElement('div');
         row.className = 'subitem';
-        row.innerHTML = `<div class="subitem-head"><span class="subitem-kind">Step ${i+1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
+        row.innerHTML = `<div class="subitem-head"><span class="drag-handle" title="Drag to reorder">⠿</span><span class="subitem-kind">Step ${i+1}</span><span class="subitem-actions"><button data-a="up">↑</button><button data-a="down">↓</button><button data-a="del">✕</button></span></div>`;
         const grid = document.createElement('div');
         grid.style.cssText = 'display:grid;grid-template-columns:80px 1fr;gap:6px 8px;align-items:center;';
         grid.innerHTML = `
@@ -1480,6 +1715,7 @@ function simpleField(f, obj, onChange) {
           <label class="field-label" style="align-self:flex-start;padding-top:4px;">Body</label>
           <textarea data-k="body" rows="2">${escapeText(step.body||'')}</textarea>`;
         row.appendChild(grid);
+        attachSubitemDrag(row, arr, i, onChange);
         grid.querySelectorAll('[data-k]').forEach(el => {
           el.addEventListener('input', () => { step[el.dataset.k] = el.value; onChange(); });
         });
@@ -1643,34 +1879,109 @@ function pageUrl() {
 function getPreviewBlobUrl() {
   if (!state.doc) return 'about:blank';
   const doc = state.doc;
+  const origin = window.location.origin;
+  const theme = doc.theme || 'dia';
+  const themeLink = theme !== 'dia' ? `<link rel="stylesheet" href="${origin}/themes/${theme}.css">` : '';
   const html = `<!DOCTYPE html>
-<html lang="${doc.lang || 'de'}">
+<html lang="${doc.lang || 'de'}" data-theme="${theme}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+${themeLink}
 <script>window.__PAGE_DATA__ = ${JSON.stringify(doc)};<\/script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"><\/script>
+<base href="${origin}/">
 </head>
 <body>
 <main id="page-root"></main>
 <script type="module">
-import { render } from '${location.origin}/js/render.js';
+import { render } from '${origin}/js/render.js';
 render();
 <\/script>
 </body></html>`;
   return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
 }
 function refreshPreview() {
-  // Debounced reload of the iframe with cache-buster
+  // Debounced reload of the iframe — blob URLs don't support query params
   clearTimeout(refreshPreview._t);
   refreshPreview._t = setTimeout(() => {
     const iframe = $('#preview-frame');
-    iframe.src = `${pageUrl()}?t=${Date.now()}`;
+    // Revoke old blob URL to avoid memory leaks
+    if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
+    const url = pageUrl();
+    iframe._blobUrl = url;
+    iframe.src = url;
   }, 400);
 }
 $('#btn-preview').addEventListener('click', () => window.open(pageUrl(), '_blank'));
-$('#btn-refresh-preview').addEventListener('click', () => { $('#preview-frame').src = `${pageUrl()}?t=${Date.now()}`; });
+$('#btn-refresh-preview').addEventListener('click', () => {
+  const iframe = $('#preview-frame');
+  if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
+  const url = pageUrl();
+  iframe._blobUrl = url;
+  iframe.src = url;
+});
+
+// Page settings (theme, title, meta)
+$('#btn-settings').addEventListener('click', () => {
+  if (!state.doc) { toast('Select a page first', 'error'); return; }
+  openModal('Page settings', (body) => {
+    body.innerHTML = '';
+
+    const themeLabel = document.createElement('label');
+    themeLabel.className = 'field-label';
+    themeLabel.textContent = 'Theme';
+    body.appendChild(themeLabel);
+    const themeSel = document.createElement('select');
+    themeSel.innerHTML = `
+      <option value="dia" ${state.doc.theme === 'dia' || !state.doc.theme ? 'selected' : ''}>Dia — Warm editorial (default)</option>
+      <option value="claude" ${state.doc.theme === 'claude' ? 'selected' : ''}>Claude — Clean modern</option>
+      <option value="miranda" ${state.doc.theme === 'miranda' ? 'selected' : ''}>Miranda — Vintage newsprint (dark)</option>
+    `;
+    body.appendChild(themeSel);
+
+    const titleLabel = document.createElement('label');
+    titleLabel.className = 'field-label';
+    titleLabel.textContent = 'Page title';
+    titleLabel.style.marginTop = '14px';
+    body.appendChild(titleLabel);
+    const titleInp = document.createElement('input');
+    titleInp.type = 'text';
+    titleInp.value = state.doc.meta?.title || '';
+    body.appendChild(titleInp);
+
+    const langLabel = document.createElement('label');
+    langLabel.className = 'field-label';
+    langLabel.textContent = 'Language';
+    langLabel.style.marginTop = '14px';
+    body.appendChild(langLabel);
+    const langSel = document.createElement('select');
+    langSel.innerHTML = `<option value="de" ${state.doc.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.doc.lang === 'en' ? 'selected' : ''}>English</option>`;
+    body.appendChild(langSel);
+
+    const actions = document.createElement('div');
+    actions.style.cssText = 'margin-top:16px;display:flex;gap:8px;justify-content:flex-end;';
+    const cancel = document.createElement('button');
+    cancel.className = 'ghost'; cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', closeModal);
+    const save = document.createElement('button');
+    save.className = 'primary'; save.textContent = 'Apply';
+    save.addEventListener('click', () => {
+      state.doc.theme = themeSel.value;
+      state.doc.lang = langSel.value;
+      if (!state.doc.meta) state.doc.meta = {};
+      state.doc.meta.title = titleInp.value.trim();
+      setDirty(true);
+      refreshPreview();
+      closeModal();
+      toast('Settings updated — publish to apply', 'success');
+    });
+    actions.appendChild(cancel);
+    actions.appendChild(save);
+    body.appendChild(actions);
+  }, '');
+});
 
 // History
 $('#btn-history').addEventListener('click', async () => {
