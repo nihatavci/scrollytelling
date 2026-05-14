@@ -29,6 +29,13 @@ function loadDSChart() {
 // CSS for components introduced after the original site. Injected once on first render
 // so every page that uses render.js automatically picks up the new component styles.
 const COMPONENT_CSS = `
+/* ── Spacing Scale ──
+ * Block gap (between top-level blocks): 4.5rem (72px) desktop, 3rem mobile
+ * Inner padding: 2rem desktop, 1.25rem tablet, 1rem phone
+ * Section max-width: 720px editorial, 1100px wide (StatRow), 1400px full (DataScrolly)
+ * All blocks: position:relative; z-index:3; background:var(--canvas)
+ */
+
 /* ── DropCap ── */
 .editorial p.has-dropcap::first-letter{float:left;font-family:var(--font-display);font-size:4.5rem;line-height:.95;padding:.3rem .6rem .1rem 0;color:var(--ink-black);font-weight:300;letter-spacing:-.04em}
 
@@ -51,7 +58,7 @@ const COMPONENT_CSS = `
 .editorial ol.ed-list li::marker{color:var(--graphite);font-weight:500}
 
 /* ── Timeline block ── */
-.timeline-block{max-width:720px;margin:0 auto;padding:4rem 2rem;position:relative;z-index:3;background:var(--canvas)}
+.timeline-block{max-width:720px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3;background:var(--canvas)}
 .timeline-block h3{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2rem);font-weight:300;margin-bottom:2rem;letter-spacing:-.03em;color:var(--ink-black)}
 .timeline-list{position:relative;padding-left:1.8rem}
 .timeline-list::before{content:'';position:absolute;left:6px;top:8px;bottom:8px;width:1px;background:var(--steel)}
@@ -62,7 +69,7 @@ const COMPONENT_CSS = `
 .timeline-body{font-family:var(--font-body);font-size:1rem;line-height:1.55;color:var(--graphite);font-weight:400}
 
 /* ── StatRow block ── */
-.statrow-block{max-width:1100px;margin:0 auto;padding:4rem 2rem;position:relative;z-index:3;background:var(--canvas)}
+.statrow-block{max-width:1100px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3;background:var(--canvas)}
 .statrow-block h3{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2rem);font-weight:300;margin-bottom:2.4rem;letter-spacing:-.03em;text-align:center;color:var(--ink-black)}
 .statrow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;text-align:center}
 .statrow-cell{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.8rem 1.4rem;box-shadow:var(--shadow-card)}
@@ -71,7 +78,7 @@ const COMPONENT_CSS = `
 .statrow-cell .c{font-family:var(--font-body);font-size:.78rem;color:var(--graphite);margin-top:.3rem;font-style:normal;font-weight:400}
 
 /* ── Aside block ── */
-.aside-block{max-width:720px;margin:3rem auto;padding:1.6rem 1.8rem;border-radius:var(--radius-card);background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-left:3px solid var(--ink-black);font-family:var(--font-body);position:relative;z-index:3;box-shadow:var(--shadow-card)}
+.aside-block{max-width:720px;margin:4.5rem auto;padding:1.6rem 1.8rem;border-radius:var(--radius-card);background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-left:3px solid var(--ink-black);font-family:var(--font-body);position:relative;z-index:3;box-shadow:var(--shadow-card)}
 .aside-block.tone-note{border-left-color:var(--signal-blue)}
 .aside-block.tone-warning{border-left-color:var(--spectrum-red)}
 .aside-block h3{font-family:var(--font-display);font-size:1.15rem;font-weight:500;margin-bottom:.5rem;color:var(--ink-black);letter-spacing:-.01em}
@@ -79,14 +86,14 @@ const COMPONENT_CSS = `
 .aside-block p:last-child{margin-bottom:0}
 
 /* ── ChapterDivider ── */
-.chapter-divider{max-width:720px;margin:5rem auto 3.5rem;padding:0 2rem;text-align:center;position:relative;z-index:3}
+.chapter-divider{max-width:720px;margin:5.5rem auto 2rem;padding:0 2rem;text-align:center;position:relative;z-index:3}
 .chapter-number{font-family:var(--font-body);font-size:.78rem;font-weight:500;color:var(--graphite);text-transform:uppercase;letter-spacing:.2em;margin-bottom:1rem}
 .chapter-title{font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.75rem);font-weight:300;color:var(--ink-black);line-height:1.18;letter-spacing:-.04em;margin-bottom:.6rem}
 .chapter-subtitle{font-family:var(--font-body);font-size:1.0625rem;color:var(--graphite);font-weight:400;line-height:1.5;max-width:560px;margin:0 auto 1.6rem}
 .chapter-strip{width:120px;height:2px;background:var(--spectrum-gradient);margin:0 auto;border-radius:2px}
 
 /* ── Quote (featured) ── */
-.quote-block{max-width:860px;margin:4rem auto;padding:0 2rem;position:relative;z-index:3}
+.quote-block{max-width:860px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
 .quote-figure{margin:0}
 .quote-text{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2.25rem);font-weight:300;color:var(--ink-black);line-height:1.25;letter-spacing:-.03em;position:relative;margin:0 0 1.4rem;padding-left:.2em}
 .quote-mark{position:absolute;left:-.45em;top:-.18em;font-size:1.5em;line-height:1;color:var(--ink-black);font-family:var(--font-display);font-weight:300;opacity:.18}
@@ -100,7 +107,7 @@ const COMPONENT_CSS = `
 .quote-source:hover{text-decoration-color:var(--ink-black)}
 
 /* ── VideoEmbed ── */
-.video-embed{max-width:1000px;margin:4rem auto;padding:0 2rem;position:relative;z-index:3}
+.video-embed{max-width:1000px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
 .video-figure{margin:0}
 .video-wrap{position:relative;width:100%;aspect-ratio:16/9;border-radius:var(--radius-image);overflow:hidden;background:var(--fog);box-shadow:var(--shadow-card)}
 .video-iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
@@ -116,7 +123,7 @@ const COMPONENT_CSS = `
 .fn-ref{font-size:.65em;line-height:0;vertical-align:super}
 .fn-ref a{color:var(--ink-black);text-decoration:none;border-bottom:1px solid var(--steel);padding:0 1px;font-weight:500;transition:border-color .2s,color .2s}
 .fn-ref a:hover{color:var(--spectrum-red);border-bottom-color:var(--spectrum-red)}
-.endnotes{max-width:720px;margin:4rem auto 5rem;padding:2rem;background:var(--canvas);border-top:1px solid var(--fog);position:relative;z-index:3}
+.endnotes{max-width:720px;margin:4.5rem auto;padding:2rem;background:var(--canvas);border-top:1px solid var(--fog);position:relative;z-index:3}
 .endnotes-head{font-family:var(--font-body);font-size:.78rem;font-weight:500;color:var(--graphite);text-transform:uppercase;letter-spacing:.2em;margin-bottom:1rem}
 .endnotes-list{list-style:decimal;padding-left:1.4rem;font-family:var(--font-body);font-size:.92rem;color:var(--graphite);line-height:1.6}
 .endnotes-list li{margin-bottom:.6rem}
@@ -157,7 +164,7 @@ const COMPONENT_CSS = `
 .badge{display:inline-block;font-family:var(--font-body);font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.3rem .75rem;border-radius:var(--radius-pill,100px);line-height:1.2;white-space:nowrap;vertical-align:middle}
 
 /* ── DataScrolly ── */
-.data-scrolly{display:grid;grid-template-columns:1fr 420px;gap:4vw;max-width:1400px;margin:4rem auto;padding:0 2rem;position:relative;z-index:3}
+.data-scrolly{display:grid;grid-template-columns:1fr 420px;gap:4vw;max-width:1400px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
 .ds-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:1.5rem 0}
 .ds-chart-title{font-family:var(--font-display);font-size:clamp(1.3rem,2.2vw,1.6rem);font-weight:500;color:var(--ink-black);letter-spacing:-.02em;line-height:1.25}
 .ds-chart-sub{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.3rem;line-height:1.45;margin-bottom:1rem}
@@ -174,9 +181,9 @@ const COMPONENT_CSS = `
 .ds-step-body{font-family:var(--font-body);font-size:1rem;line-height:1.55;color:var(--ink-black);font-weight:400}
 
 @media(max-width:900px){
-  .timeline-block,.statrow-block{padding:3rem 1.25rem}
-  .aside-block{margin:2.5rem 1.25rem}
-  .chapter-divider{margin:3.5rem auto 2.5rem;padding:0 1.25rem}
+  .timeline-block,.statrow-block{padding:0 1.25rem;margin:3rem auto}
+  .aside-block{margin:3rem 1.25rem}
+  .chapter-divider{margin:4rem auto 1.5rem;padding:0 1.25rem}
   .quote-block{margin:3rem auto;padding:0 1.25rem}
   .quote-portrait{width:48px;height:48px}
   .video-embed{margin:3rem auto;padding:0 1.25rem}
@@ -196,6 +203,11 @@ const COMPONENT_CSS = `
   .badge{font-size:.65rem;padding:.25rem .6rem}
   .ds-chart-title{font-size:1.15rem}
   .ds-chart-sub{font-size:.8rem}
+  .timeline-block,.statrow-block{margin:2rem auto;padding:0 1rem}
+  .aside-block{margin:2rem 1rem}
+  .chapter-divider{margin:3rem auto 1rem;padding:0 1rem}
+  .quote-block{margin:2rem auto;padding:0 1rem}
+  .video-embed{margin:2rem auto;padding:0 1rem}
 }
 `;
 
