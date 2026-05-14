@@ -274,6 +274,19 @@ const COMPONENT_CSS = `
 .progress-nav-dot:hover .progress-nav-label{opacity:1}
 @media(max-width:900px){.progress-nav-dots{display:none}}
 
+/* ── EmbedBlock (third-party embed) ── */
+.embed-block{max-width:1000px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
+.embed-container{position:relative;width:100%;border-radius:var(--radius-card);overflow:hidden;background:var(--fog)}
+.embed-container.ar-16-9{aspect-ratio:16/9}
+.embed-container.ar-4-3{aspect-ratio:4/3}
+.embed-container.ar-1-1{aspect-ratio:1/1}
+.embed-container.ar-auto{min-height:300px}
+.embed-container iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.embed-container.ar-auto iframe{position:relative;min-height:400px}
+.embed-cap{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;line-height:1.5;font-weight:400}
+@media(max-width:900px){.embed-block{margin:3rem auto;padding:0 1.25rem}}
+@media(max-width:600px){.embed-block{margin:2rem auto;padding:0 1rem}.embed-container.ar-auto iframe{min-height:300px}}
+
 /* ── FullBleed (viewport media + text overlay) ── */
 .fullbleed{position:relative;z-index:2;width:100%;overflow:hidden;background:#000}
 .fullbleed-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -325,6 +338,7 @@ const BLOCK_RENDERERS = {
   ImageHotspot:   renderImageHotspot,
   AccordionBlock: renderAccordion,
   ProgressNav:    renderProgressNav,
+  EmbedBlock:     renderEmbed,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -1190,6 +1204,62 @@ function renderProgressNav(d) {
   }
 
   return nav;
+}
+
+function renderEmbed(d) {
+  const sec = el('section', { class: 'embed-block' });
+  const arClass = d.aspectRatio === '16:9' ? 'ar-16-9' :
+                  d.aspectRatio === '4:3'  ? 'ar-4-3'  :
+                  d.aspectRatio === '1:1'  ? 'ar-1-1'  : 'ar-auto';
+  const container = el('div', {
+    class: `embed-container ${arClass}`,
+    style: d.maxWidth ? `max-width:${d.maxWidth}` : '',
+  });
+
+  if (d.embedHtml) {
+    container.innerHTML = d.embedHtml;
+  } else if (d.url) {
+    let embedUrl = d.url;
+    if (/datawrapper\.dwcdn\.net/.test(embedUrl)) {
+      container.classList.remove(arClass);
+      container.classList.add('ar-auto');
+    }
+    const iframe = el('iframe', {
+      src: embedUrl,
+      title: d.caption || 'Embedded content',
+      loading: d.lazyLoad !== false ? 'lazy' : 'eager',
+      allow: 'autoplay; encrypted-media',
+      allowfullscreen: 'true',
+      referrerpolicy: 'strict-origin-when-cross-origin',
+      frameborder: '0',
+      style: 'width:100%;border:0;',
+    });
+    if (container.classList.contains('ar-auto')) {
+      iframe.style.minHeight = '400px';
+      window.addEventListener('message', (e) => {
+        if (typeof e.data === 'object' && e.data['datawrapper-height']) {
+          const heights = e.data['datawrapper-height'];
+          for (const [id, height] of Object.entries(heights)) {
+            if (iframe.src.includes(id)) {
+              iframe.style.height = height + 'px';
+              iframe.style.minHeight = 'auto';
+            }
+          }
+        }
+      });
+    }
+    container.appendChild(iframe);
+  } else if (d.fallbackImage) {
+    container.appendChild(el('img', {
+      src: d.fallbackImage,
+      alt: d.caption || '',
+      style: 'width:100%;height:auto;display:block;',
+    }));
+  }
+
+  sec.appendChild(container);
+  if (d.caption) sec.appendChild(el('p', { class: 'embed-cap' }, d.caption));
+  return sec;
 }
 
 function renderChapterDivider(d) {

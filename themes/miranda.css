@@ -435,3 +435,6 @@ body {
 .accordion-list{border-top-color:rgba(205,198,190,.1)}
 .accordion-item{border-bottom-color:rgba(205,198,190,.1)}
 .accordion-trigger:hover{color:#a8a29e}
+
+/* ── EmbedBlock dark overrides ── */
+.embed-container{background:rgba(42,42,40,.5);border:1px solid rgba(205,198,190,.06)}

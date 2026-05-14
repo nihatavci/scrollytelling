@@ -283,6 +283,30 @@ Fields:
 IMPORTANT: This block should be the FIRST block in the page's block list.`,
   },
 
+  EmbedBlock: {
+    example: {
+      provider: 'datawrapper',
+      url: 'https://datawrapper.dwcdn.net/abc123/',
+      aspectRatio: 'auto',
+      maxWidth: '720px',
+      caption: 'Quelle: Statistisches Bundesamt, eigene Berechnung',
+      lazyLoad: true,
+    },
+    description: `Responsive embed container for third-party content: Datawrapper, Flourish, social media, Spotify, or any iframe URL.
+
+Fields:
+- provider (string): "datawrapper", "flourish", "twitter", "instagram", "spotify", or "custom"
+- url (string): the embed URL
+- embedHtml (string, optional): raw HTML embed code instead of url
+- aspectRatio (string): "16:9", "4:3", "1:1", or "auto" (default, best for Datawrapper)
+- maxWidth (string): CSS max-width, e.g. "720px"
+- caption (string): source attribution
+- lazyLoad (boolean): default true
+- fallbackImage (string, optional): static image fallback
+
+For Datawrapper, always use aspectRatio "auto" — Datawrapper sends its own height via postMessage.`,
+  },
+
   FullBleed: {
     example: {
       mediaSrc: '/images/redaktion-1924.jpg',

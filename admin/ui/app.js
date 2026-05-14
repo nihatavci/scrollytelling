@@ -183,6 +183,19 @@ const BLOCK_SCHEMAS = {
       { key: 'showPercentage', label: 'Show %',         kind: 'text', hint: 'true or false' },
     ]
   },
+  EmbedBlock: {
+    label: 'Embed',
+    fields: [
+      { key: 'provider',      label: 'Provider',      kind: 'text', hint: 'datawrapper, flourish, twitter, etc.' },
+      { key: 'url',           label: 'Embed URL',     kind: 'text' },
+      { key: 'embedHtml',     label: 'Raw HTML',      kind: 'textarea_html', hint: 'Paste iframe code here instead of URL' },
+      { key: 'aspectRatio',   label: 'Aspect ratio',  kind: 'text', hint: '16:9, 4:3, 1:1, or auto' },
+      { key: 'maxWidth',      label: 'Max width',     kind: 'text', hint: 'e.g. 720px' },
+      { key: 'caption',       label: 'Caption',       kind: 'textarea' },
+      { key: 'lazyLoad',      label: 'Lazy load',     kind: 'text', hint: 'true (default) or false' },
+      { key: 'fallbackImage', label: 'Fallback image', kind: 'text' },
+    ]
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -258,6 +271,7 @@ const PALETTE_BLOCKS = [
   { type: 'AccordionBlock', desc: 'Collapsible sections — methodology, FAQ, glossary' },
   { type: 'VizPanel',       desc: 'Advanced — visualization container' },
   { type: 'ProgressNav',    desc: 'Reading progress bar + chapter navigation dots' },
+  { type: 'EmbedBlock',     desc: 'Datawrapper, Flourish, Twitter, or any iframe embed' },
 ];
 
 // Tiny inline mockups shown inside the palette cards and at the top of the
@@ -948,6 +962,7 @@ function blockSummary(block) {
     case 'ImageHotspot': return `${(d.hotspots || []).length} hotspots`;
     case 'AccordionBlock': return d.title || `${(d.items || []).length} items`;
     case 'ProgressNav': return 'Progress bar';
+    case 'EmbedBlock': return d.provider || (d.url ? 'Embed' : 'Empty embed');
     default:          return block.id;
   }
 }
@@ -1031,6 +1046,11 @@ function blockDetailSummary(block) {
     case 'ProgressNav':
       lines.push(`<strong>Mode:</strong> ${d.mode || 'bar'}`);
       lines.push(`<strong>Auto-generate:</strong> ${d.autoGenerate !== false ? 'yes' : 'no'}`);
+      break;
+    case 'EmbedBlock':
+      if (d.provider) lines.push(`<strong>Provider:</strong> ${escapeText(d.provider)}`);
+      if (d.url) lines.push(`<strong>URL:</strong> ${escapeText(d.url).slice(0, 60)}`);
+      if (d.caption) lines.push(`<strong>Caption:</strong> ${escapeText(d.caption).slice(0, 60)}`);
       break;
     default:
       const keys = Object.keys(d);
