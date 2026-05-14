@@ -4,33 +4,31 @@
 
 const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
-// ── Voice & Style Guide (extracted from "Die Nachricht als Jahrhunderterfindung") ──
+// ── Voice & Style Guide ──
 const VOICE_GUIDE = `
-VOICE & STYLE — "Jahrhunderterfindung" editorial standard:
+VOICE & STYLE — Premium scrollytelling editorial standard:
 
-You write like the best German feature journalism — ZEIT, SZ Magazin, brand eins.
+LANGUAGE RULE (CRITICAL):
+- Detect the language of the user's prompt and generate ALL content in that SAME language.
+- If the user writes in English, respond entirely in English.
+- If the user writes in German, respond entirely in German.
+- If the user writes in Turkish, respond entirely in Turkish.
+- NEVER mix languages. NEVER default to German. Match the user's language exactly.
 
-RULES:
-- German (Hochdeutsch), gender-inclusive (Journalist:innen, Bürger:innen)
+WRITING RULES:
 - Short, punchy sentences that land. Then a longer one for rhythm.
 - Use concrete examples, real names, real dates, real publications
-- Open with a surprising angle — a WhatsApp message, a comic, a paradox
-- Weave academic citations naturally: "Barnhurst und Nerone beobachteten, dass..."
+- Open with a surprising angle — a paradox, a striking fact, an anecdote
+- Weave citations naturally: "As Schudson observed..."
 - Use em-dashes (—) for dramatic pauses, not commas
-- Pullquotes: prefer English originals from scholars, with attribution "— Author, Year"
-- Numbers are specific: "8.527 Artikel", "über 40 Prozent", not "viele" or "zahlreiche"
+- Numbers are specific: "8,527 articles", "over 40 percent", not "many" or "numerous"
 - Each section tells a mini-story with a beginning, turn, and landing
-- Kickers use "Erster Akt · Die Erfindung" style (act + theme with middot)
+- Kickers use "Act One · The Invention" style (act + theme with middot)
 - Paragraphs use "html" field (not "text") for p items — allows inline HTML for emphasis
 - Captions are informative, not decorative: explain what the reader sees AND why it matters
 - End editorial sections with a {kind:"separator"} item
 
 TONE: Authoritative but accessible. Academic rigor with storytelling flair. Never dry, never clickbait.
-
-REAL EXAMPLE from the reference site:
-- Lead: "Es gibt zwei Arten, die Dinge zu erzählen: Von Anfang bis Ende oder direkt vom Ende her. Die kurze Textmessage an die beste Freundin wird ganz sicher lauten: 'Wir haben uns geküsst!' Das ist die zentrale Botschaft."
-- Scrolly step: "NS-Propaganda-Apparat, DDR-Parteipresse — beide haben die Pyramide nicht gebrochen. 40–50% über Jahrzehnte. Erst nach 2004 sinkt der Wert auf 30–35%. Nicht die Diktatur. Der Newsfeed."
-- Hero lines: "1605: die Zeitung. 1870: die Idee. Das Wichtigste kommt zuerst." / "8.527 Artikel. 100 Jahre. 15 Journalist:innen. Drei Generationen."
 `;
 
 // ── Block schemas with rich examples from the reference site ──
@@ -198,13 +196,18 @@ DESIGN RULES:
   },
 };
 
-function buildSystemPrompt(type, mode) {
+function buildSystemPrompt(type, mode, lang) {
   const schema = BLOCK_SCHEMAS[type];
   if (!schema) return null;
 
-  return `You are the content engine for ScrollyCMS — a platform for creating scrollytelling stories in the style of "Die Nachricht als Jahrhunderterfindung", an award-winning interactive feature about 100 years of German journalism.
+  const langHint = lang
+    ? `\nIMPORTANT: The page language is "${lang}". Generate ALL content in ${lang === 'de' ? 'German' : lang === 'en' ? 'English' : lang === 'tr' ? 'Turkish' : lang === 'fr' ? 'French' : lang === 'es' ? 'Spanish' : lang}. Do NOT use any other language.`
+    : '\nIMPORTANT: Detect the language from the user prompt and generate ALL content in that same language.';
+
+  return `You are the content engine for ScrollyCMS — a platform for creating premium scrollytelling stories with interactive visualizations and rich narrative.
 
 ${VOICE_GUIDE}
+${langHint}
 
 CRITICAL RULES:
 1. Return ONLY valid JSON — no markdown fences, no explanation, no wrapping. Just the raw JSON object.
@@ -212,10 +215,10 @@ CRITICAL RULES:
 
 ${schema.description}
 
-Example output:
+Example output (note: examples may be in German — adapt to the correct language):
 ${JSON.stringify(schema.example, null, 2)}
 
-${mode === 'improve' ? 'You are IMPROVING an existing block. Keep the structure, apply the requested changes, return the complete updated data object.' : 'You are creating a NEW block from scratch. Match the Jahrhunderterfindung quality standard.'}`;
+${mode === 'improve' ? 'You are IMPROVING an existing block. Keep the structure, apply the requested changes, return the complete updated data object.' : 'You are creating a NEW block from scratch based on the user prompt. Write in the SAME language the user used.'}`;
 }
 
 export async function onRequest(context) {
@@ -256,7 +259,7 @@ export async function onRequest(context) {
     });
   }
 
-  const { type, prompt, images, currentData, mode } = body;
+  const { type, prompt, images, currentData, mode, lang } = body;
 
   if (!type || !prompt) {
     return new Response(JSON.stringify({ error: 'Missing type or prompt' }), {
@@ -264,7 +267,7 @@ export async function onRequest(context) {
     });
   }
 
-  const systemPrompt = buildSystemPrompt(type, mode || 'create');
+  const systemPrompt = buildSystemPrompt(type, mode || 'create', lang);
   if (!systemPrompt) {
     return new Response(JSON.stringify({ error: `Unknown block type: ${type}` }), {
       status: 400, headers: { 'Content-Type': 'application/json' },

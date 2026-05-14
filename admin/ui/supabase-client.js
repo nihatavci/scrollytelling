@@ -168,12 +168,13 @@
       return { ok: true, version: newVersion };
     },
 
-    async createPage(slug, title) {
+    async createPage(slug, title, theme) {
       const user = await getUser();
       const content = {
         id: slug,
         version: 1,
         lang: 'de',
+        theme: theme || 'dia',
         meta: { title: title || slug },
         blocks: [],
       };
@@ -302,19 +303,19 @@
       return { images };
     },
 
-    // ─── Claude Generation (via Supabase Edge Function) ───
+    // ─── AI Generation (via Cloudflare Workers AI — no API key needed) ───
 
-    async generate({ type, prompt, images, currentData, mode, pageId }) {
+    async generate({ type, prompt, images, currentData, mode, pageId, lang }) {
       const { data: { session } } = await client.auth.getSession();
       if (!session) throw new Error('Not authenticated');
 
-      const res = await fetch(`${SUPABASE_URL}/functions/v1/generate`, {
+      const res = await fetch('/api/generate', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ type, prompt, images, currentData, mode, pageId }),
+        body: JSON.stringify({ type, prompt, images, currentData, mode, pageId, lang }),
       });
 
       if (!res.ok) {

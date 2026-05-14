@@ -932,6 +932,7 @@ function openClaudeModal(opts) {
           currentData: isImprove ? opts.block.data : null,
           mode: isImprove ? 'improve' : 'create',
           pageId: state.currentPageId,
+          lang: state.doc?.lang || undefined,
         });
         if (isImprove) {
           opts.block.data = r.data;
