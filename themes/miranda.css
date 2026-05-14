@@ -430,3 +430,8 @@ body {
 .imghotspot-marker.style-pulse::after{border-color:#cdc6be}
 .imghotspot-tooltip{background:rgba(42,42,40,.92);border-color:rgba(205,198,190,.08)}
 .imghotspot-tooltip-close{color:#a8a29e}
+
+/* ── AccordionBlock dark overrides ── */
+.accordion-list{border-top-color:rgba(205,198,190,.1)}
+.accordion-item{border-bottom-color:rgba(205,198,190,.1)}
+.accordion-trigger:hover{color:#a8a29e}

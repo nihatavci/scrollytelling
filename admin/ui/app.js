@@ -152,6 +152,14 @@ const BLOCK_SCHEMAS = {
       { key: 'hotspots', label: 'Hotspots',    kind: 'textarea_html', hint: 'AI generates these — use Enhance to add/modify hotspots' },
     ]
   },
+  AccordionBlock: {
+    label: 'Accordion',
+    fields: [
+      { key: 'title',     label: 'Section title',  kind: 'text' },
+      { key: 'multiOpen', label: 'Allow multi-open', kind: 'text', hint: 'true or false, default false' },
+      { key: 'items',     label: 'Items',           kind: 'textarea_html', hint: 'AI generates these — use Enhance to add/modify' },
+    ]
+  },
   FullBleed: {
     label: 'Full Bleed',
     fields: [
@@ -239,6 +247,7 @@ const PALETTE_BLOCKS = [
   { type: 'FullBleed',      desc: 'Full-viewport image/video with text overlay — the Snow Fall signature' },
   { type: 'ImageCompare',   desc: 'Before/after draggable image comparison slider' },
   { type: 'ImageHotspot',   desc: 'Annotated image with interactive numbered markers' },
+  { type: 'AccordionBlock', desc: 'Collapsible sections — methodology, FAQ, glossary' },
   { type: 'VizPanel',       desc: 'Advanced — visualization container' },
 ];
 
@@ -928,6 +937,7 @@ function blockSummary(block) {
     case 'FullBleed':     return d.title?.replace(/<[^>]+>/g, '') || 'Full Bleed';
     case 'ImageCompare':  return `${d.beforeLabel || '?'} → ${d.afterLabel || '?'}`;
     case 'ImageHotspot': return `${(d.hotspots || []).length} hotspots`;
+    case 'AccordionBlock': return d.title || `${(d.items || []).length} items`;
     default:          return block.id;
   }
 }
@@ -996,6 +1006,15 @@ function blockDetailSummary(block) {
         lines.push(`<strong>Hotspots:</strong> ${d.hotspots.length}`);
         d.hotspots.slice(0, 3).forEach((hs, i) => {
           lines.push(`&nbsp;&nbsp;${hs.label || i + 1}. ${escapeText(hs.title || '').slice(0, 50)}`);
+        });
+      }
+      break;
+    case 'AccordionBlock':
+      if (d.title) lines.push(`<strong>Title:</strong> ${escapeText(d.title)}`);
+      if (d.items?.length) {
+        lines.push(`<strong>Items:</strong> ${d.items.length}`);
+        d.items.slice(0, 3).forEach((item, i) => {
+          lines.push(`&nbsp;&nbsp;${i + 1}. ${escapeText(item.heading || '').slice(0, 50)}`);
         });
       }
       break;

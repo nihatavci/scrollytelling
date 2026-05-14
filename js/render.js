@@ -245,6 +245,24 @@ const COMPONENT_CSS = `
 @media(max-width:900px){.imghotspot{margin:3rem auto;padding:0 1.25rem}.imghotspot-marker{width:28px;height:28px;font-size:11px}}
 @media(max-width:600px){.imghotspot{margin:2rem auto;padding:0 1rem}.imghotspot-tooltip{position:fixed!important;bottom:0!important;left:0!important;right:0!important;top:auto!important;max-width:100%;border-radius:16px 16px 0 0;padding:1.4rem;transform:none!important}}
 
+/* ── AccordionBlock ── */
+.accordion-block{max-width:720px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
+.accordion-block h3{font-family:var(--font-display);font-size:clamp(1.3rem,2.5vw,1.6rem);font-weight:300;margin-bottom:1.2rem;letter-spacing:-.02em;color:var(--ink-black)}
+.accordion-list{border-top:1px solid var(--fog)}
+.accordion-item{border-bottom:1px solid var(--fog)}
+.accordion-trigger{width:100%;background:none;border:none;padding:1rem 0;display:flex;align-items:center;justify-content:space-between;gap:1rem;cursor:pointer;text-align:left;font-family:var(--font-display);font-size:1.08rem;font-weight:500;color:var(--ink-black);letter-spacing:-.01em;line-height:1.35;transition:color .2s}
+.accordion-trigger:hover{color:var(--graphite)}
+.accordion-chevron{flex-shrink:0;width:20px;height:20px;transition:transform .3s ease;color:var(--ash)}
+.accordion-chevron svg{display:block}
+.accordion-item.is-open .accordion-chevron{transform:rotate(180deg)}
+.accordion-panel{overflow:hidden;max-height:0;transition:max-height .35s ease}
+.accordion-item.is-open .accordion-panel{max-height:2000px}
+.accordion-panel-inner{padding:0 0 1.2rem;font-family:var(--font-body);font-size:1rem;line-height:1.6;color:var(--graphite);font-weight:400}
+.accordion-panel-inner p{margin-bottom:.8rem}
+.accordion-panel-inner p:last-child{margin-bottom:0}
+@media(max-width:900px){.accordion-block{margin:3rem auto;padding:0 1.25rem}}
+@media(max-width:600px){.accordion-block{margin:2rem auto;padding:0 1rem}}
+
 /* ── FullBleed (viewport media + text overlay) ── */
 .fullbleed{position:relative;z-index:2;width:100%;overflow:hidden;background:#000}
 .fullbleed-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -294,6 +312,7 @@ const BLOCK_RENDERERS = {
   FullBleed:      renderFullBleed,
   ImageCompare:   renderImageCompare,
   ImageHotspot:   renderImageHotspot,
+  AccordionBlock: renderAccordion,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -1037,6 +1056,58 @@ function renderImageHotspot(d) {
   sec.appendChild(wrap);
   if (d.caption) sec.appendChild(el('p', { class: 'imghotspot-cap' }, d.caption));
   if (d.credit) sec.appendChild(el('p', { class: 'imghotspot-credit' }, d.credit));
+  return sec;
+}
+
+function renderAccordion(d) {
+  const sec = el('section', { class: 'accordion-block' });
+  if (d.title) sec.appendChild(el('h3', {}, d.title));
+  const list = el('div', { class: 'accordion-list', role: 'list' });
+  const multiOpen = d.multiOpen !== false;
+
+  (d.items || []).forEach((item, i) => {
+    const row = el('div', { class: `accordion-item${item.defaultOpen ? ' is-open' : ''}`, role: 'listitem' });
+    const trigger = el('button', {
+      class: 'accordion-trigger',
+      'aria-expanded': item.defaultOpen ? 'true' : 'false',
+      id: `acc-trigger-${i}`,
+    });
+    trigger.appendChild(document.createTextNode(item.heading || ''));
+    const chevron = el('span', { class: 'accordion-chevron', 'aria-hidden': 'true' });
+    chevron.innerHTML = '<svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    trigger.appendChild(chevron);
+
+    const panel = el('div', {
+      class: 'accordion-panel',
+      role: 'region',
+      'aria-labelledby': `acc-trigger-${i}`,
+    });
+    if (item.defaultOpen) panel.style.maxHeight = '2000px';
+    const inner = el('div', { class: 'accordion-panel-inner' });
+    const bodyHtml = (item.body || '').split(/\n\n+/).map(p => `<p>${p}</p>`).join('');
+    inner.innerHTML = bodyHtml;
+    panel.appendChild(inner);
+
+    trigger.addEventListener('click', () => {
+      const isOpen = row.classList.contains('is-open');
+      if (!multiOpen) {
+        list.querySelectorAll('.accordion-item.is-open').forEach(r => {
+          r.classList.remove('is-open');
+          r.querySelector('.accordion-trigger')?.setAttribute('aria-expanded', 'false');
+          r.querySelector('.accordion-panel').style.maxHeight = '0';
+        });
+      }
+      row.classList.toggle('is-open', !isOpen);
+      trigger.setAttribute('aria-expanded', !isOpen ? 'true' : 'false');
+      panel.style.maxHeight = !isOpen ? '2000px' : '0';
+    });
+
+    row.appendChild(trigger);
+    row.appendChild(panel);
+    list.appendChild(row);
+  });
+
+  sec.appendChild(list);
   return sec;
 }
 

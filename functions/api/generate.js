@@ -246,6 +246,26 @@ Fields:
 WRITING RULES: Each hotspot teaches one thing. Title is 2-4 words. Body is 1-2 sentences max. 3-6 hotspots total.`,
   },
 
+  AccordionBlock: {
+    example: {
+      title: 'Methodik',
+      multiOpen: false,
+      items: [
+        { heading: 'Wie wurden die Daten erhoben?', body: 'Wir analysierten 8.527 Artikel aus fünf überregionalen Tageszeitungen (FAZ, SZ, taz, BILD, Die Welt) über einen Zeitraum von 100 Jahren (1924–2024).\n\nDie Auswahl erfolgte als Zufallsstichprobe mit Schichtung nach Jahrzehnt und Zeitung.', defaultOpen: false },
+        { heading: 'Was gilt als "umgekehrte Pyramide"?', body: 'Ein Artikel wurde als Pyramidenform klassifiziert, wenn der erste Absatz (Lead) mindestens drei der fünf W-Fragen beantwortet und die folgenden Absätze in absteigender Informationsrelevanz angeordnet sind.\n\nDie Kodierung erfolgte durch zwei unabhängige Kodierer:innen mit einer Intercoder-Reliabilität von Cohen\'s κ = 0.81.', defaultOpen: false },
+        { heading: 'Einschränkungen', body: 'Die Studie erfasst nur Printausgaben und deren Digitalarchive. Rein digitale Formate (Liveblog, Social-Media-Posts) wurden nicht berücksichtigt.', defaultOpen: false },
+      ]
+    },
+    description: `Collapsible accordion for methodology, FAQ, glossary, or supplementary content.
+
+Fields:
+- title (string): optional heading above the accordion
+- multiOpen (boolean): if true, multiple items can be open at once. Default false.
+- items (array): each has heading (string), body (string, use \\n\\n for paragraph breaks, supports HTML), defaultOpen (boolean)
+
+WRITING RULES: Use for content that's important but would disrupt narrative. Headings should be questions when possible.`,
+  },
+
   FullBleed: {
     example: {
       mediaSrc: '/images/redaktion-1924.jpg',
