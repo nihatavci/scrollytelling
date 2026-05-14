@@ -836,6 +836,60 @@ function blockSummary(block) {
   }
 }
 
+function blockDetailSummary(block) {
+  const d = block.data || {};
+  const lines = [];
+  switch (block.type) {
+    case 'Hero':
+      if (d.brand) lines.push(`<strong>Brand:</strong> ${escapeText(d.brand)}`);
+      if (d.titleHtml) lines.push(`<strong>Title:</strong> ${escapeText(d.titleHtml.replace(/<[^>]+>/g, ' '))}`);
+      if (d.subtitle) lines.push(`<strong>Subtitle:</strong> ${escapeText(d.subtitle).slice(0, 120)}${d.subtitle.length > 120 ? '...' : ''}`);
+      if (d.lines?.length) lines.push(`<strong>Lines:</strong> ${d.lines.length} cinematic lines`);
+      break;
+    case 'Editorial':
+      (d.content || []).forEach(c => {
+        if (c.kind === 'kicker') lines.push(`<strong>Kicker:</strong> ${escapeText(c.text).slice(0, 60)}`);
+        if (c.kind === 'h2') lines.push(`<strong>Heading:</strong> ${escapeText(c.text).slice(0, 80)}`);
+        if (c.kind === 'lead') lines.push(`<strong>Lead:</strong> ${escapeText(c.text).slice(0, 100)}...`);
+        if (c.kind === 'p') lines.push(`<strong>Para:</strong> ${escapeText(c.text).slice(0, 80)}...`);
+        if (c.kind === 'figure') lines.push(`<strong>Image:</strong> ${escapeText(c.alt || c.src || 'figure')}`);
+      });
+      break;
+    case 'Scrolly':
+      if (d.steps?.length) {
+        lines.push(`<strong>Steps:</strong> ${d.steps.length}`);
+        d.steps.slice(0, 3).forEach((s, i) => {
+          lines.push(`&nbsp;&nbsp;${i + 1}. ${escapeText((s.h3 || s.body || '').slice(0, 60))}${(s.h3 || s.body || '').length > 60 ? '...' : ''}`);
+        });
+        if (d.steps.length > 3) lines.push(`&nbsp;&nbsp;... +${d.steps.length - 3} more`);
+      }
+      break;
+    case 'DataScrolly':
+      if (d.chartTitle) lines.push(`<strong>Chart:</strong> ${escapeText(d.chartTitle)}`);
+      if (d.steps?.length) lines.push(`<strong>Steps:</strong> ${d.steps.length}`);
+      if (d.csvData) lines.push(`<strong>Data:</strong> ${d.csvData.split('\\n').length - 1} rows`);
+      break;
+    case 'Outro':
+      if (d.h2) lines.push(`<strong>Heading:</strong> ${escapeText(d.h2)}`);
+      if (d.paragraphs?.length) lines.push(`<strong>Paragraphs:</strong> ${d.paragraphs.length}`);
+      break;
+    case 'Quote':
+      if (d.text) lines.push(`<strong>Quote:</strong> "${escapeText(d.text).slice(0, 100)}..."`);
+      if (d.attribution) lines.push(`<strong>By:</strong> ${escapeText(d.attribution)}`);
+      break;
+    case 'Timeline':
+      if (d.events?.length) lines.push(`<strong>Events:</strong> ${d.events.length}`);
+      break;
+    case 'StatRow':
+      if (d.stats?.length) lines.push(`<strong>Stats:</strong> ${d.stats.length} items`);
+      break;
+    default:
+      const keys = Object.keys(d);
+      if (keys.length) lines.push(`<strong>Fields:</strong> ${keys.slice(0, 5).join(', ')}`);
+  }
+  return lines.length ? lines.join('<br>') : '<em>Empty block</em>';
+}
+
 function duplicateBlock(idx) {
   const copy = clone(state.doc.blocks[idx]);
   copy.id = uid('b');
@@ -886,7 +940,7 @@ function addBlock(type) { openClaudeModal({ mode: 'create', type }); }
 function openClaudeModal(opts) {
   const isImprove = opts.mode === 'improve';
   const type = isImprove ? opts.block.type : opts.type;
-  const title = isImprove ? `✨ Improve ${type}` : `✨ New ${type} — Describe with Claude`;
+  const title = isImprove ? `✨ Enhance ${type}` : `✨ New ${type} — Describe with Claude`;
   let uploadedImages = [];
 
   openModal(title, (body) => {
@@ -906,6 +960,14 @@ function openClaudeModal(opts) {
       body.appendChild(previewBox);
     }
 
+    // Show current block data summary for improve mode
+    if (isImprove && opts.block) {
+      const dataCard = document.createElement('div');
+      dataCard.style.cssText = 'background:#f6f8fa;border:1px solid #d0d7de;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.6;color:#24292f;';
+      dataCard.innerHTML = `<div style="font-size:10px;font-weight:600;color:#8c959f;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Current content</div>${blockDetailSummary(opts.block)}`;
+      body.appendChild(dataCard);
+    }
+
     const hint = document.createElement('p');
     hint.style.cssText = 'margin-bottom:12px;color:#57606a;font-size:12.5px;line-height:1.5;';
     hint.innerHTML = isImprove
@@ -921,7 +983,7 @@ function openClaudeModal(opts) {
       : `Describe the ${type.toLowerCase()} you want…`;
     body.appendChild(ta);
 
-    // Image upload area (only for create, since improve preserves existing images)
+    // Image upload area — works for both create and enhance modes
     const imgsWrap = document.createElement('div');
     imgsWrap.style.cssText = 'margin-top:14px;';
     const imgsLabel = document.createElement('label');
@@ -964,7 +1026,7 @@ function openClaudeModal(opts) {
     });
     const genBtn = document.createElement('button');
     genBtn.className = 'primary';
-    genBtn.textContent = '✨ Generate with Claude';
+    genBtn.textContent = isImprove ? '✨ Enhance with Claude' : '✨ Generate with Claude';
     genBtn.addEventListener('click', async () => {
       const prompt = ta.value.trim();
       if (!prompt) { ta.focus(); return; }
@@ -989,7 +1051,7 @@ function openClaudeModal(opts) {
           setDirty(true);
           renderBlockList();
           if (opts.block.id === state.selectedBlockId) renderEditor();
-          toast('Block updated by Claude', 'success');
+          toast(`${type} enhanced by Claude`, 'success');
         } else {
           // If no page is loaded yet, auto-create one first
           if (!state.doc) {
@@ -1098,7 +1160,7 @@ function renderEditor() {
   const desc = schema?.description || '';
   title.innerHTML = `<span class="type-pill">${block.type}</span>` +
     (desc ? `<span style="font-weight:400;color:#57606a;font-size:13px;flex:1;">${desc}</span>` : '<span style="flex:1;"></span>') +
-    `<button id="form-claude-btn" style="background:#f3f0ff;color:#6639ba;border-color:#d4c5ff;font-weight:600;">✨ Improve with Claude</button>`;
+    `<button id="form-claude-btn" style="background:#f3f0ff;color:#6639ba;border-color:#d4c5ff;font-weight:600;">✨ Enhance with Claude</button>`;
   form.appendChild(title);
   title.querySelector('#form-claude-btn').addEventListener('click', () => openClaudeModal({ mode: 'improve', block }));
 
