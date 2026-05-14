@@ -71,7 +71,8 @@ const COMPONENT_CSS = `
 /* ── StatRow block ── */
 .statrow-block{max-width:1100px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3;background:var(--canvas)}
 .statrow-block h3{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2rem);font-weight:300;margin-bottom:2.4rem;letter-spacing:-.03em;text-align:center;color:var(--ink-black)}
-.statrow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;text-align:center}
+.statrow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:2rem;text-align:center}
+@media(min-width:820px){.statrow-grid{grid-template-columns:repeat(3,1fr)}}
 .statrow-cell{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.8rem 1.4rem;box-shadow:var(--shadow-card)}
 .statrow-cell .v{font-family:var(--font-display);font-size:clamp(2.4rem,5vw,3.5rem);font-weight:300;color:var(--ink-black);line-height:1.05;letter-spacing:-.04em;background:var(--spectrum-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .statrow-cell .l{font-family:var(--font-body);font-size:.95rem;color:var(--ink-black);margin-top:.7rem;font-weight:500;letter-spacing:.01em}
@@ -91,6 +92,16 @@ const COMPONENT_CSS = `
 .chapter-title{font-family:var(--font-display);font-size:clamp(1.8rem,4vw,2.75rem);font-weight:300;color:var(--ink-black);line-height:1.18;letter-spacing:-.04em;margin-bottom:.6rem}
 .chapter-subtitle{font-family:var(--font-body);font-size:1.0625rem;color:var(--graphite);font-weight:400;line-height:1.5;max-width:560px;margin:0 auto 1.6rem}
 .chapter-strip{width:120px;height:2px;background:var(--spectrum-gradient);margin:0 auto;border-radius:2px}
+/* ── ChapterDivider fullscreen hero variant ── */
+.chapter-divider.chapter-hero{max-width:none;min-height:100vh;min-height:100dvh;margin:0;padding:0 2rem;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.chapter-hero .chapter-title{font-size:clamp(2.8rem,7vw,5.5rem);margin-bottom:1rem;max-width:900px}
+.chapter-hero .chapter-subtitle{font-size:clamp(1.05rem,1.8vw,1.35rem);max-width:680px;margin-bottom:2.5rem}
+.chapter-hero .chapter-number{font-size:.9rem;letter-spacing:.25em;margin-bottom:1.8rem}
+.chapter-hero .chapter-strip{width:180px;height:3px}
+.chapter-hero .chapter-scroll-cue{position:absolute;bottom:2.5rem;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:.6rem;font-family:var(--font-body);font-size:.78rem;color:var(--graphite);letter-spacing:.1em;text-transform:uppercase;animation:cue-bob 2s ease-in-out infinite}
+.chapter-hero .chapter-scroll-cue .cue-arrow{width:1px;height:28px;background:var(--graphite);position:relative}
+.chapter-hero .chapter-scroll-cue .cue-arrow::after{content:'';position:absolute;bottom:0;left:50%;transform:translateX(-50%);width:8px;height:8px;border-right:1px solid var(--graphite);border-bottom:1px solid var(--graphite);transform:translateX(-50%) rotate(45deg)}
+@keyframes cue-bob{0%,100%{transform:translateX(-50%) translateY(0)}50%{transform:translateX(-50%) translateY(8px)}}
 
 /* ── Quote (featured) ── */
 .quote-block{max-width:860px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
@@ -786,7 +797,8 @@ function renderTimeline(d) {
   const list = el('div', { class: 'timeline-list' });
   (d.events || []).forEach(ev => {
     const item = el('div', { class: 'timeline-event' });
-    if (ev.when)  item.appendChild(el('div', { class: 'timeline-when' },  ev.when));
+    const when = ev.when || ev.date || '';
+    if (when)  item.appendChild(el('div', { class: 'timeline-when' },  when));
     if (ev.title) item.appendChild(el('div', { class: 'timeline-title' }, ev.title));
     if (ev.body) {
       const body = el('div', { class: 'timeline-body' });
@@ -1263,16 +1275,25 @@ function renderEmbed(d) {
 }
 
 function renderChapterDivider(d) {
-  const sec = el('section', { class: 'chapter-divider', 'aria-label': 'Chapter break' });
+  const isHero = d.fullscreen || d.fullwidth;
+  const cls = isHero ? 'chapter-divider chapter-hero' : 'chapter-divider';
+  const sec = el('section', { class: cls, 'aria-label': isHero ? 'Page hero' : 'Chapter break' });
   if (d.number) sec.appendChild(el('div', { class: 'chapter-number' }, d.number));
   if (d.title) {
-    const h = el('h2', { class: 'chapter-title' });
+    const h = el(isHero ? 'h1' : 'h2', { class: 'chapter-title' });
     h.innerHTML = d.title;
     sec.appendChild(h);
   }
   if (d.subtitle) sec.appendChild(el('div', { class: 'chapter-subtitle' }, d.subtitle));
   // Decorative gradient strip below the heading
   sec.appendChild(el('div', { class: 'chapter-strip', 'aria-hidden': 'true' }));
+  // Scroll cue for hero mode
+  if (isHero) {
+    const cue = el('div', { class: 'chapter-scroll-cue' });
+    cue.appendChild(el('span', {}, 'Scroll'));
+    cue.appendChild(el('div', { class: 'cue-arrow' }));
+    sec.appendChild(cue);
+  }
   return sec;
 }
 
