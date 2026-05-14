@@ -175,6 +175,14 @@ const BLOCK_SCHEMAS = {
       { key: 'body',             label: 'Body text',       kind: 'textarea_html' },
     ]
   },
+  ProgressNav: {
+    label: 'Progress Nav',
+    fields: [
+      { key: 'mode',           label: 'Mode',           kind: 'text', hint: 'bar (default)' },
+      { key: 'autoGenerate',   label: 'Auto-generate',  kind: 'text', hint: 'true (auto-detect chapters) or false' },
+      { key: 'showPercentage', label: 'Show %',         kind: 'text', hint: 'true or false' },
+    ]
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -249,6 +257,7 @@ const PALETTE_BLOCKS = [
   { type: 'ImageHotspot',   desc: 'Annotated image with interactive numbered markers' },
   { type: 'AccordionBlock', desc: 'Collapsible sections — methodology, FAQ, glossary' },
   { type: 'VizPanel',       desc: 'Advanced — visualization container' },
+  { type: 'ProgressNav',    desc: 'Reading progress bar + chapter navigation dots' },
 ];
 
 // Tiny inline mockups shown inside the palette cards and at the top of the
@@ -938,6 +947,7 @@ function blockSummary(block) {
     case 'ImageCompare':  return `${d.beforeLabel || '?'} → ${d.afterLabel || '?'}`;
     case 'ImageHotspot': return `${(d.hotspots || []).length} hotspots`;
     case 'AccordionBlock': return d.title || `${(d.items || []).length} items`;
+    case 'ProgressNav': return 'Progress bar';
     default:          return block.id;
   }
 }
@@ -1017,6 +1027,10 @@ function blockDetailSummary(block) {
           lines.push(`&nbsp;&nbsp;${i + 1}. ${escapeText(item.heading || '').slice(0, 50)}`);
         });
       }
+      break;
+    case 'ProgressNav':
+      lines.push(`<strong>Mode:</strong> ${d.mode || 'bar'}`);
+      lines.push(`<strong>Auto-generate:</strong> ${d.autoGenerate !== false ? 'yes' : 'no'}`);
       break;
     default:
       const keys = Object.keys(d);

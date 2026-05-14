@@ -266,6 +266,23 @@ Fields:
 WRITING RULES: Use for content that's important but would disrupt narrative. Headings should be questions when possible.`,
   },
 
+  ProgressNav: {
+    example: {
+      mode: 'bar',
+      autoGenerate: true,
+      showPercentage: false,
+    },
+    description: `Reading progress bar fixed at the top of the viewport. Optionally shows chapter navigation dots on the right side. Auto-detects ChapterDivider blocks.
+
+Fields:
+- mode (string): "bar" (thin progress line at top — default)
+- autoGenerate (boolean): if true (default), auto-creates chapter dots from ChapterDivider blocks
+- chapters (array, optional): manual chapter list, each { id, label }
+- showPercentage (boolean): default false
+
+IMPORTANT: This block should be the FIRST block in the page's block list.`,
+  },
+
   FullBleed: {
     example: {
       mediaSrc: '/images/redaktion-1924.jpg',

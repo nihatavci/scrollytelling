@@ -263,6 +263,17 @@ const COMPONENT_CSS = `
 @media(max-width:900px){.accordion-block{margin:3rem auto;padding:0 1.25rem}}
 @media(max-width:600px){.accordion-block{margin:2rem auto;padding:0 1rem}}
 
+/* ── ProgressNav (reading progress bar) ── */
+.progress-nav{position:fixed;top:0;left:0;right:0;z-index:999;pointer-events:none}
+.progress-nav-bar{height:3px;background:var(--spectrum-gradient,linear-gradient(90deg,var(--ink-black),var(--graphite)));width:0%;transition:width .15s linear}
+.progress-nav-dots{position:fixed;right:1rem;top:50%;transform:translateY(-50%);z-index:998;display:flex;flex-direction:column;gap:1.2rem;pointer-events:auto}
+.progress-nav-dot{width:10px;height:10px;border-radius:50%;background:var(--pebble);cursor:pointer;transition:background .2s,transform .2s;border:none;padding:0}
+.progress-nav-dot.is-active{background:var(--ink-black);transform:scale(1.3)}
+.progress-nav-dot:hover{background:var(--graphite)}
+.progress-nav-label{position:absolute;right:20px;top:50%;transform:translateY(-50%);background:var(--card);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);padding:.3rem .7rem;border-radius:var(--radius-pill);font-family:var(--font-body);font-size:.72rem;font-weight:500;color:var(--ink-black);white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;box-shadow:var(--shadow-card)}
+.progress-nav-dot:hover .progress-nav-label{opacity:1}
+@media(max-width:900px){.progress-nav-dots{display:none}}
+
 /* ── FullBleed (viewport media + text overlay) ── */
 .fullbleed{position:relative;z-index:2;width:100%;overflow:hidden;background:#000}
 .fullbleed-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -313,6 +324,7 @@ const BLOCK_RENDERERS = {
   ImageCompare:   renderImageCompare,
   ImageHotspot:   renderImageHotspot,
   AccordionBlock: renderAccordion,
+  ProgressNav:    renderProgressNav,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -1109,6 +1121,75 @@ function renderAccordion(d) {
 
   sec.appendChild(list);
   return sec;
+}
+
+function renderProgressNav(d) {
+  const nav = el('nav', { class: 'progress-nav', 'aria-label': 'Reading progress' });
+  const bar = el('div', { class: 'progress-nav-bar' });
+  nav.appendChild(bar);
+
+  function updateBar() {
+    const scrollTop = window.scrollY || document.documentElement.scrollTop;
+    const docHeight = document.documentElement.scrollHeight - window.innerHeight;
+    const pct = docHeight > 0 ? Math.min(100, (scrollTop / docHeight) * 100) : 0;
+    bar.style.width = pct + '%';
+  }
+  window.addEventListener('scroll', updateBar, { passive: true });
+  updateBar();
+
+  const chapters = d.chapters || [];
+  const autoGen = d.autoGenerate !== false;
+
+  if (chapters.length > 0 || autoGen) {
+    Promise.resolve().then(() => {
+      const dotContainer = el('div', { class: 'progress-nav-dots' });
+      let targets = [];
+
+      if (chapters.length > 0) {
+        targets = chapters.map(ch => ({
+          label: ch.label,
+          el: ch.id ? document.getElementById(ch.id) : null,
+        }));
+      } else if (autoGen) {
+        const dividers = document.querySelectorAll('.chapter-divider');
+        targets = Array.from(dividers).map(div => ({
+          label: div.querySelector('.chapter-title')?.textContent || '',
+          el: div,
+        }));
+      }
+
+      targets.forEach((t, i) => {
+        const dot = el('button', {
+          class: 'progress-nav-dot',
+          'aria-label': t.label || `Section ${i + 1}`,
+        });
+        const label = el('span', { class: 'progress-nav-label' }, t.label || `Section ${i + 1}`);
+        dot.appendChild(label);
+        dot.addEventListener('click', () => {
+          if (t.el) t.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        });
+        dotContainer.appendChild(dot);
+      });
+
+      if (targets.length > 0) {
+        nav.appendChild(dotContainer);
+        const dots = dotContainer.querySelectorAll('.progress-nav-dot');
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              const idx = targets.findIndex(t => t.el === entry.target);
+              if (idx >= 0) {
+                dots.forEach((d, j) => d.classList.toggle('is-active', j === idx));
+              }
+            }
+          });
+        }, { rootMargin: '-30% 0px -65% 0px' });
+        targets.forEach(t => { if (t.el) obs.observe(t.el); });
+      }
+    });
+  }
+
+  return nav;
 }
 
 function renderChapterDivider(d) {
