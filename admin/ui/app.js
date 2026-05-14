@@ -1202,12 +1202,20 @@ function renderField(field, data, onChange) {
     case 'chart_spec': {
       const spec = (val && typeof val === 'object') ? val : {};
       data[field.key] = spec;
-      // chart kind (line only for MVP — display read-only)
+      // Chart kind selector (bar, line, area, scatter, grouped-bar)
+      spec.kind = spec.kind || spec.type || 'bar';
       const kindRow = document.createElement('div');
       kindRow.className = 'field';
-      kindRow.innerHTML = `<label class="field-label">Chart kind</label>
-        <div style="font-family:'SF Mono','Menlo',monospace;font-size:11px;color:#8c959f;padding:6px 9px;border:1px solid #d0d7de;border-radius:6px;background:#fafbfc;">line <span style="margin-left:8px;color:#8c8078;font-style:normal;">(MVP — only line supported)</span></div>`;
-      spec.kind = spec.kind || 'line';
+      kindRow.innerHTML = `<label class="field-label">Initial chart type</label>
+        <select id="_cs_kind">
+          <option value="bar" ${spec.kind==='bar'?'selected':''}>Bar</option>
+          <option value="line" ${spec.kind==='line'?'selected':''}>Line</option>
+          <option value="area" ${spec.kind==='area'?'selected':''}>Area</option>
+          <option value="scatter" ${spec.kind==='scatter'?'selected':''}>Scatter</option>
+          <option value="grouped-bar" ${spec.kind==='grouped-bar'?'selected':''}>Grouped bar</option>
+        </select>
+        <div style="font-size:11px;color:#8c959f;margin-top:4px;">Steps can override this with their own chart type for morphing transitions.</div>`;
+      kindRow.querySelector('#_cs_kind').addEventListener('change', (e) => { spec.kind = e.target.value; delete spec.type; onChange(); });
       wrap.appendChild(kindRow);
 
       function smallField(label, key, placeholder) {
@@ -1322,12 +1330,13 @@ function scrollyStepEditor(list, i, onChange) {
 
 function dataScrollyStepEditor(list, i, onChange) {
   const step = list[i];
-  if (!step.vizState) step.vizState = { highlightX: null, annotation: '' };
+  if (!step.vizState) step.vizState = {};
+  const vs = step.vizState;
   const row = document.createElement('div');
   row.className = 'subitem';
   row.innerHTML = `<div class="subitem-head"><span class="drag-handle" title="Drag to reorder">⠿</span><span class="subitem-kind">Step ${i+1}</span><span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span></div>`;
   const grid = document.createElement('div');
-  grid.style.cssText = 'display:grid;grid-template-columns:100px 1fr;gap:6px 8px;align-items:center;';
+  grid.style.cssText = 'display:grid;grid-template-columns:110px 1fr;gap:6px 8px;align-items:center;';
   grid.innerHTML = `
     <label class="field-label">Badge color</label>
     <select data-k="badgeKind">${BADGE_OPTIONS.map(o=>`<option value="${o.value}"${step.badgeKind===o.value?' selected':''}>${o.label}</option>`).join('')}</select>
@@ -1335,10 +1344,26 @@ function dataScrollyStepEditor(list, i, onChange) {
     <input type="text" data-k="badgeLabel" value="${escapeAttr(step.badgeLabel||'')}" placeholder="Short label">
     <label class="field-label" style="align-self:flex-start;padding-top:4px;">Body</label>
     <textarea data-k="body" rows="3" placeholder="1–2 sentences referencing the data…">${escapeText(step.body||'')}</textarea>
+    <label class="field-label" style="grid-column:1/-1;margin-top:6px;color:var(--graphite);font-size:11px;text-transform:uppercase;letter-spacing:.1em;">Chart transition</label>
+    <label class="field-label">Chart type</label>
+    <select data-vk="chartType">
+      <option value="" ${!vs.chartType?'selected':''}>— inherit from spec —</option>
+      <option value="bar" ${vs.chartType==='bar'?'selected':''}>Bar</option>
+      <option value="line" ${vs.chartType==='line'?'selected':''}>Line</option>
+      <option value="area" ${vs.chartType==='area'?'selected':''}>Area</option>
+      <option value="scatter" ${vs.chartType==='scatter'?'selected':''}>Scatter</option>
+      <option value="grouped-bar" ${vs.chartType==='grouped-bar'?'selected':''}>Grouped bar</option>
+    </select>
     <label class="field-label">Highlight X</label>
-    <input type="text" data-vk="highlightX" value="${escapeAttr(step.vizState.highlightX ?? '')}" placeholder="x value to mark (e.g. 2010)">
+    <input type="text" data-vk="highlightX" value="${escapeAttr(vs.highlightX ?? '')}" placeholder="x value to mark (e.g. 2010 or 1980er)">
     <label class="field-label">Annotation</label>
-    <input type="text" data-vk="annotation" value="${escapeAttr(step.vizState.annotation||'')}" placeholder="Label at the marked point">`;
+    <input type="text" data-vk="annotation" value="${escapeAttr(vs.annotation||'')}" placeholder="Label at the marked point">
+    <label class="field-label">Sort</label>
+    <select data-vk="sort">
+      <option value="" ${!vs.sort?'selected':''}>— none —</option>
+      <option value="ascending" ${vs.sort==='ascending'?'selected':''}>Ascending</option>
+      <option value="descending" ${vs.sort==='descending'?'selected':''}>Descending</option>
+    </select>`;
   row.appendChild(grid);
   attachSubitemDrag(row, list, i, onChange);
   grid.querySelectorAll('[data-k]').forEach(el => {
@@ -1346,21 +1371,31 @@ function dataScrollyStepEditor(list, i, onChange) {
     el.addEventListener('change', () => { step[el.dataset.k] = el.value; onChange(); });
   });
   grid.querySelectorAll('[data-vk]').forEach(el => {
-    el.addEventListener('input', () => {
-      const k = el.dataset.vk;
-      let v = el.value;
-      if (k === 'highlightX') {
-        const n = Number(v);
-        v = (v === '' || Number.isNaN(n)) ? null : n;
-      }
-      step.vizState[k] = v;
-      onChange();
-    });
+    el.addEventListener('input', () => { _updateVizState(el, vs); onChange(); });
+    el.addEventListener('change', () => { _updateVizState(el, vs); onChange(); });
   });
   row.querySelector('[data-a="up"]').addEventListener('click',  (e) => { e.preventDefault(); if (i>0)             { [list[i-1], list[i]] = [list[i], list[i-1]]; onChange(); renderEditor(); } });
   row.querySelector('[data-a="down"]').addEventListener('click',(e) => { e.preventDefault(); if (i<list.length-1) { [list[i+1], list[i]] = [list[i], list[i+1]]; onChange(); renderEditor(); } });
   row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i,1); onChange(); renderEditor(); });
   return row;
+}
+
+function _updateVizState(el, vs) {
+  const k = el.dataset.vk;
+  let v = el.value;
+  if (k === 'highlightX') {
+    // Allow both numeric and string values (e.g. "1980er")
+    const n = Number(v);
+    v = v === '' ? null : (Number.isNaN(n) ? v : n);
+  }
+  if (k === 'chartType' || k === 'sort') {
+    v = v || undefined; // remove empty strings
+  }
+  if (v === undefined || v === null || v === '') {
+    delete vs[k];
+  } else {
+    vs[k] = v;
+  }
 }
 
 function statRowEditor(list, i, onChange) {

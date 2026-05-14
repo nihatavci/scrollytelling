@@ -9,138 +9,21 @@
 // Each block type has its own render function. Add new types by adding
 // a function to BLOCK_RENDERERS.
 
-// ─────────────────────────── Vega-Lite ──────────────────────────────
-// Vega-Lite libraries are loaded lazily — pages without a DataScrolly never
-// pull them. First call kicks off a cached promise; subsequent calls await it.
+// ─────────────────────────── D3 Chart Engine ──────────────────────────
+// DataScrolly charts are powered by a custom D3 engine (js/ds-chart.js)
+// that supports fluid animated transitions between chart types (bar, line,
+// area, scatter, grouped-bar) with morphing, highlights, and annotations.
+// D3 v7 is already loaded globally via vendor/d3.min.js.
 
-let _vegaLoadPromise = null;
+let _dsChartModule = null;
 
-function loadScript(localSrc, cdnSrc) {
-  return new Promise((resolve, reject) => {
-    const s = document.createElement('script');
-    s.src = localSrc;
-    s.onload = () => resolve();
-    s.onerror = () => {
-      // Fallback to CDN if vendored file fails (mirrors the d3 loader pattern)
-      const s2 = document.createElement('script');
-      s2.src = cdnSrc;
-      s2.onload = () => resolve();
-      s2.onerror = () => reject(new Error('Failed to load ' + cdnSrc));
-      document.head.appendChild(s2);
-    };
-    document.head.appendChild(s);
-  });
-}
-
-function ensureVegaLoaded() {
-  if (window.vegaEmbed) return Promise.resolve();
-  if (_vegaLoadPromise) return _vegaLoadPromise;
-  _vegaLoadPromise = (async () => {
-    await loadScript('./vendor/vega.min.js',       'https://cdn.jsdelivr.net/npm/vega@5/build/vega.min.js');
-    await loadScript('./vendor/vega-lite.min.js',  'https://cdn.jsdelivr.net/npm/vega-lite@5/build/vega-lite.min.js');
-    await loadScript('./vendor/vega-embed.min.js', 'https://cdn.jsdelivr.net/npm/vega-embed@6/build/vega-embed.min.js');
-  })();
-  return _vegaLoadPromise;
-}
-
-// Build a Vega-Lite spec from our chartSpec + an optional per-step vizState.
-// chartSpec: { kind, data, xField, yField, xLabel, yLabel, yDomain? }
-// vizState:  { highlightX?, annotation? }
-function buildVegaLiteSpec(chartSpec, vizState) {
-  vizState = vizState || {};
-  const cs = chartSpec || {};
-  const xField = cs.xField || 'x';
-  const yField = cs.yField || 'y';
-  const data = Array.isArray(cs.data) ? cs.data : [];
-
-  // Read theme-aware colors from CSS custom properties
-  const style = getComputedStyle(document.documentElement);
-  const ACCENT   = style.getPropertyValue('--spectrum-red').trim() || '#fa3d1d';
-  const INK      = style.getPropertyValue('--ink-black').trim()    || '#000000';
-  const GRAPHITE = style.getPropertyValue('--graphite').trim()     || '#636363';
-  const FOG      = style.getPropertyValue('--fog').trim()          || '#efefef';
-  const FONT     = style.getPropertyValue('--font-body').trim()    || "'DM Sans', sans-serif";
-
-  const layers = [];
-
-  if (cs.kind === 'line') {
-    layers.push({
-      mark: { type: 'line', strokeWidth: 1.75, color: INK, interpolate: 'monotone' },
-      encoding: {
-        x: { field: xField, type: 'quantitative', title: cs.xLabel || xField, axis: { format: 'd', labelAngle: 0 } },
-        y: { field: yField, type: 'quantitative', title: cs.yLabel || yField,
-             scale: cs.yDomain ? { domain: cs.yDomain, nice: false } : { nice: true } },
-      },
-    });
-    // All-points dot layer (small, low-contrast) so reader can see the data resolution
-    layers.push({
-      mark: { type: 'circle', size: 30, color: INK, opacity: 0.55 },
-      encoding: {
-        x: { field: xField, type: 'quantitative' },
-        y: { field: yField, type: 'quantitative' },
-      },
-    });
-  } else {
-    // Unknown kind — render a placeholder text mark so the chart slot is not empty
-    layers.push({
-      data: { values: [{ msg: 'Unsupported chartSpec.kind: ' + (cs.kind || '(none)') }] },
-      mark: { type: 'text', fontSize: 13, color: GRAPHITE },
-      encoding: { text: { field: 'msg', type: 'nominal' } },
-    });
-  }
-
-  // Optional highlight rule + dot + annotation text
-  if (vizState.highlightX !== undefined && vizState.highlightX !== null && cs.kind === 'line') {
-    const x = Number(vizState.highlightX);
-    const matchPoint = data.find(d => Number(d[xField]) === x);
-    layers.push({
-      data: { values: [{ [xField]: x }] },
-      mark: { type: 'rule', stroke: ACCENT, strokeDash: [4, 4], strokeWidth: 1.25, opacity: 0.85 },
-      encoding: { x: { field: xField, type: 'quantitative' } },
-    });
-    if (matchPoint) {
-      layers.push({
-        data: { values: [matchPoint] },
-        mark: { type: 'point', size: 140, color: ACCENT, filled: true, opacity: 1 },
-        encoding: {
-          x: { field: xField, type: 'quantitative' },
-          y: { field: yField, type: 'quantitative' },
-        },
-      });
-      if (vizState.annotation) {
-        layers.push({
-          data: { values: [{ ...matchPoint, _label: vizState.annotation }] },
-          mark: { type: 'text', dy: -18, fontSize: 13, color: INK, fontWeight: 500 },
-          encoding: {
-            x: { field: xField, type: 'quantitative' },
-            y: { field: yField, type: 'quantitative' },
-            text: { field: '_label', type: 'nominal' },
-          },
-        });
-      }
-    }
-  }
-
-  return {
-    $schema: 'https://vega.github.io/schema/vega-lite/v5.json',
-    width: 'container',
-    height: 380,
-    data: { values: data },
-    layer: layers,
-    background: 'transparent',
-    config: {
-      font: FONT,
-      axis: {
-        labelFont: FONT, titleFont: FONT,
-        labelColor: GRAPHITE, titleColor: INK,
-        labelFontSize: 11, titleFontSize: 12,
-        titlePadding: 12,
-        grid: true, gridColor: FOG, gridOpacity: 1,
-        domain: false, ticks: false,
-      },
-      view: { stroke: null },
-    },
-  };
+function loadDSChart() {
+  if (_dsChartModule) return _dsChartModule;
+  // Resolve the module path relative to the page, not the script
+  const base = document.querySelector('base')?.href || '';
+  const modulePath = base ? `${base}js/ds-chart.js` : '/js/ds-chart.js';
+  _dsChartModule = import(modulePath);
+  return _dsChartModule;
 }
 
 // CSS for components introduced after the original site. Injected once on first render
@@ -797,8 +680,9 @@ function renderAside(d) {
 }
 
 // ─────────────────────────── DataScrolly ──────────────────────────────
-// A new block type — its own sticky chart per block, driven by Vega-Lite.
-// Each step's vizState updates the chart by re-embedding with a new spec.
+// Each block gets its own D3-powered chart that transitions fluidly between
+// steps. Chart types morph (bars → line → area), highlights pulse, axes
+// animate, and data filters apply with smooth interpolation.
 
 function renderDataScrolly(d, block) {
   const sec = el('section', { class: 'data-scrolly', 'data-ds-id': block.id });
@@ -840,50 +724,50 @@ function renderDataScrolly(d, block) {
 }
 
 // One observer per DataScrolly. Steps fire as they cross the trigger band.
-// On step change, we re-embed the chart with the new vizState.
+// On step change, the D3 chart engine animates to the new vizState.
 async function wireDataScrolly(blockId, d) {
+  let DSChart;
   try {
-    await ensureVegaLoaded();
+    const mod = await loadDSChart();
+    DSChart = mod.DSChart;
   } catch (err) {
-    console.error('Vega failed to load:', err);
+    console.error('DSChart module failed to load:', err);
     const host = document.getElementById('ds-chart-' + blockId);
-    if (host) host.innerHTML = '<div class="ds-chart-error">Chart libraries failed to load. Refresh to try again.</div>';
+    if (host) host.innerHTML = '<div class="ds-chart-error">Chart engine failed to load. Refresh to try again.</div>';
     return;
   }
+
   const host = document.getElementById('ds-chart-' + blockId);
   if (!host) return;
   const steps = Array.from(document.querySelectorAll('.ds-step[data-ds-id="' + blockId + '"]'));
   if (!steps.length) return;
 
+  // Normalize chartSpec: accept both "kind" (our convention) and "type" (AI output)
+  const chartSpec = d.chartSpec || {};
+  if (!chartSpec.kind && chartSpec.type) chartSpec.kind = chartSpec.type;
+
+  // Create the persistent D3 chart instance
+  const chart = new DSChart(host, chartSpec);
   let currentIdx = -1;
 
-  async function showStep(idx) {
+  function showStep(idx) {
     if (idx === currentIdx) return;
     currentIdx = idx;
     const step = (d.steps || [])[idx];
-    const vizState = step ? (step.vizState || {}) : {};
-    const spec = buildVegaLiteSpec(d.chartSpec || {}, vizState);
-    try {
-      await window.vegaEmbed(host, spec, { renderer: 'svg', actions: false });
-    } catch (err) {
-      console.error('vegaEmbed failed:', err);
-      host.innerHTML = '<div class="ds-chart-error">Chart render failed: ' + (err.message || err) + '</div>';
-    }
+    const vizState = step ? (step.vizState || step.filter || {}) : {};
+    chart.update(vizState);
   }
 
   // Initial render = first step's vizState
-  await showStep(0);
+  showStep(0);
 
   const obs = new IntersectionObserver((entries) => {
-    // Pick the entry closest to the trigger band's center that is intersecting
     const intersecting = entries.filter(e => e.isIntersecting);
     if (!intersecting.length) return;
-    // Sort by data-ds-idx descending — most-recently-entered step wins
     intersecting.sort((a, b) => Number(b.target.dataset.dsIdx) - Number(a.target.dataset.dsIdx));
     const idx = Number(intersecting[0].target.dataset.dsIdx);
     if (!Number.isNaN(idx)) {
       showStep(idx);
-      // Active class for opacity transition
       steps.forEach(s => s.classList.toggle('is-active', Number(s.dataset.dsIdx) === idx));
     }
   }, { rootMargin: '-40% 0px -55% 0px' });
