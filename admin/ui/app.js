@@ -130,6 +130,18 @@ const BLOCK_SCHEMAS = {
       { key: 'steps',     label: 'Steps',           kind: 'data_scrolly_steps' },
     ],
   },
+  ImageCompare: {
+    label: 'Image Compare',
+    fields: [
+      { key: 'beforeSrc',       label: 'Before image URL',  kind: 'text' },
+      { key: 'beforeLabel',     label: 'Before label',      kind: 'text' },
+      { key: 'afterSrc',        label: 'After image URL',   kind: 'text' },
+      { key: 'afterLabel',      label: 'After label',       kind: 'text' },
+      { key: 'initialPosition', label: 'Start position %',  kind: 'text', hint: '0-100, default 50' },
+      { key: 'caption',         label: 'Caption',           kind: 'textarea' },
+      { key: 'credit',          label: 'Credit',            kind: 'text' },
+    ]
+  },
   FullBleed: {
     label: 'Full Bleed',
     fields: [
@@ -215,6 +227,7 @@ const PALETTE_BLOCKS = [
   { type: 'Aside',          desc: 'Highlighted callout box' },
   { type: 'Outro',          desc: 'Closing section with paragraphs and sources' },
   { type: 'FullBleed',      desc: 'Full-viewport image/video with text overlay — the Snow Fall signature' },
+  { type: 'ImageCompare',   desc: 'Before/after draggable image comparison slider' },
   { type: 'VizPanel',       desc: 'Advanced — visualization container' },
 ];
 
@@ -901,7 +914,8 @@ function blockSummary(block) {
     }
     case 'Scrolly':   return d.scrollyId || `${(d.steps || []).length} steps`;
     case 'Outro':     return d.h2 || 'Outro';
-    case 'FullBleed':  return d.title?.replace(/<[^>]+>/g, '') || 'Full Bleed';
+    case 'FullBleed':     return d.title?.replace(/<[^>]+>/g, '') || 'Full Bleed';
+    case 'ImageCompare':  return `${d.beforeLabel || '?'} → ${d.afterLabel || '?'}`;
     default:          return block.id;
   }
 }
@@ -958,6 +972,11 @@ function blockDetailSummary(block) {
       if (d.mediaSrc) lines.push(`<strong>Image:</strong> ${escapeText(d.mediaSrc).slice(0, 60)}`);
       if (d.height) lines.push(`<strong>Height:</strong> ${d.height}`);
       if (d.overlayPosition) lines.push(`<strong>Position:</strong> ${d.overlayPosition}`);
+      break;
+    case 'ImageCompare':
+      if (d.beforeLabel) lines.push(`<strong>Before:</strong> ${escapeText(d.beforeLabel)}`);
+      if (d.afterLabel) lines.push(`<strong>After:</strong> ${escapeText(d.afterLabel)}`);
+      if (d.caption) lines.push(`<strong>Caption:</strong> ${escapeText(d.caption).slice(0, 80)}`);
       break;
     default:
       const keys = Object.keys(d);

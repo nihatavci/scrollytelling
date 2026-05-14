@@ -417,3 +417,10 @@ body {
 .fullbleed-title{color:#cdc6be;text-shadow:0 2px 24px rgba(0,0,0,.6)}
 .fullbleed-subtitle{color:rgba(205,198,190,.88);text-shadow:0 1px 12px rgba(0,0,0,.5)}
 .fullbleed-body{color:rgba(205,198,190,.78)}
+
+/* ── ImageCompare dark overrides ── */
+.imgcompare-container{box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.imgcompare-divider{background:rgba(205,198,190,.85)}
+.imgcompare-handle{background:rgba(42,42,40,.9);border:1px solid rgba(205,198,190,.2)}
+.imgcompare-handle::before{color:#cdc6be}
+.imgcompare-label{background:rgba(29,29,27,.7)}

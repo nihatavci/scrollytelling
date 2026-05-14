@@ -210,6 +210,23 @@ const COMPONENT_CSS = `
   .video-embed{margin:2rem auto;padding:0 1rem}
 }
 
+/* ── ImageCompare (before/after slider) ── */
+.imgcompare{max-width:1000px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
+.imgcompare-container{position:relative;overflow:hidden;border-radius:var(--radius-image);box-shadow:var(--shadow-card);cursor:ew-resize;-webkit-user-select:none;user-select:none;touch-action:pan-y}
+.imgcompare-before,.imgcompare-after{display:block;width:100%;vertical-align:middle}
+.imgcompare-before{position:absolute;inset:0;object-fit:cover;width:100%;height:100%;clip-path:inset(0 50% 0 0)}
+.imgcompare-after{display:block;width:100%;object-fit:cover}
+.imgcompare-divider{position:absolute;top:0;bottom:0;left:50%;width:3px;background:#fff;transform:translateX(-50%);pointer-events:none;z-index:2;box-shadow:0 0 6px rgba(0,0,0,.35)}
+.imgcompare-handle{position:absolute;top:50%;left:50%;width:44px;height:44px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(0,0,0,.3);display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none}
+.imgcompare-handle::before{content:'◂ ▸';font-size:11px;letter-spacing:2px;color:#333;font-weight:600}
+.imgcompare-label{position:absolute;bottom:.8rem;padding:.35rem .7rem;font-family:var(--font-body);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:#fff;background:rgba(0,0,0,.55);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);border-radius:var(--radius-pill);z-index:2;pointer-events:none}
+.imgcompare-label.label-before{left:.8rem}
+.imgcompare-label.label-after{right:.8rem}
+.imgcompare-cap{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;line-height:1.5;font-weight:400}
+.imgcompare-credit{font-size:.78rem;color:var(--ash);font-style:italic;margin-top:.2rem}
+@media(max-width:900px){.imgcompare{margin:3rem auto;padding:0 1.25rem}}
+@media(max-width:600px){.imgcompare{margin:2rem auto;padding:0 1rem}.imgcompare-handle{width:36px;height:36px}}
+
 /* ── FullBleed (viewport media + text overlay) ── */
 .fullbleed{position:relative;z-index:2;width:100%;overflow:hidden;background:#000}
 .fullbleed-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -257,6 +274,7 @@ const BLOCK_RENDERERS = {
   VideoEmbed:     renderVideoEmbed,
   DataScrolly:    renderDataScrolly,
   FullBleed:      renderFullBleed,
+  ImageCompare:   renderImageCompare,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -873,6 +891,66 @@ function renderFullBleed(d) {
     content.appendChild(p);
   }
   sec.appendChild(content);
+  return sec;
+}
+
+function renderImageCompare(d) {
+  const sec = el('section', { class: 'imgcompare' });
+  const container = el('div', { class: 'imgcompare-container' });
+  const initPos = d.initialPosition != null ? d.initialPosition : 50;
+
+  const afterImg = el('img', {
+    class: 'imgcompare-after',
+    src: d.afterSrc || '',
+    alt: d.afterLabel || 'After',
+    loading: 'lazy',
+    draggable: 'false',
+  });
+  container.appendChild(afterImg);
+
+  const beforeImg = el('img', {
+    class: 'imgcompare-before',
+    src: d.beforeSrc || '',
+    alt: d.beforeLabel || 'Before',
+    loading: 'lazy',
+    draggable: 'false',
+    style: `clip-path:inset(0 ${100 - initPos}% 0 0)`,
+  });
+  container.appendChild(beforeImg);
+
+  const divider = el('div', { class: 'imgcompare-divider', style: `left:${initPos}%` });
+  const handle = el('div', { class: 'imgcompare-handle' });
+  divider.appendChild(handle);
+  container.appendChild(divider);
+
+  if (d.beforeLabel) {
+    container.appendChild(el('div', { class: 'imgcompare-label label-before' }, d.beforeLabel));
+  }
+  if (d.afterLabel) {
+    container.appendChild(el('div', { class: 'imgcompare-label label-after' }, d.afterLabel));
+  }
+
+  function onMove(clientX) {
+    const rect = container.getBoundingClientRect();
+    let pct = ((clientX - rect.left) / rect.width) * 100;
+    pct = Math.max(2, Math.min(98, pct));
+    beforeImg.style.clipPath = `inset(0 ${100 - pct}% 0 0)`;
+    divider.style.left = pct + '%';
+  }
+  container.addEventListener('mousedown', (e) => {
+    e.preventDefault();
+    onMove(e.clientX);
+    const mm = (ev) => onMove(ev.clientX);
+    const mu = () => { document.removeEventListener('mousemove', mm); document.removeEventListener('mouseup', mu); };
+    document.addEventListener('mousemove', mm);
+    document.addEventListener('mouseup', mu);
+  });
+  container.addEventListener('touchstart', (e) => { onMove(e.touches[0].clientX); }, { passive: true });
+  container.addEventListener('touchmove', (e) => { onMove(e.touches[0].clientX); }, { passive: true });
+
+  sec.appendChild(container);
+  if (d.caption) sec.appendChild(el('p', { class: 'imgcompare-cap' }, d.caption));
+  if (d.credit) sec.appendChild(el('p', { class: 'imgcompare-credit' }, d.credit));
   return sec;
 }
 

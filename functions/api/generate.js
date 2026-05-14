@@ -195,6 +195,32 @@ DESIGN RULES:
     description: 'Visualization panel header. Fields: initialTitle (chart title), initialSub (subtitle with citation).',
   },
 
+  ImageCompare: {
+    example: {
+      mode: 'slider',
+      beforeSrc: '/images/berlin-1945.jpg',
+      beforeLabel: '1945',
+      afterSrc: '/images/berlin-2024.jpg',
+      afterLabel: '2024',
+      initialPosition: 50,
+      caption: 'Der Potsdamer Platz — 80 Jahre zwischen Trümmern und Hochhäusern.',
+      credit: 'Archiv / Eigene Aufnahme'
+    },
+    description: `Before/after image comparison with a draggable slider. Shows two images overlapping with a vertical divider the user can drag to reveal one vs the other.
+
+Fields:
+- mode (string): "slider" (default) — draggable vertical divider
+- beforeSrc (string): URL of the "before" image
+- beforeLabel (string): short label, e.g. "1945"
+- afterSrc (string): URL of the "after" image
+- afterLabel (string): short label, e.g. "2024"
+- initialPosition (number 0-100): starting divider position as %, default 50
+- caption (string): informative caption explaining what changed and why it matters
+- credit (string): photo credit / source
+
+WRITING RULES: Caption should explain the significance, not just describe. Labels should be specific dates or states, not generic "Before/After".`,
+  },
+
   FullBleed: {
     example: {
       mediaSrc: '/images/redaktion-1924.jpg',
