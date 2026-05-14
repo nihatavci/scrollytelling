@@ -135,6 +135,27 @@
       return doc;
     },
 
+    // Quiet autosave — saves content without publishing or creating history
+    async autoSave(slug, doc) {
+      const user = await getUser();
+      const row = await getPageRow(slug);
+
+      const { error } = await client
+        .from('pages')
+        .update({
+          content: doc,
+          lang: doc.lang || 'en',
+          meta: doc.meta || {},
+          title: doc.meta?.title || doc.title || row.title,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', row.id);
+
+      if (error) throw new Error(error.message);
+      return { ok: true, version: doc.version || row.version };
+    },
+
+    // Full publish — snapshots history, bumps version, sets published=true
     async saveDraft(slug, doc) {
       const user = await getUser();
       const row = await getPageRow(slug);
@@ -146,6 +167,17 @@
         version: row.version,
       });
 
+      // Prune history — keep only last 10 snapshots
+      const { data: allHistory } = await client
+        .from('page_history')
+        .select('id, created_at')
+        .eq('page_id', row.id)
+        .order('created_at', { ascending: false });
+      if (allHistory && allHistory.length > 10) {
+        const toDelete = allHistory.slice(10).map(h => h.id);
+        await client.from('page_history').delete().in('id', toDelete);
+      }
+
       // Bump version and save
       const newVersion = (row.version || 0) + 1;
       doc.version = newVersion;
@@ -155,7 +187,7 @@
         .update({
           content: doc,
           version: newVersion,
-          lang: doc.lang || 'de',
+          lang: doc.lang || 'en',
           meta: doc.meta || {},
           title: doc.meta?.title || doc.title || row.title,
           published: true,
@@ -213,7 +245,7 @@
         .select('id, version, created_at')
         .eq('page_id', row.id)
         .order('created_at', { ascending: false })
-        .limit(50);
+        .limit(10);
       if (error) throw new Error(error.message);
       return {
         snapshots: data.map(h => ({

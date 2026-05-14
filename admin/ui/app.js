@@ -2131,6 +2131,35 @@ window.addEventListener('beforeunload', (e) => {
   if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
 });
 
+// ─────────────────────────── Autosave ──────────────────────────
+// Quietly saves to Supabase every 5 seconds when there are unsaved changes.
+// Does NOT publish or create history — just persists the draft so you never lose work.
+let _autosaveTimer = null;
+let _autosaving = false;
+
+function startAutosave() {
+  if (_autosaveTimer) return;
+  _autosaveTimer = setInterval(async () => {
+    if (!state.dirty || !state.doc || !state.currentPageId || _autosaving) return;
+    _autosaving = true;
+    try {
+      await SB.autoSave(state.currentPageId, state.doc);
+      // Don't clear dirty — dirty means "unpublished changes"
+      // But update status to show autosave happened
+      const s = $('#page-status');
+      s.textContent = '● Autosaved (unpublished)';
+      s.className = 'status dirty';
+    } catch (e) {
+      console.warn('Autosave failed:', e.message);
+    } finally {
+      _autosaving = false;
+    }
+  }, 5000);
+}
+
+// Start autosave once authenticated
+startAutosave();
+
 // Kickoff
 checkSession();
 })();
