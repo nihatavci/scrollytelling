@@ -45,8 +45,8 @@ export class DSChart {
     this._currentViz = {};
     this._resizeObs = null;
 
-    // Margin convention
-    this.margin = { top: 24, right: 24, bottom: 48, left: 56 };
+    // Margin convention — generous space for labels and breathing room
+    this.margin = { top: 28, right: 28, bottom: 52, left: 60 };
 
     this._setup();
   }
@@ -127,8 +127,8 @@ export class DSChart {
 
   _measure() {
     const rect = this.host.getBoundingClientRect();
-    this.width = Math.max(rect.width, 280);
-    this.height = Math.max(Math.min(this.width * 0.56, 420), 260);
+    this.width = Math.max(rect.width, 300);
+    this.height = Math.max(Math.min(this.width * 0.6, 440), 280);
     this.innerW = this.width - this.margin.left - this.margin.right;
     this.innerH = this.height - this.margin.top - this.margin.bottom;
 
@@ -162,7 +162,11 @@ export class DSChart {
     const chartType = vizState.chartType || this.spec.kind || 'line';
     const prevType = this._currentType;
 
-    // Resolve data — vizState can filter
+    // Resolve data — vizState can filter; guard against empty/missing data
+    if (!this.rawData || !this.rawData.length) {
+      console.warn('DSChart.update: no data available');
+      return;
+    }
     let data = this.rawData.slice();
     if (vizState.filter && vizState.filter.field && vizState.filter.values) {
       const fld = vizState.filter.field;
@@ -178,17 +182,35 @@ export class DSChart {
     // Determine if X is categorical (strings) or quantitative (numbers)
     const xIsCat = data.length > 0 && isNaN(+data[0][this.xField]);
 
-    // Build scales
-    const xDomain = vizState.xDomain || (xIsCat
-      ? data.map(d => d[this.xField])
-      : d3.extent(data, d => +d[this.xField]));
+    // Band scales (bar, grouped-bar) need ALL unique x values, not just [min,max].
+    // d3.extent() returns [min, max] which would leave intermediate values
+    // without a band position — causing bars to render at 0 width.
+    const needsBand = xIsCat || chartType === 'bar' || chartType === 'grouped-bar';
+
+    let xDomain;
+    if (vizState.xDomain) {
+      xDomain = vizState.xDomain;
+    } else if (needsBand) {
+      // Extract every unique x value so every bar gets a band
+      const seen = new Set();
+      xDomain = [];
+      for (const d of data) {
+        const v = xIsCat ? d[this.xField] : +d[this.xField];
+        if (!seen.has(v)) { seen.add(v); xDomain.push(v); }
+      }
+      // Sort numeric values so bars render in natural order
+      if (!xIsCat) xDomain.sort((a, b) => a - b);
+    } else {
+      xDomain = d3.extent(data, d => +d[this.xField]);
+    }
+
     const yMax = vizState.yDomain
       ? vizState.yDomain[1]
       : d3.max(data, d => +d[this.yField]) * 1.1;
     const yDomain = vizState.yDomain || [0, yMax || 10];
 
     let xScale, isBand = false;
-    if (xIsCat || chartType === 'bar' || chartType === 'grouped-bar') {
+    if (needsBand) {
       xScale = d3.scaleBand()
         .domain(xDomain)
         .range([this.margin.left, this.margin.left + this.innerW])
@@ -242,7 +264,7 @@ export class DSChart {
       xAxisG = this.gAxis.append('g').attr('class', 'ds-x-axis');
     }
     const xAxisGen = isBand
-      ? d3.axisBottom(xScale).tickSize(0).tickPadding(10)
+      ? d3.axisBottom(xScale).tickSize(0).tickPadding(10).tickFormat(v => String(v))
       : d3.axisBottom(xScale).ticks(Math.min(this.innerW / 80, 10)).tickSize(0).tickPadding(10).tickFormat(d3.format('d'));
 
     xAxisG
@@ -413,13 +435,21 @@ export class DSChart {
     const bottomY = this.margin.top + this.innerH;
     const self = this;
 
+    // For band scales with numeric data, the domain contains numbers.
+    // The data accessor must produce the same type used in the domain.
+    const xIsCat = data.length > 0 && isNaN(+data[0][xF]);
+    const xVal = d => xIsCat ? d[xF] : +d[xF];
+
     // If morphing from line/scatter, start bars from dots' positions
     const prevDots = morphing && (prevType === 'line' || prevType === 'scatter')
       ? this._collectDotPositions()
       : null;
 
+    // Compute bar width — always use bandwidth for band scales
+    const bw = isBand ? xScale.bandwidth() : Math.max(this.innerW / data.length * 0.6, 8);
+
     const bars = this.gPlot.selectAll('.ds-bar')
-      .data(data, d => d[xF]);
+      .data(data, d => String(xVal(d)));
 
     // EXIT
     bars.exit()
@@ -435,28 +465,28 @@ export class DSChart {
       .attr('class', 'ds-bar')
       .attr('rx', 3)
       .attr('ry', 3)
-      .attr('x', d => isBand ? xScale(d[xF]) : xScale(+d[xF]) - this.innerW / data.length / 3)
-      .attr('width', isBand ? xScale.bandwidth() : Math.max(this.innerW / data.length * 0.6, 4))
+      .attr('x', d => isBand ? xScale(xVal(d)) : xScale(+d[xF]) - bw / 2)
+      .attr('width', bw)
       .attr('y', d => {
         if (prevDots) {
-          const prev = prevDots.get(String(d[xF]));
+          const prev = prevDots.get(String(xVal(d)));
           return prev ? prev.y : bottomY;
         }
         return bottomY;
       })
       .attr('height', d => {
         if (prevDots) {
-          const prev = prevDots.get(String(d[xF]));
-          return prev ? bottomY - prev.y : 0;
+          const prev = prevDots.get(String(xVal(d)));
+          return prev ? Math.max(0, bottomY - prev.y) : 0;
         }
         return 0;
       })
       .style('fill', d => {
-        if (highlightX != null && String(d[xF]) === String(highlightX)) return c.accent;
+        if (highlightX != null && String(xVal(d)) === String(highlightX)) return c.accent;
         return colorScale ? colorScale(d[cF]) : c.ink;
       })
       .style('opacity', d => {
-        if (highlightX != null && String(d[xF]) !== String(highlightX)) return 0.35;
+        if (highlightX != null && String(xVal(d)) !== String(highlightX)) return 0.35;
         return 0.85;
       })
       .style('cursor', 'pointer');
@@ -467,9 +497,9 @@ export class DSChart {
         d3.select(this).transition().duration(150).style('opacity', 1);
         self._showTooltip(event, d);
       })
-      .on('mousemove', function(event, d) { self._moveTooltip(event); })
+      .on('mousemove', function(event) { self._moveTooltip(event); })
       .on('mouseleave', function(event, d) {
-        const isHL = highlightX != null && String(d[xF]) !== String(highlightX);
+        const isHL = highlightX != null && String(xVal(d)) !== String(highlightX);
         d3.select(this).transition().duration(150).style('opacity', isHL ? 0.35 : 0.85);
         self._hideTooltip();
       });
@@ -477,16 +507,16 @@ export class DSChart {
     // UPDATE + ENTER
     enter.merge(bars)
       .transition(t)
-      .attr('x', d => isBand ? xScale(d[xF]) : xScale(+d[xF]) - this.innerW / data.length / 3)
-      .attr('width', isBand ? xScale.bandwidth() : Math.max(this.innerW / data.length * 0.6, 4))
+      .attr('x', d => isBand ? xScale(xVal(d)) : xScale(+d[xF]) - bw / 2)
+      .attr('width', bw)
       .attr('y', d => yScale(+d[yF]))
       .attr('height', d => Math.max(0, bottomY - yScale(+d[yF])))
       .style('fill', d => {
-        if (highlightX != null && String(d[xF]) === String(highlightX)) return c.accent;
+        if (highlightX != null && String(xVal(d)) === String(highlightX)) return c.accent;
         return colorScale ? colorScale(d[cF]) : c.ink;
       })
       .style('opacity', d => {
-        if (highlightX != null && String(d[xF]) !== String(highlightX)) return 0.35;
+        if (highlightX != null && String(xVal(d)) !== String(highlightX)) return 0.35;
         return 0.85;
       })
       .attr('rx', 3)
@@ -739,12 +769,14 @@ export class DSChart {
     const highlightX = vizState.highlightX;
     const bottomY = this.margin.top + this.innerH;
     const self = this;
+    const xIsCat = data.length > 0 && isNaN(+data[0][xF]);
+    const xVal = d => xIsCat ? d[xF] : +d[xF];
 
     const groups = [...new Set(data.map(d => d[cF]))];
     const x1 = d3.scaleBand().domain(groups).range([0, xScale.bandwidth()]).padding(0.08);
 
     const bars = this.gPlot.selectAll('.ds-bar')
-      .data(data, d => d[xF] + '-' + d[cF]);
+      .data(data, d => String(xVal(d)) + '-' + d[cF]);
 
     bars.exit()
       .transition(t)
@@ -757,7 +789,7 @@ export class DSChart {
       .attr('class', 'ds-bar')
       .attr('rx', 2)
       .attr('ry', 2)
-      .attr('x', d => xScale(d[xF]) + x1(d[cF]))
+      .attr('x', d => xScale(xVal(d)) + x1(d[cF]))
       .attr('width', x1.bandwidth())
       .attr('y', bottomY)
       .attr('height', 0)
@@ -772,16 +804,16 @@ export class DSChart {
 
     enter.merge(bars)
       .transition(t)
-      .attr('x', d => xScale(d[xF]) + x1(d[cF]))
+      .attr('x', d => xScale(xVal(d)) + x1(d[cF]))
       .attr('width', x1.bandwidth())
       .attr('y', d => yScale(+d[yF]))
       .attr('height', d => Math.max(0, bottomY - yScale(+d[yF])))
       .style('fill', d => {
-        if (highlightX != null && String(d[xF]) === String(highlightX)) return c.accent;
+        if (highlightX != null && String(xVal(d)) === String(highlightX)) return c.accent;
         return colorScale(d[cF]);
       })
       .style('opacity', d => {
-        if (highlightX != null && String(d[xF]) !== String(highlightX)) return 0.3;
+        if (highlightX != null && String(xVal(d)) !== String(highlightX)) return 0.3;
         return 0.85;
       });
   }
@@ -792,14 +824,18 @@ export class DSChart {
     const t = d3.transition().duration(dur).ease(EASE);
     const xF = this.xField, yF = this.yField;
     const hx = vizState.highlightX;
+    const xIsCat = data.length > 0 && isNaN(+data[0][xF]);
 
     // Vertical highlight rule
     if (hx != null) {
+      // For band scales with numeric data, the domain contains numbers.
+      // The highlight value must be coerced to match the domain type.
+      const hxKey = isBand && !xIsCat ? +hx : hx;
       const xPos = isBand
-        ? xScale(hx) + xScale.bandwidth() / 2
+        ? (xScale(hxKey) != null ? xScale(hxKey) + xScale.bandwidth() / 2 : NaN)
         : xScale(+hx);
 
-      if (isNaN(xPos)) {
+      if (isNaN(xPos) || xPos == null) {
         this.gHighlight.selectAll('*').transition(t).style('opacity', 0).remove();
         return;
       }
@@ -833,7 +869,8 @@ export class DSChart {
             .style('stroke', c.accent)
             .style('stroke-width', 2);
         }
-        const px = isBand ? xScale(match[xF]) + xScale.bandwidth() / 2 : xScale(+match[xF]);
+        const mxKey = xIsCat ? match[xF] : +match[xF];
+        const px = isBand ? xScale(mxKey) + xScale.bandwidth() / 2 : xScale(+match[xF]);
         const py = yScale(+match[yF]);
         pulse
           .attr('cx', px).attr('cy', py)
@@ -864,11 +901,13 @@ export class DSChart {
     const xF = this.xField, yF = this.yField;
     const ann = vizState.annotation;
     const hx = vizState.highlightX;
+    const xIsCat = data.length > 0 && isNaN(+data[0][xF]);
 
     if (ann && hx != null) {
       const match = data.find(d => String(d[xF]) === String(hx));
       if (match) {
-        const px = isBand ? xScale(match[xF]) + xScale.bandwidth() / 2 : xScale(+match[xF]);
+        const mxKey = xIsCat ? match[xF] : +match[xF];
+        const px = isBand ? xScale(mxKey) + xScale.bandwidth() / 2 : xScale(+match[xF]);
         const py = yScale(+match[yF]);
 
         // Background pill

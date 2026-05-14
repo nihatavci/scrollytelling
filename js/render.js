@@ -153,6 +153,9 @@ const COMPONENT_CSS = `
 .factcheck-explanation{font-family:var(--font-body);font-size:.95rem;color:var(--ink-black);line-height:1.55;margin-bottom:.6rem;font-weight:400}
 .factcheck-source{font-family:var(--font-body);font-size:.78rem;color:var(--graphite);font-style:normal;font-weight:400}
 
+/* ── Badge (base) ── */
+.badge{display:inline-block;font-family:var(--font-body);font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.3rem .75rem;border-radius:var(--radius-pill,100px);line-height:1.2;white-space:nowrap;vertical-align:middle}
+
 /* ── DataScrolly ── */
 .data-scrolly{display:grid;grid-template-columns:1fr 420px;gap:4vw;max-width:1400px;margin:4rem auto;padding:0 2rem;position:relative;z-index:3}
 .ds-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:1.5rem 0}
@@ -165,9 +168,9 @@ const COMPONENT_CSS = `
 .ds-steps{padding:30vh 0;display:flex;flex-direction:column}
 .ds-step{min-height:85vh;display:flex;align-items:center;padding:1.5rem 0}
 .ds-step:first-child{padding-top:8vh}.ds-step:last-child{margin-bottom:20vh}
-.ds-step-card{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.4rem 1.6rem 1.5rem;border:none;max-width:420px;box-shadow:var(--shadow-card);opacity:.4;transition:opacity .3s,box-shadow .3s}
+.ds-step-card{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.6rem 1.8rem 1.6rem;border:none;max-width:420px;box-shadow:var(--shadow-card);opacity:.4;transition:opacity .3s,box-shadow .3s}
 .ds-step.is-active .ds-step-card{opacity:1;box-shadow:rgba(0,0,0,.12) 0 0 16px 0}
-.ds-step-badge{display:inline-block;margin-bottom:.7rem}
+.ds-step-badge{display:inline-block;margin-bottom:.75rem}
 .ds-step-body{font-family:var(--font-body);font-size:1rem;line-height:1.55;color:var(--ink-black);font-weight:400}
 
 @media(max-width:900px){
@@ -179,10 +182,20 @@ const COMPONENT_CSS = `
   .video-embed{margin:3rem auto;padding:0 1.25rem}
   .data-scrolly{grid-template-columns:1fr;gap:0;margin:3rem auto;padding:0 1.25rem}
   .ds-graphic{position:relative;height:auto;padding:2rem 0;align-items:center}
-  .ds-chart{max-width:100%}
-  .ds-steps{padding:0}
+  .ds-chart{max-width:100%;min-height:300px}
+  .ds-steps{padding:1rem 0}
   .ds-step{min-height:auto;padding:1rem 0}
-  .ds-step-card{opacity:1;max-width:100%}
+  .ds-step-card{opacity:1;max-width:100%;padding:1.2rem 1.4rem}
+  .ds-step-badge{margin-bottom:.5rem}
+}
+@media(max-width:600px){
+  .data-scrolly{padding:0 1rem;margin:2rem auto}
+  .ds-chart{min-height:240px}
+  .ds-step-card{padding:1rem 1.2rem}
+  .ds-step-body{font-size:.92rem}
+  .badge{font-size:.65rem;padding:.25rem .6rem}
+  .ds-chart-title{font-size:1.15rem}
+  .ds-chart-sub{font-size:.8rem}
 }
 `;
 
