@@ -251,9 +251,9 @@ WRITING RULES: Each hotspot teaches one thing. Title is 2-4 words. Body is 1-2 s
       title: 'Methodik',
       multiOpen: false,
       items: [
-        { heading: 'Wie wurden die Daten erhoben?', body: 'Wir analysierten 8.527 Artikel aus fünf überregionalen Tageszeitungen (FAZ, SZ, taz, BILD, Die Welt) über einen Zeitraum von 100 Jahren (1924–2024).\n\nDie Auswahl erfolgte als Zufallsstichprobe mit Schichtung nach Jahrzehnt und Zeitung.', defaultOpen: false },
-        { heading: 'Was gilt als "umgekehrte Pyramide"?', body: 'Ein Artikel wurde als Pyramidenform klassifiziert, wenn der erste Absatz (Lead) mindestens drei der fünf W-Fragen beantwortet und die folgenden Absätze in absteigender Informationsrelevanz angeordnet sind.\n\nDie Kodierung erfolgte durch zwei unabhängige Kodierer:innen mit einer Intercoder-Reliabilität von Cohen\'s κ = 0.81.', defaultOpen: false },
-        { heading: 'Einschränkungen', body: 'Die Studie erfasst nur Printausgaben und deren Digitalarchive. Rein digitale Formate (Liveblog, Social-Media-Posts) wurden nicht berücksichtigt.', defaultOpen: false },
+        { heading: 'Wie wurden die Daten erhoben?', body: 'Wir analysierten 8.527 Artikel aus fünf Tageszeitungen (FAZ, SZ, taz, BILD, Die Welt) im Zeitraum 1924 bis 2024. Die Auswahl erfolgte als Zufallsstichprobe mit Schichtung nach Jahrzehnt und Zeitung.', defaultOpen: false },
+        { heading: 'Was gilt als umgekehrte Pyramide?', body: 'Ein Artikel wurde als Pyramidenform klassifiziert, wenn der erste Absatz mindestens drei der fuenf W-Fragen beantwortet und die folgenden Absaetze in absteigender Informationsrelevanz angeordnet sind.', defaultOpen: false },
+        { heading: 'Einschraenkungen', body: 'Die Studie erfasst nur Printausgaben und deren Digitalarchive. Rein digitale Formate wie Liveblogs oder Social-Media-Posts wurden nicht beruecksichtigt.', defaultOpen: false },
       ]
     },
     description: `Collapsible accordion for methodology, FAQ, glossary, or supplementary content.
@@ -261,9 +261,9 @@ WRITING RULES: Each hotspot teaches one thing. Title is 2-4 words. Body is 1-2 s
 Fields:
 - title (string): optional heading above the accordion
 - multiOpen (boolean): if true, multiple items can be open at once. Default false.
-- items (array): each has heading (string), body (string, use \\n\\n for paragraph breaks, supports HTML), defaultOpen (boolean)
+- items (array): each has heading (string), body (string, plain text, one paragraph per item), defaultOpen (boolean)
 
-WRITING RULES: Use for content that's important but would disrupt narrative. Headings should be questions when possible.`,
+WRITING RULES: Use for content that's important but would disrupt narrative. Headings should be questions when possible. Keep body text to a single paragraph per item — concise and direct.`,
   },
 
   ProgressNav: {
@@ -444,17 +444,26 @@ export async function onRequest(context) {
     } else {
       let text = typeof raw === 'string' ? raw : JSON.stringify(raw);
       let jsonStr = text.trim();
+      // Strip markdown code fences
       if (jsonStr.startsWith('```')) {
         jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
       }
+      // Extract the JSON object if there's surrounding text
+      const objMatch = jsonStr.match(/\{[\s\S]*\}/);
+      if (objMatch) jsonStr = objMatch[0];
+
       try {
         data = JSON.parse(jsonStr);
       } catch {
-        const match = jsonStr.match(/\{[\s\S]*\}/);
-        if (match) {
-          data = JSON.parse(match[0]);
-        } else {
-          throw new Error('AI did not return valid JSON. Raw: ' + text.slice(0, 200));
+        // Fix common AI JSON issues: unescaped newlines inside string values
+        const fixed = jsonStr
+          .replace(/(?<=:\s*"[^"]*)\n/g, '\\n')   // newlines inside "value" strings
+          .replace(/,\s*([}\]])/g, '$1')            // trailing commas
+          .replace(/'/g, "'");                       // smart quotes → plain
+        try {
+          data = JSON.parse(fixed);
+        } catch (e2) {
+          throw new Error('AI did not return valid JSON. Raw: ' + text.slice(0, 300));
         }
       }
     }
