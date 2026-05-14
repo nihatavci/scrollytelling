@@ -795,7 +795,6 @@ function duplicateBlock(idx) {
 }
 function deleteBlock(idx) {
   const block = state.doc.blocks[idx];
-  if (!confirm(`Delete this ${block.type} block? This cannot be undone (until you Publish — drafts revert on reload).`)) return;
   if (block.id === state.selectedBlockId) state.selectedBlockId = null;
   state.doc.blocks.splice(idx, 1);
   setDirty(true);
