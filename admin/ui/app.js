@@ -971,7 +971,7 @@ function openClaudeModal(opts) {
     const hint = document.createElement('p');
     hint.style.cssText = 'margin-bottom:12px;color:#57606a;font-size:12.5px;line-height:1.5;';
     hint.innerHTML = isImprove
-      ? `Tell Claude how to <strong>change</strong> this block. Examples:<br>• "Make it more dramatic"<br>• "Add a pull quote from Hannah Arendt"<br>• "Rewrite in a more conversational tone"`
+      ? `Tell Claude what to change — <strong>anything</strong> goes:<br>• "Make the hero cover the full viewport"<br>• "Rewrite the text in a more dramatic tone"<br>• "Add an image of Pacific islands"<br>• "Change the stats to show 5 items instead of 3"<br>• "Make the title shorter and punchier"`
       : `Describe what this section should be about. Claude writes the content (German, matching the existing voice). Examples:<br>• "A section about how Watergate changed investigative journalism"<br>• "3 scrolly steps explaining what NLP is"<br>• "A pull quote from Hannah Arendt and 2 paragraphs about press freedom"`;
     body.appendChild(hint);
 
