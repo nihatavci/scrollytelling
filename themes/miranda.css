@@ -410,3 +410,10 @@ body {
 .editorial div[style*="background:#ECE5DD"] {
   filter: brightness(0.7) !important;
 }
+
+/* ── FullBleed dark overrides ── */
+.fullbleed{background:var(--canvas)}
+.fullbleed-media{filter:brightness(0.85) contrast(1.05)}
+.fullbleed-title{color:#cdc6be;text-shadow:0 2px 24px rgba(0,0,0,.6)}
+.fullbleed-subtitle{color:rgba(205,198,190,.88);text-shadow:0 1px 12px rgba(0,0,0,.5)}
+.fullbleed-body{color:rgba(205,198,190,.78)}

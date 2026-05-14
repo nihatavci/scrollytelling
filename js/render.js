@@ -209,6 +209,30 @@ const COMPONENT_CSS = `
   .quote-block{margin:2rem auto;padding:0 1rem}
   .video-embed{margin:2rem auto;padding:0 1rem}
 }
+
+/* ── FullBleed (viewport media + text overlay) ── */
+.fullbleed{position:relative;z-index:2;width:100%;overflow:hidden;background:#000}
+.fullbleed-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.fullbleed video.fullbleed-media{object-fit:cover}
+.fullbleed-scrim{position:absolute;inset:0;pointer-events:none}
+.fullbleed-content{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:flex-end;padding:2rem;min-height:100vh;max-width:720px}
+.fullbleed-content.pos-center{justify-content:center;align-items:center;text-align:center;margin:0 auto}
+.fullbleed-content.pos-bottom-left{justify-content:flex-end;align-items:flex-start;padding-bottom:4rem}
+.fullbleed-content.pos-bottom-right{justify-content:flex-end;align-items:flex-end;text-align:right;margin-left:auto;padding-bottom:4rem}
+.fullbleed-title{font-family:var(--font-display);font-size:clamp(2.2rem,5vw,4rem);font-weight:300;color:#fff;line-height:1.1;letter-spacing:-.04em;margin-bottom:.6rem;text-shadow:0 2px 20px rgba(0,0,0,.4)}
+.fullbleed-subtitle{font-family:var(--font-body);font-size:clamp(1rem,2vw,1.25rem);color:rgba(255,255,255,.88);line-height:1.5;font-weight:400;max-width:560px;text-shadow:0 1px 10px rgba(0,0,0,.3)}
+.fullbleed-body{font-family:var(--font-body);font-size:1.0625rem;color:rgba(255,255,255,.82);line-height:1.6;margin-top:.8rem;max-width:560px;text-shadow:0 1px 8px rgba(0,0,0,.3)}
+.fullbleed.h-100{min-height:100vh}
+.fullbleed.h-75{min-height:75vh}
+.fullbleed.h-50{min-height:50vh}
+@media(max-width:900px){
+  .fullbleed-content{padding:1.5rem 1.25rem}
+  .fullbleed-content.pos-bottom-left,.fullbleed-content.pos-bottom-right{padding-bottom:3rem}
+}
+@media(max-width:600px){
+  .fullbleed-content{padding:1.25rem 1rem}
+  .fullbleed-title{font-size:clamp(1.8rem,7vw,2.5rem)}
+}
 `;
 
 function injectComponentCSS() {
@@ -232,6 +256,7 @@ const BLOCK_RENDERERS = {
   Quote:          renderQuote,
   VideoEmbed:     renderVideoEmbed,
   DataScrolly:    renderDataScrolly,
+  FullBleed:      renderFullBleed,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -798,6 +823,57 @@ async function wireDataScrolly(blockId, d) {
   }, { rootMargin: '-40% 0px -55% 0px' });
 
   steps.forEach(s => obs.observe(s));
+}
+
+function renderFullBleed(d) {
+  const heightCls = d.height === '75vh' ? 'h-75' : d.height === '50vh' ? 'h-50' : 'h-100';
+  const sec = el('section', { class: `fullbleed ${heightCls}` });
+
+  if (d.mediaType === 'video' || d.mediaType === 'loop') {
+    const video = el('video', {
+      class: 'fullbleed-media',
+      src: d.videoSrc || d.mediaSrc,
+      poster: d.posterSrc || '',
+      autoplay: 'true',
+      muted: 'true',
+      loop: 'true',
+      playsinline: 'true',
+      'aria-hidden': 'true',
+    });
+    sec.appendChild(video);
+  } else {
+    sec.appendChild(el('img', {
+      class: 'fullbleed-media',
+      src: d.mediaSrc || '',
+      alt: d.title || '',
+      loading: 'lazy',
+    }));
+  }
+
+  const opacity = d.scrimOpacity != null ? d.scrimOpacity : 0.4;
+  const scrim = el('div', {
+    class: 'fullbleed-scrim',
+    style: `background:linear-gradient(180deg,rgba(0,0,0,${opacity * 0.3}) 0%,rgba(0,0,0,${opacity}) 70%,rgba(0,0,0,${opacity * 1.1}) 100%)`,
+    'aria-hidden': 'true',
+  });
+  sec.appendChild(scrim);
+
+  const pos = d.overlayPosition || 'bottom-left';
+  const posCls = pos === 'center' ? 'pos-center' : pos === 'bottom-right' ? 'pos-bottom-right' : 'pos-bottom-left';
+  const content = el('div', { class: `fullbleed-content ${posCls}` });
+  if (d.title) {
+    const h = el('h2', { class: 'fullbleed-title' });
+    h.innerHTML = d.title;
+    content.appendChild(h);
+  }
+  if (d.subtitle) content.appendChild(el('p', { class: 'fullbleed-subtitle' }, d.subtitle));
+  if (d.body) {
+    const p = el('p', { class: 'fullbleed-body' });
+    p.innerHTML = d.body;
+    content.appendChild(p);
+  }
+  sec.appendChild(content);
+  return sec;
 }
 
 function renderChapterDivider(d) {

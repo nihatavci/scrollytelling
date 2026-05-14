@@ -130,6 +130,21 @@ const BLOCK_SCHEMAS = {
       { key: 'steps',     label: 'Steps',           kind: 'data_scrolly_steps' },
     ],
   },
+  FullBleed: {
+    label: 'Full Bleed',
+    fields: [
+      { key: 'mediaSrc',         label: 'Image URL',       kind: 'text' },
+      { key: 'mediaType',        label: 'Media type',      kind: 'text', hint: 'image, video, or loop' },
+      { key: 'videoSrc',         label: 'Video URL',       kind: 'text' },
+      { key: 'posterSrc',        label: 'Poster image',    kind: 'text' },
+      { key: 'overlayPosition',  label: 'Text position',   kind: 'text', hint: 'center, bottom-left, or bottom-right' },
+      { key: 'scrimOpacity',     label: 'Scrim opacity',   kind: 'text', hint: '0 to 1, default 0.4' },
+      { key: 'height',           label: 'Height',          kind: 'text', hint: '100vh, 75vh, or 50vh' },
+      { key: 'title',            label: 'Title (HTML)',     kind: 'textarea_html' },
+      { key: 'subtitle',         label: 'Subtitle',        kind: 'text' },
+      { key: 'body',             label: 'Body text',       kind: 'textarea_html' },
+    ]
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -199,6 +214,7 @@ const PALETTE_BLOCKS = [
   { type: 'StatRow',        desc: 'Row of 2–4 large statistics' },
   { type: 'Aside',          desc: 'Highlighted callout box' },
   { type: 'Outro',          desc: 'Closing section with paragraphs and sources' },
+  { type: 'FullBleed',      desc: 'Full-viewport image/video with text overlay — the Snow Fall signature' },
   { type: 'VizPanel',       desc: 'Advanced — visualization container' },
 ];
 
@@ -383,8 +399,10 @@ function setDirty(d) {
 async function checkSession() {
   try {
     const { loggedIn } = await SB.checkSession();
-    if (loggedIn) showApp(); else showAuth();
-  } catch { showAuth(); }
+    if (loggedIn) { showApp(); return; }
+  } catch { /* ignore */ }
+  // Not logged in — show inline login bar inside the app
+  showAppWithAuth();
 }
 function showAuth() {
   document.getElementById('auth').classList.remove('hidden');
@@ -393,7 +411,57 @@ function showAuth() {
 function showApp() {
   document.getElementById('auth').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
+  dismissInlineAuth();
   loadPages();
+}
+function showAppWithAuth() {
+  // Show the app shell immediately with an inline login bar — no full-screen gate
+  document.getElementById('auth').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  showInlineAuth();
+}
+function showInlineAuth() {
+  if (document.getElementById('inline-auth')) return;
+  const bar = document.createElement('div');
+  bar.id = 'inline-auth';
+  bar.style.cssText = 'background:#1a1a2e;color:#fff;padding:16px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;position:sticky;top:0;z-index:100;';
+  const lastEmail = localStorage.getItem('scrollycms_email') || '';
+  bar.innerHTML = `
+    <span style="font-weight:500;margin-right:auto;">Sign in to start editing</span>
+    <input id="ia-email" type="email" placeholder="Email" value="${lastEmail}" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:13px;width:200px;font-family:inherit;">
+    <input id="ia-pwd" type="password" placeholder="Password" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:13px;width:160px;font-family:inherit;">
+    <button id="ia-go" style="padding:7px 16px;border-radius:8px;background:#fff;color:#1a1a2e;border:none;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;">Go</button>
+    <span id="ia-err" style="color:#ff6b6b;font-size:12px;width:100%;display:none;"></span>`;
+  document.getElementById('app').prepend(bar);
+  const goBtn = bar.querySelector('#ia-go');
+  const doLogin = async () => {
+    const email = bar.querySelector('#ia-email').value.trim();
+    const pwd = bar.querySelector('#ia-pwd').value;
+    if (!email || !pwd) return;
+    goBtn.disabled = true;
+    goBtn.textContent = '...';
+    try {
+      await SB.login(email, pwd);
+      localStorage.setItem('scrollycms_email', email);
+      showApp();
+    } catch (e) {
+      const errEl = bar.querySelector('#ia-err');
+      errEl.textContent = e.message;
+      errEl.style.display = 'block';
+      goBtn.disabled = false;
+      goBtn.textContent = 'Go';
+    }
+  };
+  goBtn.addEventListener('click', doLogin);
+  bar.querySelector('#ia-pwd').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
+  bar.querySelector('#ia-email').addEventListener('keydown', (e) => { if (e.key === 'Enter') bar.querySelector('#ia-pwd').focus(); });
+  // Auto-focus the right field
+  if (lastEmail) bar.querySelector('#ia-pwd').focus();
+  else bar.querySelector('#ia-email').focus();
+}
+function dismissInlineAuth() {
+  const bar = document.getElementById('inline-auth');
+  if (bar) bar.remove();
 }
 
 // Tab switcher
@@ -416,6 +484,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
   document.getElementById('login-error').textContent = '';
   try {
     await SB.login(email, pwd);
+    localStorage.setItem('scrollycms_email', email);
     document.getElementById('login-email').value = '';
     document.getElementById('login-pwd').value = '';
     showApp();
@@ -832,6 +901,7 @@ function blockSummary(block) {
     }
     case 'Scrolly':   return d.scrollyId || `${(d.steps || []).length} steps`;
     case 'Outro':     return d.h2 || 'Outro';
+    case 'FullBleed':  return d.title?.replace(/<[^>]+>/g, '') || 'Full Bleed';
     default:          return block.id;
   }
 }
@@ -882,6 +952,12 @@ function blockDetailSummary(block) {
       break;
     case 'StatRow':
       if (d.stats?.length) lines.push(`<strong>Stats:</strong> ${d.stats.length} items`);
+      break;
+    case 'FullBleed':
+      if (d.title) lines.push(`<strong>Title:</strong> ${escapeText(d.title.replace(/<[^>]+>/g, ' ')).slice(0, 80)}`);
+      if (d.mediaSrc) lines.push(`<strong>Image:</strong> ${escapeText(d.mediaSrc).slice(0, 60)}`);
+      if (d.height) lines.push(`<strong>Height:</strong> ${d.height}`);
+      if (d.overlayPosition) lines.push(`<strong>Position:</strong> ${d.overlayPosition}`);
       break;
     default:
       const keys = Object.keys(d);

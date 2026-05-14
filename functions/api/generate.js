@@ -194,6 +194,37 @@ DESIGN RULES:
     example: { initialTitle: 'Die umgekehrte Pyramide', initialSub: 'nach Marinos (2021, S. 10)' },
     description: 'Visualization panel header. Fields: initialTitle (chart title), initialSub (subtitle with citation).',
   },
+
+  FullBleed: {
+    example: {
+      mediaSrc: '/images/redaktion-1924.jpg',
+      mediaType: 'image',
+      overlayPosition: 'bottom-left',
+      scrimOpacity: 0.45,
+      height: '100vh',
+      title: 'Der Wandel beginnt',
+      subtitle: 'Als das Papier verschwand, musste der Journalismus sich neu erfinden.',
+      body: 'Die Digitalisierung brachte nicht nur neue Kanäle — sie veränderte die DNA der Nachricht selbst.'
+    },
+    description: `Full-bleed viewport-height media block — the "Snow Fall" signature. A large image or looping video fills the entire viewport, with text floating on top over a gradient scrim.
+
+Fields:
+- mediaSrc (string): URL of the background image
+- mediaType (string): "image" (default), "video", or "loop" (autoplaying muted video)
+- videoSrc (string): URL of the video file (if mediaType is video/loop)
+- posterSrc (string): poster image for video (shown while loading)
+- overlayPosition (string): "center", "bottom-left" (default), or "bottom-right"
+- scrimOpacity (number 0-1): darkness of the gradient overlay, default 0.4
+- height (string): "100vh" (default), "75vh", or "50vh"
+- title (string): large display heading, supports inline HTML
+- subtitle (string): one-line subtitle
+- body (string): optional short paragraph, supports inline HTML
+
+WRITING RULES for FullBleed:
+- Title should be dramatic, 3-6 words max. Use <span>word</span> for one accent word.
+- Subtitle is the thesis in one sentence. Evocative, not descriptive.
+- Body is optional — only if the image needs narrative context. Keep under 2 sentences.`,
+  },
 };
 
 function buildSystemPrompt(type, mode, lang) {
