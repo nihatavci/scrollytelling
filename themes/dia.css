@@ -1,0 +1,210 @@
+/*
+ * dia.css — Warm scrollytelling theme (the original Dia aesthetic)
+ *
+ * Canvas: warm off-white (#faf7f2)
+ * Text: warm dark brown (#2a2320)
+ * Accent: orange (#c06830)
+ * Fonts: DM Sans (body) / Source Serif 4 (display)
+ * Frosted glass cards with blur
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&display=swap');
+
+:root {
+  /* ── Core palette ── */
+  --canvas: #faf7f2;
+  --snow: #fff;
+  --fog: #e6e1da;
+  --pebble: #d4cdc5;
+  --steel: #b0a89e;
+  --ash: #8c8078;
+  --graphite: #6b6158;
+  --ink-black: #2a2320;
+
+  /* ── Chromatic accents ── */
+  --spectrum-red: #c06830;
+  --signal-blue: #5d8fa8;
+
+  /* ── Spectrum gradient ── */
+  --spectrum-gradient: linear-gradient(135deg, #c06830, #5d8fa8);
+
+  /* ── Factcheck verdict colors ── */
+  --marigold: #ffb005;
+  --rose-quartz: #c679c4;
+
+  /* ── Legacy aliases ── */
+  --bg: var(--canvas);
+  --text: var(--ink-black);
+  --muted: var(--ash);
+  --accent: var(--spectrum-red);
+  --card: rgba(255, 255, 255, 0.55);
+
+  /* ── Typography ── */
+  --font-body: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Source Serif 4', Georgia, 'Times New Roman', serif;
+
+  /* ── Radii ── */
+  --radius-card: 16px;
+  --radius-image: 6px;
+  --radius-button: 20px;
+  --radius-pill: 9999px;
+
+  /* ── Elevation ── */
+  --shadow-card: 0 4px 28px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Progress bar ── */
+.progress {
+  background: var(--spectrum-gradient);
+  height: 3px;
+}
+
+/* ── Language switcher ── */
+.lang-sw {
+  border: 1.5px solid rgba(42, 35, 32, 0.15);
+  background: rgba(250, 247, 242, 0.88);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  border-radius: 20px;
+  font-family: var(--font-body);
+  box-shadow: none;
+}
+.lang-sw button {
+  color: var(--muted);
+}
+.lang-sw button.active {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 18px;
+}
+.lang-sw button:hover {
+  color: var(--ink-black);
+}
+
+/* ── Cinematic intro ── */
+.cin-line {
+  font-family: var(--font-display);
+}
+.cin-l1, .cin-l2 {
+  color: var(--muted);
+  font-weight: 400;
+}
+.cin-l3 {
+  color: var(--text);
+  font-weight: 600;
+}
+.cin-l4 {
+  color: var(--muted);
+  font-weight: 400;
+}
+.cin-l5 {
+  color: var(--text);
+  font-weight: 600;
+}
+.cin-l6 {
+  color: #3d7a4a;
+  font-weight: 700;
+}
+
+.cin-main-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.cin-main-title span {
+  color: var(--accent);
+}
+.cin-sub-title {
+  font-family: var(--font-body);
+  color: var(--muted);
+}
+.cin-scroll-cue .arr {
+  border-color: var(--accent);
+}
+
+/* ── Editorial ── */
+.editorial {
+  background: var(--bg);
+}
+.editorial h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+.editorial p {
+  font-family: var(--font-display);
+}
+.editorial .kicker {
+  font-family: var(--font-body);
+  color: var(--accent);
+}
+
+/* ── Pullquote ── */
+.pullquote {
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-style: italic;
+  border-left: 3px solid var(--accent);
+}
+.pullquote::before {
+  display: none;
+}
+.pullquote cite {
+  font-family: var(--font-body);
+  color: var(--muted);
+}
+
+/* ── Separator ── */
+.editorial .separator {
+  background: var(--accent);
+  height: 3px;
+}
+
+/* ── Visualization ── */
+.viz-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+
+/* ── Step cards ── */
+.sc {
+  background: var(--card);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.step.is-active .sc {
+  box-shadow: 0 6px 32px rgba(0, 0, 0, 0.13);
+}
+.sc h3 {
+  font-family: var(--font-body);
+  color: var(--text);
+}
+
+/* ── Badge colors ── */
+.b-pyramid { background: #fde8d8; color: #c06830; }
+.b-data    { background: #d6e8f0; color: #3d7a94; }
+.b-explain { background: #e8ddf5; color: #7a5a90; }
+.b-future  { background: #e3f0e3; color: #3d7a4a; }
+.b-voice   { background: #f0e3f0; color: #7a3d7a; }
+
+/* ── Outro ── */
+.outro {
+  font-family: var(--font-display);
+  background: var(--bg);
+}
+.outro h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+}
+.outro .final-line {
+  color: var(--accent);
+  font-style: italic;
+}
+.outro .source-block {
+  border-top-color: var(--fog);
+  font-family: var(--font-body);
+  color: var(--muted);
+}

@@ -53,10 +53,13 @@ function buildVegaLiteSpec(chartSpec, vizState) {
   const yField = cs.yField || 'y';
   const data = Array.isArray(cs.data) ? cs.data : [];
 
-  const ACCENT = '#fa3d1d';   // spectrum-red — single chromatic moment
-  const INK = '#000000';
-  const GRAPHITE = '#636363';
-  const FOG = '#efefef';
+  // Read theme-aware colors from CSS custom properties
+  const style = getComputedStyle(document.documentElement);
+  const ACCENT   = style.getPropertyValue('--spectrum-red').trim() || '#fa3d1d';
+  const INK      = style.getPropertyValue('--ink-black').trim()    || '#000000';
+  const GRAPHITE = style.getPropertyValue('--graphite').trim()     || '#636363';
+  const FOG      = style.getPropertyValue('--fog').trim()          || '#efefef';
+  const FONT     = style.getPropertyValue('--font-body').trim()    || "'DM Sans', sans-serif";
 
   const layers = [];
 
@@ -126,9 +129,9 @@ function buildVegaLiteSpec(chartSpec, vizState) {
     layer: layers,
     background: 'transparent',
     config: {
-      font: "'DM Sans', sans-serif",
+      font: FONT,
       axis: {
-        labelFont: "'DM Sans', sans-serif", titleFont: "'DM Sans', sans-serif",
+        labelFont: FONT, titleFont: FONT,
         labelColor: GRAPHITE, titleColor: INK,
         labelFontSize: 11, titleFontSize: 12,
         titlePadding: 12,
@@ -147,7 +150,7 @@ const COMPONENT_CSS = `
 .editorial p.has-dropcap::first-letter{float:left;font-family:var(--font-display);font-size:4.5rem;line-height:.95;padding:.3rem .6rem .1rem 0;color:var(--ink-black);font-weight:300;letter-spacing:-.04em}
 
 /* ── Inline Callout (inside Editorial) ── */
-.callout{border-left:3px solid var(--ink-black);background:rgba(255,255,255,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:0 16px 16px 0;padding:1rem 1.25rem;margin:1.8rem 0;font-family:var(--font-body);color:var(--ink-black);font-size:.95rem;line-height:1.55;box-shadow:var(--shadow-card)}
+.callout{border-left:3px solid var(--ink-black);background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:0 16px 16px 0;padding:1rem 1.25rem;margin:1.8rem 0;font-family:var(--font-body);color:var(--ink-black);font-size:.95rem;line-height:1.55;box-shadow:var(--shadow-card)}
 .callout-note{border-left-color:var(--signal-blue)}
 .callout-warning{border-left-color:var(--spectrum-red)}
 .callout-title{font-weight:500;margin-bottom:.3rem;font-size:.95rem;color:var(--ink-black);letter-spacing:-.005em}
@@ -179,13 +182,13 @@ const COMPONENT_CSS = `
 .statrow-block{max-width:1100px;margin:0 auto;padding:4rem 2rem;position:relative;z-index:3;background:var(--canvas)}
 .statrow-block h3{font-family:var(--font-display);font-size:clamp(1.5rem,3vw,2rem);font-weight:300;margin-bottom:2.4rem;letter-spacing:-.03em;text-align:center;color:var(--ink-black)}
 .statrow-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:2rem;text-align:center}
-.statrow-cell{background:rgba(255,255,255,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.8rem 1.4rem;box-shadow:var(--shadow-card)}
+.statrow-cell{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.8rem 1.4rem;box-shadow:var(--shadow-card)}
 .statrow-cell .v{font-family:var(--font-display);font-size:clamp(2.4rem,5vw,3.5rem);font-weight:300;color:var(--ink-black);line-height:1.05;letter-spacing:-.04em;background:var(--spectrum-gradient);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
 .statrow-cell .l{font-family:var(--font-body);font-size:.95rem;color:var(--ink-black);margin-top:.7rem;font-weight:500;letter-spacing:.01em}
 .statrow-cell .c{font-family:var(--font-body);font-size:.78rem;color:var(--graphite);margin-top:.3rem;font-style:normal;font-weight:400}
 
 /* ── Aside block ── */
-.aside-block{max-width:720px;margin:3rem auto;padding:1.6rem 1.8rem;border-radius:var(--radius-card);background:rgba(255,255,255,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-left:3px solid var(--ink-black);font-family:var(--font-body);position:relative;z-index:3;box-shadow:var(--shadow-card)}
+.aside-block{max-width:720px;margin:3rem auto;padding:1.6rem 1.8rem;border-radius:var(--radius-card);background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-left:3px solid var(--ink-black);font-family:var(--font-body);position:relative;z-index:3;box-shadow:var(--shadow-card)}
 .aside-block.tone-note{border-left-color:var(--signal-blue)}
 .aside-block.tone-warning{border-left-color:var(--spectrum-red)}
 .aside-block h3{font-family:var(--font-display);font-size:1.15rem;font-weight:500;margin-bottom:.5rem;color:var(--ink-black);letter-spacing:-.01em}
@@ -250,7 +253,7 @@ const COMPONENT_CSS = `
 .steplist-step-body{font-family:var(--font-body);font-size:1rem;color:var(--graphite);line-height:1.55;font-weight:400}
 
 /* ── FactCheck ── */
-.factcheck{margin:2.4rem 0;padding:1.4rem 1.6rem;border-radius:var(--radius-card);background:rgba(255,255,255,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(0,0,0,.06);box-shadow:var(--shadow-card);font-family:var(--font-body);position:relative;overflow:hidden}
+.factcheck{margin:2.4rem 0;padding:1.4rem 1.6rem;border-radius:var(--radius-card);background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border:1px solid rgba(128,128,128,.12);box-shadow:var(--shadow-card);font-family:var(--font-body);position:relative;overflow:hidden}
 .factcheck::before{content:'';position:absolute;left:0;top:0;bottom:0;width:4px}
 .factcheck-true::before{background:var(--signal-blue)}
 .factcheck-false::before{background:var(--spectrum-red)}
@@ -279,7 +282,7 @@ const COMPONENT_CSS = `
 .ds-steps{padding:30vh 0;display:flex;flex-direction:column}
 .ds-step{min-height:85vh;display:flex;align-items:center;padding:1.5rem 0}
 .ds-step:first-child{padding-top:8vh}.ds-step:last-child{margin-bottom:20vh}
-.ds-step-card{background:rgba(255,255,255,.9);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.4rem 1.6rem 1.5rem;border:none;max-width:420px;box-shadow:var(--shadow-card);opacity:.4;transition:opacity .3s,box-shadow .3s}
+.ds-step-card{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.4rem 1.6rem 1.5rem;border:none;max-width:420px;box-shadow:var(--shadow-card);opacity:.4;transition:opacity .3s,box-shadow .3s}
 .ds-step.is-active .ds-step-card{opacity:1;box-shadow:rgba(0,0,0,.12) 0 0 16px 0}
 .ds-step-badge{display:inline-block;margin-bottom:.7rem}
 .ds-step-body{font-family:var(--font-body);font-size:1rem;line-height:1.55;color:var(--ink-black);font-weight:400}
@@ -351,6 +354,24 @@ export async function render(jsonUrl, rootSelector = '#page-root') {
   if (doc.meta?.title) document.title = doc.meta.title;
   if (doc.lang)        document.documentElement.lang = doc.lang;
   applyMeta(doc.meta || {});
+
+  // Load theme CSS (dia = default, claude, miranda)
+  const theme = doc.theme || 'dia';
+  if (theme !== 'dia') {
+    // For non-default themes, inject the theme stylesheet
+    const base = document.querySelector('base')?.href || '';
+    const themeUrl = base ? `${base}themes/${theme}.css` : `/themes/${theme}.css`;
+    if (!document.querySelector(`link[data-theme="${theme}"]`)) {
+      const link = document.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = themeUrl;
+      link.dataset.theme = theme;
+      document.head.appendChild(link);
+      // Wait for theme to load before rendering
+      await new Promise(r => { link.onload = r; link.onerror = r; });
+    }
+  }
+  document.documentElement.dataset.theme = theme;
 
   const root = document.querySelector(rootSelector);
   if (!root) throw new Error(`render: root ${rootSelector} not found`);

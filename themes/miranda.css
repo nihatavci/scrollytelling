@@ -1,0 +1,412 @@
+/*
+ * miranda.css — Vintage newsprint dark theme
+ *
+ * Canvas: Midnight Ink (#1d1d1b) — DARK background
+ * Text: Aged Paper (#cdc6be) — light text on dark
+ * Accent: monochrome (#cdc6be) — no chromatic accent
+ * Fonts: Playfair Display weight 300 (body) / Anton (display — bold condensed masthead)
+ * No gradient: solid #cdc6be for big numbers
+ * Very high contrast, newspaper masthead aesthetic
+ * Cards: #2a2a28, subtle shadows, 11.52px radius
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300;1,400&family=Anton&display=swap');
+
+:root {
+  /* ── Core palette (inverted: dark canvas, light text) ── */
+  --canvas: #1d1d1b;
+  --snow: #2a2a28;
+  --fog: #353533;
+  --pebble: #4a4a47;
+  --steel: #6b6862;
+  --ash: #8a857f;
+  --graphite: #a8a29e;
+  --ink-black: #cdc6be;
+
+  /* ── Chromatic accents — monochrome ── */
+  --spectrum-red: #cdc6be;
+  --signal-blue: #cdc6be;
+
+  /* ── No gradient — solid line for accents ── */
+  --spectrum-gradient: linear-gradient(135deg, #cdc6be, #a8a29e);
+
+  /* ── Legacy aliases ── */
+  --bg: var(--canvas);
+  --text: var(--ink-black);
+  --muted: var(--ash);
+  --accent: #cdc6be;
+  --card: rgba(42, 42, 40, 0.92);
+
+  /* ── Typography ── */
+  --font-body: 'Playfair Display', Georgia, 'Times New Roman', serif;
+  --font-display: 'Anton', 'Impact', 'Arial Black', sans-serif;
+
+  /* ── Radii ── */
+  --radius-card: 11.52px;
+  --radius-image: 4px;
+  --radius-button: 0px;
+  --radius-pill: 9999px;
+
+  /* ── Factcheck verdict colors ── */
+  --marigold: #a89880;
+  --rose-quartz: #8a857f;
+
+  /* ── Elevation ── */
+  --shadow-card: 0 2px 12px rgba(29, 29, 27, 0.4);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   DARK THEME OVERRIDES
+   The base styles assume a light canvas with dark text.
+   Miranda inverts everything — these overrides handle every
+   element that uses hardcoded light-mode colors.
+   ══════════════════════════════════════════════════════════════ */
+
+/* ── Global ── */
+body {
+  background: var(--canvas);
+  color: var(--ink-black);
+}
+
+/* ── Progress bar ── */
+.progress {
+  background: var(--spectrum-gradient);
+  height: 2px;
+}
+
+/* ── Language switcher ── */
+.lang-sw {
+  border: 1px solid rgba(205, 198, 190, 0.15);
+  background: rgba(42, 42, 40, 0.9);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+.lang-sw button {
+  color: var(--ash);
+}
+.lang-sw button.active {
+  background: var(--ink-black);
+  color: var(--canvas);
+  border-radius: var(--radius-pill);
+}
+.lang-sw button:hover {
+  color: var(--ink-black);
+}
+
+/* ── Cinematic intro ── */
+.cin-intro {
+  background: var(--canvas);
+}
+.cin-brand {
+  font-family: var(--font-body);
+  color: var(--ink-black);
+  letter-spacing: 0.18em;
+}
+.cin-brand.settled {
+  color: var(--ash);
+}
+.cin-line {
+  font-family: var(--font-body);
+  color: var(--ink-black);
+}
+.cin-l1, .cin-l2 {
+  color: var(--ash);
+  font-weight: 300;
+}
+.cin-l3 {
+  color: var(--ink-black);
+  font-weight: 500;
+}
+.cin-l4 {
+  color: var(--ash);
+  font-weight: 300;
+}
+.cin-l5 {
+  color: var(--ink-black);
+  font-weight: 500;
+}
+.cin-l6 {
+  color: var(--ink-black);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.cin-main-title {
+  font-family: var(--font-display);
+  font-weight: 400;  /* Anton only has 400 — but it's already ultra-bold */
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  line-height: 1.0;
+  color: var(--ink-black);
+}
+.cin-main-title span {
+  color: var(--ink-black);  /* Monochrome — no color accent */
+}
+.cin-sub-title {
+  font-family: var(--font-body);
+  color: var(--ash);
+  font-weight: 300;
+  letter-spacing: 0.02em;
+}
+.cin-scroll-cue {
+  color: var(--ash);
+  font-family: var(--font-body);
+}
+.cin-scroll-cue .arr {
+  border-color: var(--ink-black);
+}
+
+/* ── Editorial ── */
+.editorial {
+  background: var(--canvas);
+}
+.editorial h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  line-height: 1.1;
+  color: var(--ink-black);
+}
+.editorial p {
+  font-family: var(--font-body);
+  font-weight: 300;
+  line-height: 1.75;
+  color: var(--ink-black);
+}
+.editorial .lead {
+  font-family: var(--font-body);
+  font-weight: 400;
+  color: var(--ink-black);
+}
+.editorial .kicker {
+  font-family: var(--font-body);
+  color: var(--ash);
+  font-weight: 500;
+  letter-spacing: 0.12em;
+}
+
+/* ── Pullquote (dark mode) ── */
+.pullquote {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-style: italic;
+  color: var(--ink-black);
+  border-left: 3px solid var(--ink-black);
+  padding-left: 1.5rem;
+}
+.pullquote::before {
+  /* Override the gradient pseudo-element from other themes */
+  display: none;
+}
+.pullquote cite {
+  font-family: var(--font-body);
+  color: var(--ash);
+  font-style: normal;
+  font-weight: 300;
+}
+
+/* ── Separator ── */
+.editorial .separator {
+  background: var(--pebble);
+  height: 1px;
+  width: 80px;
+}
+
+/* ── Figures (dark mode image treatment) ── */
+.editorial figure img {
+  border-radius: var(--radius-image);
+  /* Slightly reduce brightness so images don't flash on dark bg */
+  filter: brightness(0.92) contrast(1.05);
+}
+.editorial figcaption {
+  font-family: var(--font-body);
+  color: var(--ash);
+  font-style: italic;
+  font-weight: 300;
+}
+
+/* ── Visualization panel (dark) ── */
+.viz-panel {
+  background: var(--canvas);
+}
+.viz-title {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: var(--ink-black);
+}
+.viz-sub {
+  font-family: var(--font-body);
+  color: var(--ash);
+  font-weight: 300;
+}
+.viz-source {
+  color: var(--ash);
+}
+
+/* ── Step cards (dark frosted glass) ── */
+.sc {
+  background: var(--card);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(205, 198, 190, 0.08);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.step.is-active .sc {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-color: rgba(205, 198, 190, 0.15);
+}
+.sc h3 {
+  font-family: var(--font-body);
+  color: var(--ink-black);
+  font-weight: 300;
+  line-height: 1.6;
+}
+
+/* ── Badges: monochrome dark theme ── */
+.badge {
+  font-family: var(--font-body);
+  font-weight: 500;
+  border-radius: 4px;  /* Sharp, newspaper-like */
+  letter-spacing: 0.08em;
+}
+.b-pyramid { background: rgba(205, 198, 190, 0.15); color: var(--ink-black); }
+.b-data    { background: rgba(205, 198, 190, 0.15); color: var(--ink-black); }
+.b-explain { background: rgba(205, 198, 190, 0.15); color: var(--ink-black); }
+.b-future  { background: rgba(205, 198, 190, 0.15); color: var(--ink-black); }
+.b-voice   { background: rgba(205, 198, 190, 0.15); color: var(--ink-black); }
+
+/* ── Outro (dark) ── */
+.outro {
+  font-family: var(--font-body);
+  background: var(--canvas);
+}
+.outro h2 {
+  font-family: var(--font-display);
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  color: var(--ink-black);
+}
+.outro p {
+  font-family: var(--font-body);
+  color: var(--ink-black);
+  font-weight: 300;
+}
+.outro .final-line {
+  font-family: var(--font-body);
+  color: var(--ink-black);
+  font-style: italic;
+  font-weight: 500;
+}
+.outro .source-block {
+  border-top: 1px solid var(--pebble);
+  font-family: var(--font-body);
+  color: var(--ash);
+}
+
+/* ══════════════════════════════════════════════════════════════
+   HARDCODED COLOR OVERRIDES
+   The base HTML has many inline and class-level hardcoded colors
+   that assume a light background. Override them all here.
+   ══════════════════════════════════════════════════════════════ */
+
+/* WhatsApp mock-up card (inline styles use #fff, #ECE5DD, #075E54) */
+.editorial div[style*="background:#fff"],
+.editorial div[style*="background: #fff"] {
+  /* Can't override inline styles with normal selectors — these need !important */
+}
+
+/* SVG strokes and fills that reference light colors need dark equivalents.
+   D3 code uses hardcoded fills — theme-level override via CSS selectors: */
+.cin-svg-wrap svg text {
+  /* Override the paint-order stroke from light bg to dark bg */
+  stroke: rgba(29, 29, 27, 0.9) !important;
+}
+
+/* The source-block border in index.html uses hardcoded #e6e1da */
+.source-block {
+  border-top-color: var(--pebble) !important;
+}
+
+/* ── Scroll indicator in cinematic intro ── */
+.cin-scroll-cue .arr {
+  border-right-color: var(--ink-black);
+  border-bottom-color: var(--ink-black);
+}
+
+/* ── D3 chart axis styling ── */
+.viz-wrap svg text {
+  fill: var(--ink-black) !important;
+}
+.viz-wrap svg .domain,
+.viz-wrap svg .tick line {
+  stroke: var(--pebble) !important;
+}
+.viz-wrap svg line[stroke="#e6e1da"] {
+  stroke: var(--pebble) !important;
+}
+
+/* ── WhatsApp mockup — force dark treatment ── */
+/* The WhatsApp inline block cannot be fully overridden by CSS (inline styles),
+   but we can at least darken its container outline */
+
+/* ── Selection highlight for dark theme ── */
+::selection {
+  background: rgba(205, 198, 190, 0.3);
+  color: #fff;
+}
+
+/* ── Scrollbar (optional, Webkit) ── */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--canvas);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--pebble);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--steel);
+}
+
+/* ── DataScrolly dark overrides ── */
+.ds-step-card {
+  background: var(--card);
+  border: 1px solid rgba(205, 198, 190, 0.08);
+}
+.ds-step.is-active .ds-step-card {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+  border-color: rgba(205, 198, 190, 0.15);
+}
+.ds-chart-title {
+  color: var(--ink-black);
+}
+.ds-chart-sub {
+  color: var(--ash);
+}
+.ds-chart-source {
+  color: var(--ash);
+}
+.ds-chart-error {
+  background: rgba(205, 198, 190, 0.08);
+  color: var(--ink-black);
+}
+
+/* ── Highlight (dark background safe) ── */
+.highlight {
+  background: linear-gradient(180deg, transparent 55%, rgba(205, 198, 190, 0.2) 55%);
+}
+
+/* ── WhatsApp mockup dark-mode softening ── */
+.editorial div[style*="background:#ECE5DD"] {
+  filter: brightness(0.7) !important;
+}

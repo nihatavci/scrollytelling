@@ -1,0 +1,292 @@
+/*
+ * claude.css — Anthropic/Claude inspired theme (clean, modern)
+ *
+ * Canvas: warm cream (#faf9f7)
+ * Text: near black (#1a1a1a)
+ * Accent: Claude's terracotta/coral (#da7756)
+ * Gradient: coral to purple (#da7756 -> #8b5cf6)
+ * Fonts: Inter / system-ui (body) / EB Garamond (display)
+ * Clean, minimal shadows — modern tech aesthetic
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=EB+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap');
+
+:root {
+  /* ── Core palette ── */
+  --canvas: #faf9f7;
+  --snow: #ffffff;
+  --fog: #eeecea;
+  --pebble: #d8d5d1;
+  --steel: #b5b0aa;
+  --ash: #8a8580;
+  --graphite: #6b6b6b;
+  --ink-black: #1a1a1a;
+
+  /* ── Chromatic accents ── */
+  --spectrum-red: #da7756;
+  --signal-blue: #8b5cf6;
+
+  /* ── Spectrum gradient ── */
+  --spectrum-gradient: linear-gradient(135deg, #da7756, #8b5cf6);
+
+  /* ── Factcheck verdict colors ── */
+  --marigold: #e5a84b;
+  --rose-quartz: #c06898;
+
+  /* ── Legacy aliases ── */
+  --bg: var(--canvas);
+  --text: var(--ink-black);
+  --muted: var(--graphite);
+  --accent: #da7756;
+  --card: rgba(255, 255, 255, 0.82);
+
+  /* ── Typography ── */
+  --font-body: 'Inter', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'EB Garamond', Georgia, 'Times New Roman', serif;
+
+  /* ── Radii ── */
+  --radius-card: 12px;
+  --radius-image: 8px;
+  --radius-button: 8px;
+  --radius-pill: 9999px;
+
+  /* ── Elevation ── */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Progress bar ── */
+.progress {
+  background: var(--spectrum-gradient);
+  height: 2px;
+}
+
+/* ── Language switcher ── */
+.lang-sw {
+  border: 1px solid rgba(26, 26, 26, 0.08);
+  background: rgba(255, 255, 255, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-radius: var(--radius-pill);
+  font-family: var(--font-body);
+  box-shadow: var(--shadow-card);
+}
+.lang-sw button {
+  color: var(--graphite);
+  font-weight: 500;
+}
+.lang-sw button.active {
+  background: var(--accent);
+  color: #fff;
+  border-radius: var(--radius-pill);
+}
+.lang-sw button:hover {
+  color: var(--ink-black);
+}
+
+/* ── Cinematic intro ── */
+.cin-brand {
+  font-family: var(--font-body);
+  letter-spacing: 0.14em;
+}
+.cin-line {
+  font-family: var(--font-display);
+  letter-spacing: -0.01em;
+  line-height: 1.45;
+}
+.cin-l1, .cin-l2 {
+  color: var(--graphite);
+  font-weight: 400;
+}
+.cin-l3 {
+  color: var(--ink-black);
+  font-weight: 500;
+}
+.cin-l4 {
+  color: var(--graphite);
+  font-weight: 400;
+}
+.cin-l5 {
+  color: var(--ink-black);
+  font-weight: 500;
+}
+.cin-l6 {
+  color: var(--accent);
+  font-weight: 600;
+}
+
+.cin-main-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  line-height: 1.1;
+}
+.cin-main-title span {
+  color: var(--accent);
+}
+.cin-sub-title {
+  font-family: var(--font-body);
+  color: var(--graphite);
+  font-weight: 400;
+  letter-spacing: 0.01em;
+}
+.cin-scroll-cue {
+  color: var(--graphite);
+  font-family: var(--font-body);
+}
+.cin-scroll-cue .arr {
+  border-color: var(--accent);
+}
+
+/* ── Editorial ── */
+.editorial {
+  background: var(--canvas);
+}
+.editorial h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+.editorial p {
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.7;
+  font-size: 1.05rem;
+  letter-spacing: -0.005em;
+}
+.editorial .lead {
+  font-family: var(--font-display);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: -0.01em;
+}
+.editorial .kicker {
+  font-family: var(--font-body);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.1em;
+}
+
+/* ── Pullquote ── */
+.pullquote {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-style: italic;
+  color: var(--ink-black);
+  border-left: none;
+  padding-left: 1.5rem;
+  position: relative;
+  line-height: 1.4;
+  letter-spacing: -0.01em;
+}
+.pullquote::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--spectrum-gradient);
+  border-radius: 2px;
+}
+.pullquote cite {
+  font-family: var(--font-body);
+  color: var(--graphite);
+  font-style: normal;
+  font-weight: 500;
+  letter-spacing: 0.01em;
+}
+
+/* ── Separator ── */
+.editorial .separator {
+  background: var(--spectrum-gradient);
+  height: 2px;
+  width: 48px;
+}
+
+/* ── Figures ── */
+.editorial figure img {
+  border-radius: var(--radius-image);
+}
+.editorial figcaption {
+  font-family: var(--font-body);
+  color: var(--graphite);
+  font-style: normal;
+  font-weight: 400;
+}
+
+/* ── Visualization ── */
+.viz-panel {
+  background: var(--canvas);
+}
+.viz-title {
+  font-family: var(--font-display);
+  font-weight: 500;
+  letter-spacing: -0.02em;
+}
+.viz-sub {
+  font-family: var(--font-body);
+  color: var(--graphite);
+}
+
+/* ── Step cards ── */
+.sc {
+  background: var(--card);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(218, 119, 86, 0.08);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.step.is-active .sc {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
+  border-color: rgba(218, 119, 86, 0.15);
+}
+.sc h3 {
+  font-family: var(--font-body);
+  color: var(--ink-black);
+  font-weight: 400;
+  line-height: 1.55;
+  letter-spacing: -0.005em;
+}
+
+/* ── Badges: Claude-inspired muted tones ── */
+.badge {
+  font-family: var(--font-body);
+  font-weight: 600;
+  border-radius: var(--radius-pill);
+  color: #fff;
+}
+.b-pyramid { background: #da7756; }
+.b-data    { background: #5b8cb8; }
+.b-explain { background: #8b5cf6; }
+.b-future  { background: #4d9e6e; }
+.b-voice   { background: #a855b8; }
+
+/* ── Outro ── */
+.outro {
+  font-family: var(--font-body);
+  background: var(--canvas);
+}
+.outro h2 {
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.025em;
+}
+.outro p {
+  font-family: var(--font-body);
+  color: var(--ink-black);
+  font-weight: 400;
+}
+.outro .final-line {
+  font-family: var(--font-display);
+  color: var(--accent);
+  font-style: italic;
+  font-weight: 500;
+}
+.outro .source-block {
+  border-top: 1px solid var(--fog);
+  font-family: var(--font-body);
+  color: var(--graphite);
+}
