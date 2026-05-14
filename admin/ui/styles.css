@@ -170,8 +170,22 @@ aside, main {
 .block-item:hover .block-ctrl, .block-item.active .block-ctrl { opacity: 1; }
 .block-ctrl button { padding: 3px 6px; font-size: 12px; border: 0; background: transparent; color: var(--graphite); border-radius: 6px; }
 .block-ctrl button:hover { background: rgba(0,0,0,.06); color: var(--ink-black); }
-.block-ctrl button.claude-btn { color: var(--ink-black); }
-.block-ctrl button.claude-btn:hover { background: rgba(0,0,0,.06); }
+.block-ctrl button.enhance-btn {
+  background: #f3f0ff;
+  color: #6639ba;
+  border: 1px solid #d4c5ff;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: background .15s, border-color .15s;
+  white-space: nowrap;
+}
+.block-ctrl button.enhance-btn:hover {
+  background: #ede8ff;
+  border-color: #b8a5f0;
+}
 
 /* Drag handle */
 .drag-handle {

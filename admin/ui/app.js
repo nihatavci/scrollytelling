@@ -726,7 +726,7 @@ function renderBlockList() {
       <span class="block-type">${block.type}</span>
       <span class="block-title">${blockSummary(block)}</span>
       <span class="block-ctrl">
-        <button data-act="claude" title="Improve with Claude" class="claude-btn">✨</button>
+        <button data-act="claude" title="Enhance with Claude" class="enhance-btn">✨ Enhance</button>
         <button data-act="dup"    title="Duplicate">⧉</button>
         <button data-act="del"    title="Delete">✕</button>
       </span>`;
@@ -2073,30 +2073,70 @@ $('#btn-settings').addEventListener('click', () => {
 });
 
 // History
+function formatHistoryDate(isoStr) {
+  const d = new Date(isoStr);
+  const now = new Date();
+  const diffMs = now - d;
+  const diffMin = Math.floor(diffMs / 60000);
+  const diffHr = Math.floor(diffMs / 3600000);
+
+  // Relative time for recent entries
+  let relative;
+  if (diffMin < 1) relative = 'just now';
+  else if (diffMin < 60) relative = `${diffMin}m ago`;
+  else if (diffHr < 24) relative = `${diffHr}h ago`;
+  else {
+    const days = Math.floor(diffHr / 24);
+    relative = days === 1 ? 'yesterday' : `${days}d ago`;
+  }
+
+  // Absolute time
+  const dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  const timeStr = d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+
+  return { relative, absolute: `${dateStr}, ${timeStr}` };
+}
+
 $('#btn-history').addEventListener('click', async () => {
   openModal('Version history', async (body) => {
     body.innerHTML = 'Loading…';
     try {
       const { snapshots } = await SB.listHistory(state.currentPageId);
       body.innerHTML = '';
-      if (!snapshots.length) { body.textContent = 'No history yet. Publishing creates snapshots.'; return; }
-      snapshots.forEach(s => {
+      if (!snapshots.length) {
+        body.innerHTML = '<p style="color:#666;text-align:center;padding:2rem 0;">No history yet.<br><span style="font-size:12px;">Publishing creates snapshots automatically.</span></p>';
+        return;
+      }
+      const list = document.createElement('div');
+      list.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
+      snapshots.forEach((s, i) => {
+        const { relative, absolute } = formatHistoryDate(s.ts);
         const row = document.createElement('div');
         row.className = 'history-row';
-        row.innerHTML = `<span class="history-ts">${s.ts}</span><span class="history-size">${(s.size/1024).toFixed(1)} KB</span><button class="small">Restore</button>`;
+        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f9f9f9;border-radius:8px;gap:12px;';
+        row.innerHTML = `
+          <div style="flex:1;min-width:0;">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+              <span style="font-weight:600;font-size:13px;color:#111;">v${s.version || '?'}</span>
+              <span style="font-size:11px;color:#888;background:#eee;padding:1px 7px;border-radius:4px;">${relative}</span>
+              ${i === 0 ? '<span style="font-size:10px;color:#0969da;background:#ddf4ff;padding:1px 6px;border-radius:4px;font-weight:500;">latest</span>' : ''}
+            </div>
+            <div style="font-size:11px;color:#666;">${absolute} · ${s.blockCount} block${s.blockCount !== 1 ? 's' : ''}</div>
+          </div>
+          <button class="small" style="flex-shrink:0;">Restore</button>`;
         row.querySelector('button').addEventListener('click', async (e) => {
           e.stopPropagation();
-          if (!confirm(`Restore snapshot from ${s.ts}? Current state will be snapshotted first.`)) return;
           try {
             const r = await SB.restoreSnapshot(state.currentPageId, s.id);
-            toast(`Restored · v${r.version}`, 'success');
+            toast(`Restored to v${s.version}`, 'success');
             closeModal();
             await loadPage(state.currentPageId);
             refreshPreview();
           } catch (err) { toast('Restore failed: ' + err.message, 'error'); }
         });
-        body.appendChild(row);
+        list.appendChild(row);
       });
+      body.appendChild(list);
     } catch (e) { body.textContent = 'Error: ' + e.message; }
   });
 });
@@ -2150,7 +2190,10 @@ function startAutosave() {
       s.textContent = '● Autosaved (unpublished)';
       s.className = 'status dirty';
     } catch (e) {
-      console.warn('Autosave failed:', e.message);
+      console.error('Autosave failed:', e.message);
+      const s = $('#page-status');
+      s.textContent = '⚠ Autosave failed';
+      s.className = 'status dirty';
     } finally {
       _autosaving = false;
     }
