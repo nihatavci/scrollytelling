@@ -424,3 +424,9 @@ body {
 .imgcompare-handle{background:rgba(42,42,40,.9);border:1px solid rgba(205,198,190,.2)}
 .imgcompare-handle::before{color:#cdc6be}
 .imgcompare-label{background:rgba(29,29,27,.7)}
+
+/* ── ImageHotspot dark overrides ── */
+.imghotspot-marker{background:#cdc6be;color:#1d1d1b;border-color:#2a2a28}
+.imghotspot-marker.style-pulse::after{border-color:#cdc6be}
+.imghotspot-tooltip{background:rgba(42,42,40,.92);border-color:rgba(205,198,190,.08)}
+.imghotspot-tooltip-close{color:#a8a29e}

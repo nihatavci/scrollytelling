@@ -142,6 +142,16 @@ const BLOCK_SCHEMAS = {
       { key: 'credit',          label: 'Credit',            kind: 'text' },
     ]
   },
+  ImageHotspot: {
+    label: 'Image Hotspot',
+    fields: [
+      { key: 'src',     label: 'Image URL',   kind: 'text' },
+      { key: 'alt',     label: 'Alt text',     kind: 'text' },
+      { key: 'caption', label: 'Caption',      kind: 'textarea' },
+      { key: 'credit',  label: 'Credit',       kind: 'text' },
+      { key: 'hotspots', label: 'Hotspots',    kind: 'textarea_html', hint: 'AI generates these — use Enhance to add/modify hotspots' },
+    ]
+  },
   FullBleed: {
     label: 'Full Bleed',
     fields: [
@@ -228,6 +238,7 @@ const PALETTE_BLOCKS = [
   { type: 'Outro',          desc: 'Closing section with paragraphs and sources' },
   { type: 'FullBleed',      desc: 'Full-viewport image/video with text overlay — the Snow Fall signature' },
   { type: 'ImageCompare',   desc: 'Before/after draggable image comparison slider' },
+  { type: 'ImageHotspot',   desc: 'Annotated image with interactive numbered markers' },
   { type: 'VizPanel',       desc: 'Advanced — visualization container' },
 ];
 
@@ -916,6 +927,7 @@ function blockSummary(block) {
     case 'Outro':     return d.h2 || 'Outro';
     case 'FullBleed':     return d.title?.replace(/<[^>]+>/g, '') || 'Full Bleed';
     case 'ImageCompare':  return `${d.beforeLabel || '?'} → ${d.afterLabel || '?'}`;
+    case 'ImageHotspot': return `${(d.hotspots || []).length} hotspots`;
     default:          return block.id;
   }
 }
@@ -977,6 +989,15 @@ function blockDetailSummary(block) {
       if (d.beforeLabel) lines.push(`<strong>Before:</strong> ${escapeText(d.beforeLabel)}`);
       if (d.afterLabel) lines.push(`<strong>After:</strong> ${escapeText(d.afterLabel)}`);
       if (d.caption) lines.push(`<strong>Caption:</strong> ${escapeText(d.caption).slice(0, 80)}`);
+      break;
+    case 'ImageHotspot':
+      if (d.src) lines.push(`<strong>Image:</strong> ${escapeText(d.alt || d.src).slice(0, 60)}`);
+      if (d.hotspots?.length) {
+        lines.push(`<strong>Hotspots:</strong> ${d.hotspots.length}`);
+        d.hotspots.slice(0, 3).forEach((hs, i) => {
+          lines.push(`&nbsp;&nbsp;${hs.label || i + 1}. ${escapeText(hs.title || '').slice(0, 50)}`);
+        });
+      }
       break;
     default:
       const keys = Object.keys(d);

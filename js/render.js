@@ -227,6 +227,24 @@ const COMPONENT_CSS = `
 @media(max-width:900px){.imgcompare{margin:3rem auto;padding:0 1.25rem}}
 @media(max-width:600px){.imgcompare{margin:2rem auto;padding:0 1rem}.imgcompare-handle{width:36px;height:36px}}
 
+/* ── ImageHotspot (annotated image) ── */
+.imghotspot{max-width:1000px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
+.imghotspot-wrap{position:relative;display:inline-block;width:100%;border-radius:var(--radius-image);overflow:hidden;box-shadow:var(--shadow-card)}
+.imghotspot-wrap>img{display:block;width:100%;border-radius:var(--radius-image)}
+.imghotspot-marker{position:absolute;width:32px;height:32px;transform:translate(-50%,-50%);border-radius:50%;background:var(--ink-black);color:var(--canvas);font-family:var(--font-body);font-size:12px;font-weight:600;display:flex;align-items:center;justify-content:center;cursor:pointer;z-index:3;border:2px solid var(--canvas);box-shadow:0 2px 8px rgba(0,0,0,.3);transition:transform .2s,box-shadow .2s}
+.imghotspot-marker:hover,.imghotspot-marker.is-active{transform:translate(-50%,-50%) scale(1.15);box-shadow:0 4px 16px rgba(0,0,0,.35)}
+.imghotspot-marker.style-pulse::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--ink-black);animation:hs-pulse 2s ease-out infinite;opacity:0}
+@keyframes hs-pulse{0%{transform:scale(.8);opacity:.6}100%{transform:scale(1.8);opacity:0}}
+.imghotspot-tooltip{position:absolute;z-index:4;background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1rem 1.2rem;box-shadow:0 8px 32px rgba(0,0,0,.18);max-width:280px;font-family:var(--font-body);opacity:0;pointer-events:none;transition:opacity .2s;border:1px solid rgba(128,128,128,.1)}
+.imghotspot-tooltip.is-visible{opacity:1;pointer-events:auto}
+.imghotspot-tooltip-title{font-weight:600;font-size:.95rem;color:var(--ink-black);margin-bottom:.3rem;letter-spacing:-.005em}
+.imghotspot-tooltip-body{font-size:.88rem;color:var(--graphite);line-height:1.5;font-weight:400}
+.imghotspot-tooltip-close{position:absolute;top:.5rem;right:.6rem;background:none;border:none;color:var(--ash);cursor:pointer;font-size:14px;padding:2px}
+.imghotspot-cap{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;line-height:1.5}
+.imghotspot-credit{font-size:.78rem;color:var(--ash);font-style:italic;margin-top:.2rem}
+@media(max-width:900px){.imghotspot{margin:3rem auto;padding:0 1.25rem}.imghotspot-marker{width:28px;height:28px;font-size:11px}}
+@media(max-width:600px){.imghotspot{margin:2rem auto;padding:0 1rem}.imghotspot-tooltip{position:fixed!important;bottom:0!important;left:0!important;right:0!important;top:auto!important;max-width:100%;border-radius:16px 16px 0 0;padding:1.4rem;transform:none!important}}
+
 /* ── FullBleed (viewport media + text overlay) ── */
 .fullbleed{position:relative;z-index:2;width:100%;overflow:hidden;background:#000}
 .fullbleed-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -275,6 +293,7 @@ const BLOCK_RENDERERS = {
   DataScrolly:    renderDataScrolly,
   FullBleed:      renderFullBleed,
   ImageCompare:   renderImageCompare,
+  ImageHotspot:   renderImageHotspot,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -951,6 +970,73 @@ function renderImageCompare(d) {
   sec.appendChild(container);
   if (d.caption) sec.appendChild(el('p', { class: 'imgcompare-cap' }, d.caption));
   if (d.credit) sec.appendChild(el('p', { class: 'imgcompare-credit' }, d.credit));
+  return sec;
+}
+
+function renderImageHotspot(d) {
+  const sec = el('section', { class: 'imghotspot' });
+  const wrap = el('div', { class: 'imghotspot-wrap' });
+  wrap.appendChild(el('img', { src: d.src || '', alt: d.alt || '', loading: 'lazy' }));
+
+  let activeTooltip = null;
+
+  (d.hotspots || []).forEach((hs, i) => {
+    const iconStyle = hs.icon === 'pulse' ? 'style-pulse' : '';
+    const marker = el('div', {
+      class: `imghotspot-marker ${iconStyle}`,
+      style: `left:${hs.x}%;top:${hs.y}%`,
+      'aria-label': hs.title || `Hotspot ${i + 1}`,
+      role: 'button',
+      tabindex: '0',
+    }, hs.label || String(i + 1));
+
+    const tip = el('div', { class: 'imghotspot-tooltip' });
+    const closeBtn = el('button', { class: 'imghotspot-tooltip-close', 'aria-label': 'Close' }, '×');
+    tip.appendChild(closeBtn);
+    if (hs.title) tip.appendChild(el('div', { class: 'imghotspot-tooltip-title' }, hs.title));
+    if (hs.body) {
+      const body = el('div', { class: 'imghotspot-tooltip-body' });
+      body.innerHTML = hs.body;
+      tip.appendChild(body);
+    }
+
+    function positionTooltip() {
+      const isMobile = window.innerWidth <= 600;
+      if (isMobile) {
+        tip.style.cssText = '';
+      } else {
+        const tipLeft = hs.x > 70 ? `${hs.x - 30}%` : hs.x < 30 ? `${hs.x}%` : `${hs.x - 15}%`;
+        const tipTop = hs.y > 50 ? `${hs.y - 5}%` : `${hs.y + 5}%`;
+        tip.style.left = tipLeft;
+        tip.style.top = tipTop;
+        tip.style.transform = hs.y > 50 ? 'translateY(-100%)' : '';
+      }
+    }
+
+    function toggle() {
+      if (activeTooltip && activeTooltip !== tip) {
+        activeTooltip.classList.remove('is-visible');
+        if (activeTooltip._marker) activeTooltip._marker.classList.remove('is-active');
+      }
+      const show = !tip.classList.contains('is-visible');
+      tip.classList.toggle('is-visible', show);
+      marker.classList.toggle('is-active', show);
+      activeTooltip = show ? tip : null;
+      if (show) positionTooltip();
+    }
+
+    marker.addEventListener('click', toggle);
+    marker.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); toggle(); } });
+    closeBtn.addEventListener('click', (e) => { e.stopPropagation(); tip.classList.remove('is-visible'); marker.classList.remove('is-active'); activeTooltip = null; });
+    tip._marker = marker;
+
+    wrap.appendChild(marker);
+    wrap.appendChild(tip);
+  });
+
+  sec.appendChild(wrap);
+  if (d.caption) sec.appendChild(el('p', { class: 'imghotspot-cap' }, d.caption));
+  if (d.credit) sec.appendChild(el('p', { class: 'imghotspot-credit' }, d.credit));
   return sec;
 }
 

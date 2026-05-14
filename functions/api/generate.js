@@ -221,6 +221,31 @@ Fields:
 WRITING RULES: Caption should explain the significance, not just describe. Labels should be specific dates or states, not generic "Before/After".`,
   },
 
+  ImageHotspot: {
+    example: {
+      src: '/images/pyramid-diagram.png',
+      alt: 'Die umgekehrte Pyramide — Aufbau',
+      hotspots: [
+        { x: 50, y: 12, icon: 'number', label: '1', title: 'Der Lead', body: 'Die wichtigste Information in 1-2 Sätzen. Wer, was, wann, wo — das Ergebnis zuerst.' },
+        { x: 50, y: 38, icon: 'number', label: '2', title: 'Der Kontext', body: 'Hintergründe, Zitate, Einordnung. Was bedeutet das Ereignis? Warum jetzt?' },
+        { x: 50, y: 65, icon: 'number', label: '3', title: 'Die Details', body: 'Zusätzliche Fakten, Zahlen, historischer Kontext. Absteigend nach Relevanz.' },
+        { x: 50, y: 88, icon: 'pulse', label: '4', title: 'Kann wegfallen', body: 'Hintergrundinformation, die ohne Informationsverlust gestrichen werden kann.' },
+      ],
+      caption: 'Anatomie einer Nachricht: Die umgekehrte Pyramide im Querschnitt.',
+      credit: 'Grafik: Eigene Darstellung'
+    },
+    description: `Annotated image with numbered or pulsing interactive markers. Clicking a marker reveals a tooltip.
+
+Fields:
+- src (string): URL of the background image
+- alt (string): accessible description
+- hotspots (array): each has x (0-100), y (0-100), icon ("number" or "pulse"), label (1-3 chars), title, body (supports HTML)
+- caption (string): overall caption
+- credit (string): image credit
+
+WRITING RULES: Each hotspot teaches one thing. Title is 2-4 words. Body is 1-2 sentences max. 3-6 hotspots total.`,
+  },
+
   FullBleed: {
     example: {
       mediaSrc: '/images/redaktion-1924.jpg',
