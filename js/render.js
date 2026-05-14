@@ -754,7 +754,10 @@ function renderScrolly(d) {
     const stepEl = el('div', { class: 'step', 'data-step': String(step.stepIndex) });
     const sc = el('div', { class: 'sc' });
     sc.appendChild(el('div', { class: `badge b-${step.badgeKind || 'pyramid'}` }, step.badgeLabel || ''));
-    sc.appendChild(el('h3', {}, step.body || ''));
+    if (step.heading) sc.appendChild(el('h3', { class: 'step-heading' }, step.heading));
+    const bodyEl = el('div', { class: 'step-body' });
+    bodyEl.innerHTML = step.body || '';
+    sc.appendChild(bodyEl);
     stepEl.appendChild(sc);
     steps.appendChild(stepEl);
   });

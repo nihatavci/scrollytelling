@@ -243,12 +243,25 @@
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08), 0 1px 3px rgba(0, 0, 0, 0.04);
   border-color: rgba(218, 119, 86, 0.15);
 }
-.sc h3 {
+.sc h3, .sc .step-body {
   font-family: var(--font-body);
   color: var(--ink-black);
   font-weight: 400;
   line-height: 1.55;
   letter-spacing: -0.005em;
+}
+.sc .step-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-card);
+  margin: 0.8rem 0;
+}
+.sc .step-heading {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--ink-black);
+  margin-bottom: 0.4rem;
 }
 
 /* ── Badges: Claude-inspired muted tones ── */

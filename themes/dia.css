@@ -178,9 +178,22 @@
 .step.is-active .sc {
   box-shadow: 0 6px 32px rgba(0, 0, 0, 0.13);
 }
-.sc h3 {
+.sc h3, .sc .step-body {
   font-family: var(--font-body);
   color: var(--text);
+}
+.sc .step-body img {
+  max-width: 100%;
+  height: auto;
+  border-radius: var(--radius-card);
+  margin: 0.8rem 0;
+}
+.sc .step-heading {
+  font-family: var(--font-display);
+  font-size: 1.15rem;
+  font-weight: 500;
+  color: var(--text);
+  margin-bottom: 0.4rem;
 }
 
 /* ── Badge colors ── */
