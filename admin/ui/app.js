@@ -2755,6 +2755,81 @@ $('#btn-visual-edit').addEventListener('click', () => {
   refreshPreview();
 });
 
+// Visual edit postMessage handler (receives events from visual-edit.js inside the preview iframe)
+window.addEventListener('message', async (evt) => {
+  if (!evt.data || evt.data.type !== 'visual-edit') return;
+  const { action, blockId, field, subfield, index, value, currentSrc } = evt.data;
+
+  if (action === 'text-change') {
+    const block = state.doc.blocks.find(b => b.id === blockId);
+    if (!block) return;
+    if (index != null && subfield) {
+      const arr = block.data[field];
+      if (Array.isArray(arr) && arr[index] != null) {
+        if (typeof arr[index] === 'string') {
+          arr[index] = value;
+        } else {
+          arr[index][subfield] = value;
+        }
+      }
+    } else if (index != null) {
+      block.data[field][index] = value;
+    } else {
+      block.data[field] = value;
+    }
+    setDirty(true);
+    if (block.id === state.selectedBlockId) renderEditor();
+    updateBlockSummary();
+  }
+
+  if (action === 'image-pick') {
+    const block = state.doc.blocks.find(b => b.id === blockId);
+    if (!block) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.addEventListener('change', async () => {
+      const file = input.files[0];
+      if (!file) return;
+      try {
+        const r = await SB.uploadFile(file);
+        const newSrc = r.url;
+        if (index != null && subfield) {
+          const arr = block.data[field];
+          if (Array.isArray(arr) && arr[index] != null) {
+            if (typeof arr[index] === 'string') {
+              arr[index] = newSrc;
+            } else {
+              arr[index][subfield] = newSrc;
+            }
+          }
+        } else if (index != null) {
+          block.data[field][index] = newSrc;
+        } else {
+          block.data[field] = newSrc;
+        }
+        setDirty(true);
+        if (block.id === state.selectedBlockId) renderEditor();
+        updateBlockSummary();
+        const previewFrame = $('#preview-frame');
+        if (previewFrame && previewFrame.contentWindow) {
+          previewFrame.contentWindow.postMessage(
+            { type: 'visual-edit-response', action: 'image-replaced', blockId, field, newSrc },
+            '*'
+          );
+        }
+        toast('Image replaced', 'success');
+      } catch (err) {
+        toast('Upload failed: ' + err.message, 'error');
+      } finally {
+        input.remove();
+      }
+    });
+    document.body.appendChild(input);
+    input.click();
+  }
+});
+
 // Page settings (theme, title, meta)
 $('#btn-settings').addEventListener('click', () => {
   if (!state.doc) { toast('Select a page first', 'error'); return; }
