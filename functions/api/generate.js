@@ -104,6 +104,10 @@ Mix item kinds for visual variety. Never just a wall of "p" items.`,
     example: {
       scrollyId: 'scrolly-1',
       stepsId: 'steps-1',
+      imageSize: 'medium',
+      imageHeight: '80vh',
+      imageRadius: '12px',
+      maxWidth: '1400px',
       steps: [
         { stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Pyramide', imageSrc: '', body: 'Eine Form erfindet die demokratische Oeffentlichkeit: Journalist:innen — nicht Maechtige — bestimmen, was das Wichtigste ist. Diese Entscheidung traegt eine Struktur: die umgekehrte Pyramide.' },
         { stepIndex: 1, badgeKind: 'data', badgeLabel: 'Summary Lead', imageSrc: '', body: 'Deutschland ist Weltmeister. — FAZ, 13. Juli 2014. Vier Woerter, vier W-Fragen beantwortet. Der Summary Lead in seiner reinsten Form: kein Spannungsbogen, kein Vorenthalten — das Ergebnis zuerst.' },
@@ -115,11 +119,17 @@ Mix item kinds for visual variety. Never just a wall of "p" items.`,
 Fields:
 - scrollyId (string): unique ID like "scrolly-1"
 - stepsId (string): unique ID like "steps-1"
+- imageSize (string): controls image column width. Use "small" (35%), "medium" (50%), "large" (65%), "full" (1fr), or any CSS value like "40%" or "300px". Default is full width.
+- imageHeight (string): CSS height for the sticky image panel. Examples: "100vh" (full viewport), "80vh", "60vh", "400px". Default "100vh".
+- imageRadius (string): border-radius for the image panel. Examples: "0" (sharp), "12px" (rounded), "24px" (very rounded). Default "0".
+- maxWidth (string): max container width. Examples: "1400px" (wide), "1100px" (editorial), "900px" (narrow). Default "1400px".
+- cardWidth (string): CSS width for the text card column. Examples: "minmax(320px,420px)" (default), "minmax(280px,360px)" (narrower cards). Default "minmax(320px,420px)".
 - steps (array): each step has:
   - stepIndex (number): 0-based index
   - badgeKind (string): one of pyramid/data/explain/future/voice — pick based on content
   - badgeLabel (string): short label shown on the badge
   - imageSrc (string): URL of the image shown in the sticky panel when this step is active. Leave empty string if no image.
+  - heading (string): optional step heading displayed above body text
   - body (string): 2-3 punchy sentences. Use em-dashes for drama. Concrete numbers and names. Do NOT embed <img> tags in body — use imageSrc instead.
 
 Write 3-4 steps. Each step should reveal one insight, building on the previous.`,
@@ -343,6 +353,95 @@ Fields:
 The user may paste raw image URLs — put each URL as a src in the images array. Generate meaningful alt text and captions.`,
   },
 
+  Map2D: {
+    example: {
+      title: 'Die Reise der Nachricht',
+      subtitle: 'Von Berlin nach Frankfurt — 1900',
+      source: 'Bundesarchiv',
+      height: '100vh',
+      maxWidth: '1400px',
+      layout: 'side',
+      tileStyle: 'toner-lite',
+      initialCenter: [51.5, 10.5],
+      initialZoom: 6,
+      flyDuration: 2,
+      scrollZoom: false,
+      markers: [
+        { id: 'berlin', lat: 52.52, lng: 13.405, label: '1', popupHtml: '<strong>Berlin</strong><br>Hauptredaktion der Vossischen Zeitung', color: '#c06830' },
+        { id: 'frankfurt', lat: 50.11, lng: 8.68, label: '2', popupHtml: '<strong>Frankfurt</strong><br>Druckerei und Vertrieb', color: '#5d8fa8' }
+      ],
+      routes: [
+        { id: 'route-main', points: [[52.52,13.405],[51.34,12.37],[50.93,11.59],[50.11,8.68]], color: '#c06830', weight: 3, animate: true, label: 'Telegrafenlinie' }
+      ],
+      areas: [],
+      steps: [
+        { badgeKind: 'pyramid', badgeLabel: 'Start', body: 'Im Berliner Presseviertel beginnt die Reise jeder Meldung.', mapState: { center: [52.52, 13.405], zoom: 14, showMarkers: ['berlin'], showAreas: [], animateRoute: null } },
+        { badgeKind: 'data', badgeLabel: 'Unterwegs', body: 'Per Telegraf reist die Nachricht 500 km nach Sueden.', mapState: { center: [51.34, 12.37], zoom: 8, showMarkers: ['berlin'], animateRoute: 'route-main' } },
+        { badgeKind: 'future', badgeLabel: 'Ankunft', body: 'In Frankfurt erreicht sie die Druckerei.', mapState: { center: [50.11, 8.68], zoom: 13, showMarkers: ['berlin', 'frankfurt'], animateRoute: 'route-main' } }
+      ],
+      caption: '',
+      credit: 'Kartendaten: OpenStreetMap'
+    },
+    description: `Scrollytelling map — sticky interactive map with story cards that fly between locations as the reader scrolls. Like NYT/Reuters geographic storytelling.
+
+Top-level fields:
+- title (string, optional): heading above the map
+- subtitle (string, optional): subheading
+- source (string, optional): data source attribution below map
+- height (string): map height. "100vh" (full viewport, default), "80vh", "60vh", "500px".
+- maxWidth (string): max container width. "1400px" (default), "1100px", "100%".
+- layout (string): "side" (map left, cards right — default) or "behind" (full-viewport map, cards float on top).
+- tileStyle (string): map tile appearance. "default" (standard OSM), "toner" (high-contrast B&W), "watercolor" (artistic), "toner-lite" (light B&W), "dark" (dark mode).
+- initialCenter ([lat, lng]): starting center point. Use real coordinates.
+- initialZoom (number): starting zoom 1-18. Country=6, region=9, city=12, neighborhood=15, street=17.
+- flyDuration (number): seconds for fly-to animation between steps. Default 2.
+- scrollZoom (boolean): allow scroll wheel zoom. Default false.
+- mapRadius (string): border-radius of the map container. "16px" default, "0" for sharp.
+
+Geographic features (defined once, referenced by ID in steps):
+- markers (array): each has:
+  - id (string): unique ID referenced by steps (e.g. "berlin", "marker-1")
+  - lat (number): latitude (decimal degrees)
+  - lng (number): longitude (decimal degrees)
+  - label (string): text on the marker circle (e.g. "1", "A", emoji)
+  - popupHtml (string): HTML popup content. Use <strong> for titles, <br> for line breaks.
+  - color (string): hex color for marker. Default "#c06830".
+- routes (array): animated polyline paths. Each has:
+  - id (string): unique ID referenced by steps
+  - points (array): array of [lat, lng] coordinate pairs defining the path. Use 4-8 points along the real route.
+  - color (string): hex color. Default "#c06830".
+  - weight (number): line thickness. Default 3.
+  - animate (boolean): if true, route draws progressively when triggered. Default true.
+  - label (string): text shown at midpoint of route.
+  - dashArray (string): dash pattern e.g. "10,6" for dashed. Empty for solid.
+- areas (array): polygon highlights. Each has:
+  - id (string): unique ID
+  - points (array): array of [lat, lng] coordinate pairs forming the boundary
+  - color (string): hex color. Default "#c06830".
+  - fillOpacity (number): 0-1. Default 0.2.
+  - label (string): popup text when clicked.
+
+Scrollytelling steps:
+- steps (array): each step controls what the reader sees. Each has:
+  - badgeKind (string): pyramid/data/explain/future/voice
+  - badgeLabel (string): short label on the badge
+  - heading (string, optional): step heading
+  - body (string): 2-3 punchy sentences about this location/moment
+  - mapState (object): controls the map for this step:
+    - center ([lat, lng]): fly the camera here
+    - zoom (number): zoom level to fly to
+    - showMarkers (string[]): IDs of markers to show (others hidden). ["berlin","frankfurt"]
+    - showAreas (string[]): IDs of areas to show
+    - animateRoute (string|null): route ID to animate drawing. null = no route this step.
+    - tileStyle (string|null): switch tile style. null = keep current.
+    - fitBounds (boolean): if true, fit map to all visible features instead of flyTo
+
+- caption (string, optional): caption below the block
+- credit (string): attribution line
+
+CRITICAL: Use real geographic coordinates. Look up actual lat/lng for cities, landmarks, regions. Each step should fly to a different location to create the scrollytelling journey. Write 3-5 steps.`,
+  },
+
   FullBleed: {
     example: {
       mediaSrc: '/images/redaktion-1924.jpg',
@@ -408,6 +507,18 @@ IMPROVE RULES:
 - If they say "add caption" or "change credit" → update those fields
 - If they mention sizing like "make the image half size" → change layout to "editorial" for narrow
 - For Scrolly blocks: if they say "remove images" → clear imageSrc fields. If "add image to step 3" → set imageSrc on that step
+- For Scrolly blocks sizing: "make images smaller" → set imageSize to "small" (35%). "make images bigger" → imageSize "large" (65%). "medium" → "medium" (50%). "full width" → "full". Or use exact values like "40%".
+- For Scrolly blocks: "make images shorter" or "less tall" → set imageHeight to "60vh" or "70vh". "taller" → "100vh".
+- For Scrolly blocks: "round corners" → set imageRadius to "12px" or "24px". "sharp" or "no radius" → "0".
+- For Scrolly blocks: "narrower layout" → reduce maxWidth (e.g. "1100px"). "wider" → increase (e.g. "1600px").
+- For Map2D blocks: "zoom in" → increase initialZoom or step mapState.zoom by 2. "zoom out" → decrease by 2.
+- For Map2D blocks: "focus on [city]" → change initialCenter to that city's real coordinates and set initialZoom to 13.
+- For Map2D blocks: "add marker at [place]" → add to markers array with real lat/lng and a unique id, and add id to relevant step's showMarkers.
+- For Map2D blocks: "dark map" or "dark tiles" → set tileStyle to "dark". "watercolor" → "watercolor". "black and white" → "toner". "clean" → "toner-lite".
+- For Map2D blocks: "smaller map" → set height to "60vh" or "400px". "bigger" or "full screen" → "100vh". "full width" → maxWidth "100%".
+- For Map2D blocks: "draw route from A to B" → add a route with real coordinate waypoints and a unique id. "add area around [place]" → add area polygon.
+- For Map2D blocks: "behind layout" or "fullscreen map" → set layout to "behind". "side layout" → "side".
+- For Map2D blocks: "faster transitions" → reduce flyDuration. "slower" → increase flyDuration.
 - ALWAYS return the complete data object with ALL fields, not just the changed ones` : 'You are creating a NEW block from scratch based on the user prompt. Write in the SAME language the user used.'}`;
 }
 
