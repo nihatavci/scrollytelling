@@ -4,6 +4,35 @@
 
 const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
+// ── Rate Limiting (per-isolate in-memory) ──
+const RATE_LIMIT = { maxRequests: 20, windowMs: 60_000 };
+const ipCounts = new Map(); // ip → { count, resetAt }
+let requestCounter = 0;
+
+function checkRateLimit(ip) {
+  const now = Date.now();
+
+  // Periodic cleanup: every 100 requests, purge stale entries
+  requestCounter++;
+  if (requestCounter % 100 === 0) {
+    for (const [key, entry] of ipCounts) {
+      if (now > entry.resetAt) ipCounts.delete(key);
+    }
+  }
+
+  const entry = ipCounts.get(ip);
+  if (!entry || now > entry.resetAt) {
+    ipCounts.set(ip, { count: 1, resetAt: now + RATE_LIMIT.windowMs });
+    return null; // allowed
+  }
+  entry.count++;
+  if (entry.count > RATE_LIMIT.maxRequests) {
+    const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
+    return retryAfter; // blocked
+  }
+  return null; // allowed
+}
+
 // ── Voice & Style Guide ──
 const VOICE_GUIDE = `
 VOICE & STYLE — Premium scrollytelling editorial standard:
@@ -367,8 +396,8 @@ The user may paste raw image URLs — put each URL as a src in the images array.
       flyDuration: 2,
       scrollZoom: false,
       markers: [
-        { id: 'berlin', lat: 52.52, lng: 13.405, label: '1', popupHtml: '<strong>Berlin</strong><br>Hauptredaktion der Vossischen Zeitung', color: '#c06830' },
-        { id: 'frankfurt', lat: 50.11, lng: 8.68, label: '2', popupHtml: '<strong>Frankfurt</strong><br>Druckerei und Vertrieb', color: '#5d8fa8' }
+        { id: 'berlin', lat: 52.52, lng: 13.405, label: '1', name: 'Berlin', popupHtml: '<strong>Berlin</strong><br>Hauptredaktion der Vossischen Zeitung', color: '#c06830' },
+        { id: 'frankfurt', lat: 50.11, lng: 8.68, label: '2', name: 'Frankfurt', popupHtml: '<strong>Frankfurt</strong><br>Druckerei und Vertrieb', color: '#5d8fa8' }
       ],
       routes: [
         { id: 'route-main', points: [[52.52,13.405],[51.34,12.37],[50.93,11.59],[50.11,8.68]], color: '#c06830', weight: 3, animate: true, label: 'Telegrafenlinie' }
@@ -391,7 +420,7 @@ Top-level fields:
 - height (string): map height. "100vh" (full viewport, default), "80vh", "60vh", "500px".
 - maxWidth (string): max container width. "1400px" (default), "1100px", "100%".
 - layout (string): "side" (map left, cards right — default) or "behind" (full-viewport map, cards float on top).
-- tileStyle (string): map tile appearance. "default" (standard OSM), "toner" (high-contrast B&W), "watercolor" (artistic), "toner-lite" (light B&W), "dark" (dark mode).
+- tileStyle (string): map tile appearance. "default" (clean, no city labels — best for scrollytelling), "clean" (smooth minimal), "toner" (high-contrast B&W, no labels), "watercolor" (artistic), "toner-lite" (light B&W), "dark" (dark smooth), "osm" (standard OSM with labels).
 - initialCenter ([lat, lng]): starting center point. Use real coordinates.
 - initialZoom (number): starting zoom 1-18. Country=6, region=9, city=12, neighborhood=15, street=17.
 - flyDuration (number): seconds for fly-to animation between steps. Default 2.
@@ -404,6 +433,7 @@ Geographic features (defined once, referenced by ID in steps):
   - lat (number): latitude (decimal degrees)
   - lng (number): longitude (decimal degrees)
   - label (string): text on the marker circle (e.g. "1", "A", emoji)
+  - name (string): place name shown below the marker dot (e.g. "Berlin", "Honolulu"). ALWAYS set this — it replaces tile city labels.
   - popupHtml (string): HTML popup content. Use <strong> for titles, <br> for line breaks.
   - color (string): hex color for marker. Default "#c06830".
 - routes (array): animated polyline paths. Each has:
@@ -442,6 +472,74 @@ Scrollytelling steps:
 CRITICAL: Use real geographic coordinates. Look up actual lat/lng for cities, landmarks, regions. Each step should fly to a different location to create the scrollytelling journey. Write 3-5 steps.`,
   },
 
+  FullscreenImage: {
+    example: {
+      imageSrc: '/images/berlin-reichstag-night.jpg',
+      imageAlt: 'Der Reichstag bei Nacht, beleuchtet von innen',
+      kicker: 'INVESTIGATION',
+      title: 'Die Nacht, die alles <span>veränderte</span>',
+      subtitle: 'Als die Nachricht schneller wurde als die Wahrheit.',
+      body: '',
+      overlayPosition: 'bottom-left',
+      scrimOpacity: 0.45,
+      scrimDirection: 'bottom',
+      kenBurns: true,
+      scrollCue: false,
+      caption: 'Der Reichstag, Februar 1933 — Symbol einer Zeitenwende.',
+      credit: 'Foto: Bundesarchiv'
+    },
+    description: `Full-viewport immersive image with text overlay. 100vh image-only hero with Ken Burns animation and flexible overlay positions.
+
+Fields:
+- imageSrc (string): image URL
+- imageAlt (string): alt text for accessibility
+- kicker (string, optional): small category label above the title (e.g. "INVESTIGATION", "CHAPTER 3")
+- title (string): big display heading. Supports inline HTML — use <span>word</span> for accent color.
+- subtitle (string, optional): one-line subtitle below the title
+- body (string, optional): short paragraph below subtitle
+- overlayPosition (string): "bottom-left" (default), "bottom-right", "center", "top-left"
+- scrimOpacity (number 0-1): gradient darkness over the image. Default 0.45.
+- scrimDirection (string): "bottom" (default — darkens toward bottom), "top" (darkens toward top), "radial" (darkens from center outward)
+- kenBurns (boolean): subtle slow zoom animation on the image. Default true.
+- scrollCue (boolean): show a bouncing "scroll" indicator at bottom center. Default false.
+- caption (string, optional): image caption below the block
+- credit (string, optional): photographer credit
+
+WRITING RULES: Title should be dramatic, 3-6 words. Kicker is uppercase, 1-2 words max. Caption explains significance, not just description.`,
+  },
+
+  AudioPlayer: {
+    example: {
+      audioSrc: '/audio/episode-01.mp3',
+      title: 'Die Stimme der Pyramide',
+      subtitle: 'PODCAST · FOLGE 1',
+      description: 'Wie eine journalistische Form die demokratische Öffentlichkeit erfand — und warum sie heute wichtiger ist denn je.',
+      duration: '4:32',
+      waveformColor: '#c06830',
+      accentColor: '#c06830',
+      coverSrc: '/images/podcast-cover.jpg',
+      transcript: '',
+      caption: '',
+      credit: 'Produktion: Birkner Media Lab'
+    },
+    description: `Audio player block — clean, professional design with waveform visualization, play/pause, progress bar, and time display.
+
+Fields:
+- audioSrc (string): audio file URL
+- title (string): episode or clip title
+- subtitle (string, optional): series name or context (displayed as small caps above title)
+- description (string, optional): 1-2 sentence description of the audio content
+- duration (string, optional): human-readable duration like "4:32"
+- waveformColor (string): hex color for waveform bars. Default uses accent color.
+- accentColor (string): play button and progress bar color. Default uses accent color.
+- coverSrc (string, optional): cover art image URL
+- transcript (string, optional): full transcript text (expandable by user)
+- caption (string, optional): caption below the player
+- credit (string, optional): production credit
+
+WRITING RULES: Title should be evocative, not generic. Subtitle is uppercase series/context. Description hooks the listener in 1-2 sentences.`,
+  },
+
   FullBleed: {
     example: {
       mediaSrc: '/images/redaktion-1924.jpg',
@@ -474,7 +572,7 @@ WRITING RULES for FullBleed:
   },
 };
 
-function buildSystemPrompt(type, mode, lang) {
+function buildSystemPrompt(type, mode, lang, direct) {
   const schema = BLOCK_SCHEMAS[type];
   if (!schema) return null;
 
@@ -482,6 +580,33 @@ function buildSystemPrompt(type, mode, lang) {
     ? `\nIMPORTANT: The page language is "${lang}". Generate ALL content in ${lang === 'de' ? 'German' : lang === 'en' ? 'English' : lang === 'tr' ? 'Turkish' : lang === 'fr' ? 'French' : lang === 'es' ? 'Spanish' : lang}. Do NOT use any other language.`
     : '\nIMPORTANT: Detect the language from the user prompt and generate ALL content in that same language.';
 
+  // ── Direct mode: structure text as-is, NO rewriting ──
+  if (direct) {
+    return `You are a content STRUCTURING engine for ScrollyCMS. Your job is to take raw text and place it into the correct JSON fields for a "${type}" block.
+
+ABSOLUTELY CRITICAL — DIRECT MODE RULES:
+1. DO NOT rewrite, rephrase, enhance, expand, or modify any text. Use the EXACT words the user provided.
+2. DO NOT add sentences, paragraphs, or content that wasn't in the original text.
+3. DO NOT change tone, style, grammar, or punctuation. Preserve everything verbatim.
+4. Your ONLY job is to identify which text goes into which field — title, body, paragraphs, etc.
+5. Return ONLY valid JSON — no markdown fences, no explanation, no wrapping.
+
+How to split text into fields for "${type}":
+- First line (if short, under ~80 chars) → title / h2 / heading field
+- Second short line → subtitle / kicker if applicable
+- Remaining text → body / paragraphs / content items
+- If improving existing data, only replace the text content fields. Keep all non-text fields (layout, images, styles, coordinates, etc.) unchanged.
+
+The JSON must match this schema:
+${schema.description}
+
+Example structure:
+${JSON.stringify(schema.example, null, 2)}
+
+${mode === 'improve' ? 'You are updating an existing block. The current data is provided. Replace ONLY the text content fields with the new text (verbatim). Keep all other fields (images, layout, style, coordinates, etc.) exactly as they are. Return the COMPLETE data object.' : 'Create a new block by placing the provided text into the correct fields. For any non-text fields (images, layout, etc.), use sensible defaults from the example.'}`;
+  }
+
+  // ── AI Enhanced mode (original behavior) ──
   return `You are the content engine for ScrollyCMS — a platform for creating premium scrollytelling stories with interactive visualizations and rich narrative.
 
 ${VOICE_GUIDE}
@@ -519,11 +644,24 @@ IMPROVE RULES:
 - For Map2D blocks: "draw route from A to B" → add a route with real coordinate waypoints and a unique id. "add area around [place]" → add area polygon.
 - For Map2D blocks: "behind layout" or "fullscreen map" → set layout to "behind". "side layout" → "side".
 - For Map2D blocks: "faster transitions" → reduce flyDuration. "slower" → increase flyDuration.
+- For FullscreenImage blocks: "darker overlay" or "darker" → increase scrimOpacity. "lighter" → decrease scrimOpacity. "center text" → overlayPosition "center". "add kicker" → set kicker field. "no animation" → kenBurns false. "scroll indicator" or "scroll cue" → scrollCue true. "top-left" → overlayPosition "top-left". "no scrim" → scrimOpacity 0.
+- For AudioPlayer blocks: "change color" → update accentColor and waveformColor. "add transcript" → set transcript text. "shorter description" → trim description. "remove cover" → clear coverSrc. "add cover" → set coverSrc.
+- Universal: every block supports "bgOpacity" (number 0-1) to control the page background image visibility behind this block. "show background" → bgOpacity 0.3. "hide background" → bgOpacity 0. "strong background" → bgOpacity 0.5-0.8.
 - ALWAYS return the complete data object with ALL fields, not just the changed ones` : 'You are creating a NEW block from scratch based on the user prompt. Write in the SAME language the user used.'}`;
 }
 
 export async function onRequest(context) {
   const { request, env } = context;
+
+  // ── Rate limit check (before auth to save resources on spam) ──
+  const ip = request.headers.get('cf-connecting-ip') || 'unknown';
+  const retryAfter = checkRateLimit(ip);
+  if (retryAfter) {
+    return new Response(JSON.stringify({ error: 'Too many requests. Please wait.' }), {
+      status: 429,
+      headers: { 'Content-Type': 'application/json', 'Retry-After': String(retryAfter) },
+    });
+  }
 
   if (request.method === 'OPTIONS') {
     return new Response(null, {
@@ -560,7 +698,7 @@ export async function onRequest(context) {
     });
   }
 
-  const { type, prompt, images, currentData, mode, lang } = body;
+  const { type, prompt, images, currentData, mode, lang, direct } = body;
 
   if (!type || !prompt) {
     return new Response(JSON.stringify({ error: 'Missing type or prompt' }), {
@@ -568,7 +706,7 @@ export async function onRequest(context) {
     });
   }
 
-  const systemPrompt = buildSystemPrompt(type, mode || 'create', lang);
+  const systemPrompt = buildSystemPrompt(type, mode || 'create', lang, direct);
   if (!systemPrompt) {
     return new Response(JSON.stringify({ error: `Unknown block type: ${type}` }), {
       status: 400, headers: { 'Content-Type': 'application/json' },
@@ -576,7 +714,14 @@ export async function onRequest(context) {
   }
 
   let userMessage = prompt;
-  if (mode === 'improve' && currentData) {
+  if (direct) {
+    // Direct mode: tell the AI this is raw content to structure, not a prompt
+    if (mode === 'improve' && currentData) {
+      userMessage = `Current block data:\n${JSON.stringify(currentData, null, 2)}\n\nDIRECT PASTE — replace the text content with exactly this (preserve verbatim, do NOT rewrite):\n${prompt}`;
+    } else {
+      userMessage = `DIRECT PASTE — structure this text into the block fields. Preserve EVERY word exactly as-is:\n${prompt}`;
+    }
+  } else if (mode === 'improve' && currentData) {
     userMessage = `Current block data:\n${JSON.stringify(currentData, null, 2)}\n\nRequested change: ${prompt}`;
   }
   if (images && images.length > 0) {
