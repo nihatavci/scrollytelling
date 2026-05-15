@@ -50,7 +50,11 @@ const BLOCK_SCHEMAS = {
     name: 'Scrolly',
     description: 'Sticky-chart section with stepped narrative on the side',
     fields: [
-      { key: 'steps',     label: 'Steps', kind: 'scrolly_steps' },
+      { key: 'imageSize',   label: 'Image size', kind: 'text', hint: 'small (35%), medium (50%), large (65%), full, or any CSS value like "40%"' },
+      { key: 'imageHeight', label: 'Image height', kind: 'text', hint: 'CSS height: 100vh, 80vh, 60vh, 400px etc.' },
+      { key: 'imageRadius', label: 'Image corner radius', kind: 'text', hint: '0 (sharp), 12px, 24px etc.' },
+      { key: 'maxWidth',    label: 'Max width', kind: 'text', hint: '1400px (default), 1100px (editorial), 900px (narrow)' },
+      { key: 'steps',       label: 'Steps', kind: 'scrolly_steps' },
     ],
   },
   Outro: {
@@ -210,6 +214,28 @@ const BLOCK_SCHEMAS = {
       { key: 'credit',  label: 'Photo credit',    kind: 'text' },
     ]
   },
+  Map2D: {
+    name: 'Map 2D',
+    description: 'Scrollytelling map — fly between locations as the reader scrolls',
+    fields: [
+      { key: 'title',         label: 'Title (optional)', kind: 'text' },
+      { key: 'subtitle',      label: 'Subtitle (optional)', kind: 'text' },
+      { key: 'source',        label: 'Source attribution', kind: 'text' },
+      { key: 'layout',        label: 'Layout', kind: 'text', hint: '"side" (map left, cards right) or "behind" (full-viewport map)' },
+      { key: 'tileStyle',     label: 'Tile style', kind: 'text', hint: 'default, toner, watercolor, toner-lite, dark' },
+      { key: 'height',        label: 'Map height', kind: 'text', hint: '100vh, 80vh, 500px, etc.' },
+      { key: 'maxWidth',      label: 'Max width', kind: 'text', hint: '1400px (default), 1100px, 100%' },
+      { key: 'initialCenter', label: 'Initial center [lat, lng]', kind: 'text', hint: 'e.g. 52.52, 13.405 for Berlin' },
+      { key: 'initialZoom',   label: 'Initial zoom (1-18)', kind: 'text', hint: '6=country, 12=city, 15=neighborhood' },
+      { key: 'flyDuration',   label: 'Fly duration (seconds)', kind: 'text', hint: 'Default 2. Slower = more dramatic.' },
+      { key: 'markers',       label: 'Markers (JSON)', kind: 'textarea', hint: 'Array of {id, lat, lng, label, popupHtml, color}. Use ✨ Enhance to generate.' },
+      { key: 'routes',        label: 'Routes (JSON)', kind: 'textarea', hint: 'Array of {id, points, color, weight, animate, label}. Use ✨ Enhance.' },
+      { key: 'areas',         label: 'Areas (JSON)', kind: 'textarea', hint: 'Array of {id, points, color, fillOpacity, label}. Use ✨ Enhance.' },
+      { key: 'steps',         label: 'Steps (JSON)', kind: 'textarea', hint: 'Array of {badgeKind, badgeLabel, body, mapState}. Use ✨ Enhance to edit.' },
+      { key: 'caption',       label: 'Caption', kind: 'textarea' },
+      { key: 'credit',        label: 'Credit', kind: 'text' },
+    ],
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -287,6 +313,7 @@ const PALETTE_BLOCKS = [
   { type: 'ProgressNav',    desc: 'Reading progress bar + chapter navigation dots' },
   { type: 'EmbedBlock',     desc: 'Datawrapper, Flourish, Twitter, or any iframe embed' },
   { type: 'ImageGrid',      desc: 'Smart image grid — auto-detects layout from count. Paste URLs or upload.' },
+  { type: 'Map2D',          desc: 'Scrollytelling map — fly between locations, animate routes, reveal markers as reader scrolls' },
 ];
 
 // Tiny inline mockups shown inside the palette cards and at the top of the
@@ -383,6 +410,19 @@ const BLOCK_PREVIEWS = {
         <div style="background:#fff;border:1px solid #d6e8f0;border-radius:4px;padding:3px 4px;font:600 6px 'DM Sans',sans-serif;color:#3d7a94;">DATA · STEP 1</div>
         <div style="background:#fff;border:1px solid #eaeef2;border-radius:4px;padding:3px 4px;font:600 6px 'DM Sans',sans-serif;color:#8c8078;opacity:.55;">STEP 2</div>
         <div style="background:#fff;border:1px solid #eaeef2;border-radius:4px;padding:3px 4px;font:600 6px 'DM Sans',sans-serif;color:#8c8078;opacity:.55;">STEP 3</div>
+      </div>
+    </div>`,
+  Map2D: `
+    <div style="display:flex;gap:6px;">
+      <div style="flex:1;background:linear-gradient(135deg,#e8e4df 0%,#d4cdc5 100%);border-radius:6px;height:48px;position:relative;overflow:hidden;">
+        <div style="position:absolute;top:6px;left:8px;width:8px;height:8px;border-radius:50%;background:#c06830;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.3);"></div>
+        <div style="position:absolute;top:22px;right:12px;width:8px;height:8px;border-radius:50%;background:#5d8fa8;border:1.5px solid #fff;box-shadow:0 1px 2px rgba(0,0,0,.3);"></div>
+        <svg style="position:absolute;top:0;left:0;width:100%;height:100%;"><path d="M16 10 Q30 24 48 26" stroke="#c06830" stroke-width="1.5" fill="none" stroke-dasharray="3,2"/></svg>
+        <div style="position:absolute;bottom:2px;left:4px;font:400 5px 'DM Sans',sans-serif;color:#8c8078;">OpenStreetMap</div>
+      </div>
+      <div style="flex:0 0 36%;display:flex;flex-direction:column;gap:3px;">
+        <div style="background:#fff;border:1px solid #d4c5ff;border-radius:3px;padding:2px 4px;font:600 6px 'DM Sans',sans-serif;color:#6639ba;">📍 Berlin</div>
+        <div style="background:#fff;border:1px solid #eaeef2;border-radius:3px;padding:2px 4px;font:500 6px 'DM Sans',sans-serif;color:#8c8078;opacity:.5;">📍 Frankfurt</div>
       </div>
     </div>`,
 };
@@ -979,6 +1019,7 @@ function blockSummary(block) {
     case 'ProgressNav': return 'Progress bar';
     case 'EmbedBlock': return d.provider || (d.url ? 'Embed' : 'Empty embed');
     case 'ImageGrid': return `${(d.images || []).length} images` + (d.layout ? ` · ${d.layout}` : '');
+    case 'Map2D': return `${(d.steps || []).length} steps · ${(d.markers || []).length} markers` + (d.tileStyle && d.tileStyle !== 'default' ? ` · ${d.tileStyle}` : '');
     default:          return block.id;
   }
 }
@@ -1075,6 +1116,19 @@ function blockDetailSummary(block) {
       (d.images || []).slice(0, 3).forEach((img, i) => {
         lines.push(`<strong>${i + 1}.</strong> ${escapeText((img.alt || img.src || '').slice(0, 50))}`);
       });
+      break;
+    case 'Map2D':
+      if (d.title) lines.push(`<strong>Title:</strong> ${escapeText(d.title)}`);
+      if (d.layout) lines.push(`<strong>Layout:</strong> ${d.layout}`);
+      if (d.tileStyle) lines.push(`<strong>Tiles:</strong> ${d.tileStyle}`);
+      if (d.markers?.length) lines.push(`<strong>Markers:</strong> ${d.markers.length}`);
+      if (d.routes?.length) lines.push(`<strong>Routes:</strong> ${d.routes.length}`);
+      if (d.steps?.length) {
+        lines.push(`<strong>Steps:</strong> ${d.steps.length}`);
+        d.steps.slice(0, 3).forEach((s, i) => {
+          lines.push(`&nbsp;&nbsp;${i + 1}. ${escapeText((s.body || '').slice(0, 60))}${(s.body || '').length > 60 ? '...' : ''}`);
+        });
+      }
       break;
     default:
       const keys = Object.keys(d);
@@ -1300,7 +1354,7 @@ function defaultDataFor(type) {
     case 'Hero':      return { brand: 'New brand', lines: [], titleHtml: 'Title', subtitle: 'Subtitle', scrollCueText: 'Scroll down' };
     case 'VizPanel':  return { initialTitle: 'Title', initialSub: 'Subtitle' };
     case 'Editorial': return { content: [{ kind: 'h2', text: 'New section' }, { kind: 'p', html: 'New paragraph.' }] };
-    case 'Scrolly':   return { scrollyId: 'scrolly-X', stepsId: 'steps-X', steps: [{ stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Label', body: 'Step body.' }] };
+    case 'Scrolly':   return { scrollyId: 'scrolly-X', stepsId: 'steps-X', imageSize: 'medium', imageHeight: '80vh', imageRadius: '12px', maxWidth: '1400px', steps: [{ stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Label', imageSrc: '', body: 'Step body.' }] };
     case 'Outro':     return { h2: 'Outro', paragraphs: ['Final paragraph.'], finalLine: '', sourcesHtml: '' };
     case 'StatRow':   return { title: '', stats: [{value:'',label:'',context:''}, {value:'',label:'',context:''}, {value:'',label:'',context:''}] };
     case 'Timeline':  return { title: '', events: [{when:'',title:'',body:''}, {when:'',title:'',body:''}, {when:'',title:'',body:''}] };
@@ -1326,6 +1380,7 @@ function defaultDataFor(type) {
         { badgeKind: 'data', badgeLabel: 'Today',   body: 'In 2020 it reached 40.',           vizState: { highlightX: 2020, annotation: '40' } },
       ],
     };
+    case 'Map2D': return { title: '', subtitle: '', source: '', layout: 'side', tileStyle: 'toner-lite', height: '100vh', maxWidth: '1400px', initialCenter: [52.52, 13.405], initialZoom: 6, flyDuration: 2, scrollZoom: false, markers: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', popupHtml: '<strong>Location</strong>', color: '#c06830' }], routes: [], areas: [], steps: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }], caption: '', credit: 'OpenStreetMap' };
     default:          return {};
   }
 }
