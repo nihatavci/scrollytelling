@@ -268,11 +268,11 @@ body {
   font-weight: 300;
   line-height: 1.6;
 }
-.sc .step-body img {
-  max-width: 100%;
-  height: auto;
-  border-radius: var(--radius-card);
-  margin: 0.8rem 0;
+.scrolly__sticky {
+  background: var(--canvas);
+}
+.scrolly__img {
+  border-radius: 0;
 }
 .sc .step-heading {
   font-family: var(--font-display);

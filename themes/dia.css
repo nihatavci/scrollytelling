@@ -182,11 +182,12 @@
   font-family: var(--font-body);
   color: var(--text);
 }
-.sc .step-body img {
-  max-width: 100%;
-  height: auto;
+.scrolly__sticky {
+  background: var(--canvas);
   border-radius: var(--radius-card);
-  margin: 0.8rem 0;
+}
+.scrolly__img {
+  border-radius: var(--radius-card);
 }
 .sc .step-heading {
   font-family: var(--font-display);

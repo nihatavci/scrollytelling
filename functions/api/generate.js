@@ -105,20 +105,22 @@ Mix item kinds for visual variety. Never just a wall of "p" items.`,
       scrollyId: 'scrolly-1',
       stepsId: 'steps-1',
       steps: [
-        { stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Pyramide', body: 'Eine Form erfindet die demokratische Öffentlichkeit: Journalist:innen — nicht Mächtige — bestimmen, was das Wichtigste ist. Diese Entscheidung trägt eine Struktur: die umgekehrte Pyramide.' },
-        { stepIndex: 1, badgeKind: 'data', badgeLabel: 'Summary Lead', body: '„Deutschland ist Weltmeister." — FAZ, 13. Juli 2014. Vier Wörter, vier W-Fragen beantwortet. Der Summary Lead in seiner reinsten Form: kein Spannungsbogen, kein Vorenthalten — das Ergebnis zuerst.' },
-        { stepIndex: 2, badgeKind: 'future', badgeLabel: 'Umgelegte Pyramide', body: 'Canavilhas (2006) dreht die Logik um: statt von wichtig nach unwichtig — von innen nach außen. Schicht 1: das nackte Was. Schicht 4: voller Kontext. Nutzer:innen wählen ihre eigene Tiefe.' }
+        { stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Pyramide', imageSrc: '', body: 'Eine Form erfindet die demokratische Oeffentlichkeit: Journalist:innen — nicht Maechtige — bestimmen, was das Wichtigste ist. Diese Entscheidung traegt eine Struktur: die umgekehrte Pyramide.' },
+        { stepIndex: 1, badgeKind: 'data', badgeLabel: 'Summary Lead', imageSrc: '', body: 'Deutschland ist Weltmeister. — FAZ, 13. Juli 2014. Vier Woerter, vier W-Fragen beantwortet. Der Summary Lead in seiner reinsten Form: kein Spannungsbogen, kein Vorenthalten — das Ergebnis zuerst.' },
+        { stepIndex: 2, badgeKind: 'future', badgeLabel: 'Umgelegte Pyramide', imageSrc: '', body: 'Canavilhas (2006) dreht die Logik um: statt von wichtig nach unwichtig — von innen nach aussen. Schicht 1: das nackte Was. Schicht 4: voller Kontext. Nutzer:innen waehlen ihre eigene Tiefe.' }
       ]
     },
-    description: `Scrolly section with sticky visualization and stepped narrative.
+    description: `Scrollytelling section: sticky image on the left, text cards scroll on the right. Each step has its own image that fades in when the step becomes active.
+
 Fields:
 - scrollyId (string): unique ID like "scrolly-1"
 - stepsId (string): unique ID like "steps-1"
 - steps (array): each step has:
   - stepIndex (number): 0-based index
   - badgeKind (string): one of pyramid/data/explain/future/voice — pick based on content
-  - badgeLabel (string): short label shown on the badge, e.g. "Pyramide", "NLP-Methode", "Korpus"
-  - body (string): 2-3 punchy sentences. Use em-dashes for drama. Concrete numbers and names. The last sentence should land with impact.
+  - badgeLabel (string): short label shown on the badge
+  - imageSrc (string): URL of the image shown in the sticky panel when this step is active. Leave empty string if no image.
+  - body (string): 2-3 punchy sentences. Use em-dashes for drama. Concrete numbers and names. Do NOT embed <img> tags in body — use imageSrc instead.
 
 Write 3-4 steps. Each step should reveal one insight, building on the previous.`,
   },

@@ -174,6 +174,39 @@ const COMPONENT_CSS = `
 /* ── Badge (base) ── */
 .badge{display:inline-block;font-family:var(--font-body);font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.3rem .75rem;border-radius:var(--radius-pill,100px);line-height:1.2;white-space:nowrap;vertical-align:middle}
 
+/* ── Scrolly (sticky image left, text cards right) ── */
+.scrolly{display:grid;grid-template-columns:1fr 420px;gap:0;max-width:1400px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
+.scrolly__sticky{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+.scrolly__images{position:relative;width:100%;height:100%}
+.scrolly__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s ease}
+.scrolly__img.active{opacity:1}
+.scrolly__steps{padding:30vh 0;display:flex;flex-direction:column}
+.step{min-height:70vh;display:flex;align-items:center;padding:1.5rem 0 1.5rem 3rem}
+.step:first-child{padding-top:10vh}.step:last-child{margin-bottom:20vh}
+.sc{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.6rem 1.8rem;border:none;max-width:420px;box-shadow:var(--shadow-card);opacity:.35;transition:opacity .4s,box-shadow .4s,transform .4s;transform:translateY(8px)}
+.step.is-active .sc{opacity:1;box-shadow:rgba(0,0,0,.15) 0 4px 24px;transform:translateY(0)}
+.step-body{font-family:var(--font-body);font-size:1rem;line-height:1.6;font-weight:400}
+.step-body img{display:none}
+.step-heading{font-family:var(--font-display);font-size:1.15rem;font-weight:500;margin-bottom:.4rem}
+/* Scrolly without images: full-width text cards, no sticky */
+.scrolly--no-images{display:block;max-width:720px}
+.scrolly--no-images .scrolly__sticky{display:none}
+.scrolly--no-images .step{padding-left:0;min-height:auto;padding:2rem 0}
+.scrolly--no-images .sc{max-width:100%;opacity:1;transform:none}
+@media(max-width:900px){
+  .scrolly{grid-template-columns:1fr;gap:0}
+  .scrolly__sticky{position:relative;height:50vh;margin-bottom:1rem}
+  .step{padding:1rem 1.25rem;min-height:auto}
+  .sc{opacity:1;transform:none;max-width:100%}
+}
+@media(max-width:600px){
+  .scrolly{padding:0 1rem;margin:2rem auto}
+  .scrolly__sticky{height:40vh}
+  .step{padding:0.8rem 0}
+  .sc{padding:1.2rem 1.4rem}
+  .step-body{font-size:.92rem}
+}
+
 /* ── DataScrolly ── */
 .data-scrolly{display:grid;grid-template-columns:1fr 420px;gap:4vw;max-width:1400px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
 .ds-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:1.5rem 0}
@@ -749,19 +782,81 @@ function renderEditorialItem(item) {
 // ───────── Scrolly section ─────────
 function renderScrolly(d) {
   const section = el('section', { class: 'scrolly', id: d.scrollyId || '' });
+
+  // ── Sticky image panel (left on desktop, top on mobile) ──
+  const stickyWrap = el('div', { class: 'scrolly__sticky' });
+  const imgContainer = el('div', { class: 'scrolly__images' });
+
+  // Extract images from steps: use imageSrc field or parse <img> from body
+  const stepImages = (d.steps || []).map((step, i) => {
+    let src = step.imageSrc || step.image || '';
+    if (!src && step.body) {
+      const m = step.body.match(/<img[^>]+src=["']([^"']+)["']/);
+      if (m) src = m[1];
+    }
+    if (src) {
+      const img = el('img', {
+        class: 'scrolly__img' + (i === 0 ? ' active' : ''),
+        src: src,
+        alt: step.badgeLabel || `Step ${i + 1}`,
+        loading: i === 0 ? 'eager' : 'lazy',
+        'data-step-idx': String(i),
+      });
+      imgContainer.appendChild(img);
+      return img;
+    }
+    return null;
+  });
+  stickyWrap.appendChild(imgContainer);
+  const hasAnyImages = stepImages.some(img => img !== null);
+  if (hasAnyImages) {
+    section.appendChild(stickyWrap);
+  } else {
+    section.classList.add('scrolly--no-images');
+  }
+
+  // ── Scrolling text cards (right on desktop) ──
   const steps = el('div', { class: 'scrolly__steps', id: d.stepsId || '' });
-  (d.steps || []).forEach(step => {
-    const stepEl = el('div', { class: 'step', 'data-step': String(step.stepIndex) });
+  (d.steps || []).forEach((step, i) => {
+    const stepEl = el('div', {
+      class: 'step' + (i === 0 ? ' is-active' : ''),
+      'data-step': String(step.stepIndex ?? i),
+      'data-step-idx': String(i),
+    });
     const sc = el('div', { class: 'sc' });
     sc.appendChild(el('div', { class: `badge b-${step.badgeKind || 'pyramid'}` }, step.badgeLabel || ''));
     if (step.heading) sc.appendChild(el('h3', { class: 'step-heading' }, step.heading));
-    const bodyEl = el('div', { class: 'step-body' });
-    bodyEl.innerHTML = step.body || '';
-    sc.appendChild(bodyEl);
+    // Strip <img> tags from body — images are in the sticky panel
+    const bodyHtml = (step.body || '').replace(/<img[^>]*>/gi, '').trim();
+    if (bodyHtml) {
+      const bodyEl = el('div', { class: 'step-body' });
+      bodyEl.innerHTML = bodyHtml;
+      sc.appendChild(bodyEl);
+    }
     stepEl.appendChild(sc);
     steps.appendChild(stepEl);
   });
   section.appendChild(steps);
+
+  // ── IntersectionObserver: switch active image on scroll ──
+  requestAnimationFrame(() => {
+    const allSteps = section.querySelectorAll('.step');
+    const observer = new IntersectionObserver((entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          const idx = entry.target.dataset.stepIdx;
+          // Activate step
+          allSteps.forEach(s => s.classList.toggle('is-active', s.dataset.stepIdx === idx));
+          // Switch image
+          stepImages.forEach((img, j) => {
+            if (img) img.classList.toggle('active', String(j) === idx);
+          });
+        }
+      });
+    }, { rootMargin: '-30% 0px -30% 0px', threshold: 0.1 });
+    allSteps.forEach(s => observer.observe(s));
+  });
+
   return section;
 }
 
