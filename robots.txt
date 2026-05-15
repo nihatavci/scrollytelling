@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /p/
+Disallow: /admin/
+Disallow: /api/
+Sitemap: https://scrolli.nihatavci.com/sitemap.xml
