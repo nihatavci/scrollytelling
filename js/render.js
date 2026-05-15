@@ -57,6 +57,11 @@ const COMPONENT_CSS = `
  * All blocks: position:relative; z-index:3; background:var(--canvas)
  */
 
+/* ── Page background image ── */
+#page-bg{position:fixed;inset:0;z-index:0;pointer-events:none;opacity:0;transition:opacity .8s ease}
+#page-bg-img{width:100%;height:100%;object-fit:cover}
+#page-root{position:relative;z-index:1}
+
 /* ── DropCap ── */
 .editorial p.has-dropcap::first-letter{float:left;font-family:var(--font-display);font-size:4.5rem;line-height:.95;padding:.3rem .6rem .1rem 0;color:var(--ink-black);font-weight:300;letter-spacing:-.04em}
 
@@ -218,16 +223,18 @@ const COMPONENT_CSS = `
 .scrolly--no-images .step{padding-left:0;min-height:auto;padding:2rem 0}
 .scrolly--no-images .sc{max-width:100%;opacity:1;transform:none}
 @media(max-width:900px){
-  .scrolly{grid-template-columns:1fr;gap:0}
-  .scrolly__sticky{position:relative;height:60vh;margin-bottom:0}
-  .step{padding:1rem 1.25rem;min-height:90vh}
-  .sc{max-width:100%}
+  .scrolly{display:block;padding:0;margin:3rem auto}
+  .scrolly__sticky{position:sticky;top:0;height:100vh;z-index:1;border-radius:0}
+  .scrolly__steps{position:relative;z-index:2;margin-top:-100vh;pointer-events:none}
+  .step{padding:0 1rem;min-height:90vh;display:flex;align-items:flex-end;padding-bottom:2.5rem}
+  .step:first-child{min-height:100vh;padding-top:55vh}
+  .step:last-child{margin-bottom:15vh}
+  .sc{max-width:100%;pointer-events:auto;border-radius:16px;padding:1.2rem 1.4rem}
 }
 @media(max-width:600px){
-  .scrolly{padding:0 1rem;margin:2rem auto}
-  .scrolly__sticky{height:50vh}
-  .step{padding:0.8rem 0;min-height:85vh}
-  .sc{padding:1.2rem 1.4rem}
+  .scrolly__sticky{height:100vh}
+  .step{min-height:85vh;padding-bottom:2rem}
+  .sc{padding:1rem 1.2rem}
   .step-body{font-size:.92rem}
 }
 
@@ -255,17 +262,22 @@ const COMPONENT_CSS = `
   .quote-block{margin:3rem auto;padding:0 1.25rem}
   .quote-portrait{width:48px;height:48px}
   .video-embed{margin:3rem auto;padding:0 1.25rem}
-  .data-scrolly{grid-template-columns:1fr;gap:0;margin:3rem auto;padding:0 1.25rem}
-  .ds-graphic{position:relative;height:auto;padding:2rem 0;align-items:center}
-  .ds-chart{max-width:100%;min-height:300px}
-  .ds-steps{padding:1rem 0}
-  .ds-step{min-height:auto;padding:1rem 0}
-  .ds-step-card{opacity:1;max-width:100%;padding:1.2rem 1.4rem}
+  .data-scrolly{display:block;padding:0;margin:3rem auto}
+  .ds-graphic{position:sticky;top:0;height:100vh;z-index:1;padding:2rem 1.25rem;align-items:center;justify-content:center;background:var(--bg,#f8f8f8)}
+  .ds-chart{max-width:100%;min-height:280px}
+  .ds-steps{position:relative;z-index:2;margin-top:-100vh;pointer-events:none}
+  .ds-step{min-height:80vh;padding:0 1rem;display:flex;align-items:flex-end;padding-bottom:2.5rem}
+  .ds-step:first-child{min-height:100vh;padding-top:55vh}
+  .ds-step:last-child{margin-bottom:15vh}
+  .ds-step-card{opacity:.4;max-width:100%;padding:1.2rem 1.4rem;pointer-events:auto}
+  .ds-step.is-active .ds-step-card{opacity:1}
   .ds-step-badge{margin-bottom:.5rem}
 }
 @media(max-width:600px){
-  .data-scrolly{padding:0 1rem;margin:2rem auto}
-  .ds-chart{min-height:240px}
+  .data-scrolly{margin:2rem auto}
+  .ds-graphic{padding:1.5rem 1rem}
+  .ds-chart{min-height:220px}
+  .ds-step{min-height:70vh;padding:0 .75rem}
   .ds-step-card{padding:1rem 1.2rem}
   .ds-step-body{font-size:.92rem}
   .badge{font-size:.65rem;padding:.25rem .6rem}
@@ -440,46 +452,101 @@ const COMPONENT_CSS = `
   .fullbleed-content{padding:1.25rem 1rem}
   .fullbleed-title{font-size:clamp(1.8rem,7vw,2.5rem)}
 }
-/* ── Map2D scrollytelling block ── */
-.map2d-scrolly{display:grid;grid-template-columns:1fr var(--map-card-w,minmax(320px,420px));gap:0;max-width:var(--map-max-w,1400px);margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
-.map2d-graphic{position:sticky;top:0;height:var(--map-h,100vh);display:flex;flex-direction:column;overflow:hidden}
-.map2d-graphic-title{font-family:var(--font-display);font-size:clamp(1.1rem,2vw,1.4rem);font-weight:700;color:var(--ink-black);padding:.8rem 0 .2rem;letter-spacing:-.02em}
-.map2d-graphic-sub{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);padding-bottom:.5rem}
-.map2d-map-host{flex:1;border-radius:var(--map-radius,var(--radius-card,16px));overflow:hidden;box-shadow:var(--shadow-card);border:1px solid var(--fog,#e6e1da)}
+/* ── Map2D scrollytelling block — always fullscreen viewport ── */
+.map2d-scrolly{display:block;max-width:100%;padding:0;margin:0;position:relative;z-index:3}
+.map2d-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;z-index:1}
+.map2d-graphic-title{position:absolute;top:0;left:0;right:0;z-index:10;font-family:var(--font-display);font-size:clamp(1.2rem,2.5vw,1.6rem);font-weight:700;color:var(--ink-black);padding:1.5rem 2rem .3rem;letter-spacing:-.02em;background:linear-gradient(180deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,.7) 70%,transparent 100%);pointer-events:none}
+.map2d-graphic-sub{position:absolute;top:2.6rem;left:0;right:0;z-index:10;font-family:var(--font-body);font-size:.85rem;color:var(--graphite);padding:0 2rem .8rem;background:linear-gradient(180deg,rgba(255,255,255,.7) 0%,transparent 100%);pointer-events:none}
+.map2d-graphic-source{position:absolute;bottom:0;left:0;z-index:10;font-family:var(--font-body);font-size:.7rem;color:var(--steel);padding:.5rem 1rem;background:rgba(255,255,255,.6);backdrop-filter:blur(4px);border-radius:0 8px 0 0;pointer-events:none}
+.map2d-map-host{position:absolute;inset:0;overflow:hidden}
 .map2d-map-host .leaflet-container{width:100%;height:100%;font-family:var(--font-body)}
-.map2d-graphic-source{font-family:var(--font-body);font-size:.75rem;color:var(--steel);padding:.4rem 0}
-.map2d-steps{position:relative;z-index:4}
-.map2d-step{min-height:100vh;display:flex;align-items:center;padding:1rem 0 1rem 2rem}
-.map2d-step:first-child{padding-top:40vh}
-.map2d-step:last-child{padding-bottom:40vh}
-.map2d-step-card{background:var(--card,rgba(255,255,255,.55));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.35);border-radius:var(--radius-card,16px);padding:1.2rem 1.4rem;box-shadow:var(--shadow-card);max-width:380px;opacity:.35;transform:translateY(10px);transition:opacity .4s ease,transform .4s ease,box-shadow .4s ease}
-.map2d-step.is-active .map2d-step-card{opacity:1;transform:translateY(0);box-shadow:0 6px 32px rgba(0,0,0,.13)}
-.map2d-step-card .badge{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:.4rem}
-.map2d-step-body{font-family:var(--font-body);font-size:1rem;line-height:1.6;color:var(--ink-black);font-weight:400}
-.map2d-cap{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;line-height:1.5;font-weight:400;max-width:var(--map-max-w,1400px);margin-left:auto;margin-right:auto;padding:0 2rem}
-.map2d-credit{font-family:var(--font-body);font-size:.75rem;color:var(--steel);margin-top:.2rem;max-width:var(--map-max-w,1400px);margin-left:auto;margin-right:auto;padding:0 2rem}
-/* behind layout: full-viewport map, cards float on top */
-.map2d-scrolly.layout-behind{display:block;max-width:100%;padding:0;position:relative}
-.map2d-scrolly.layout-behind .map2d-graphic{position:fixed;top:0;left:0;right:0;height:100vh;z-index:1;border-radius:0}
-.map2d-scrolly.layout-behind .map2d-map-host{border-radius:0;box-shadow:none;border:0}
-.map2d-scrolly.layout-behind .map2d-steps{position:relative;z-index:4;max-width:420px;margin-left:auto;margin-right:2rem}
-.map2d-scrolly.layout-behind .map2d-step-card{background:rgba(255,255,255,.88);box-shadow:0 4px 20px rgba(0,0,0,.15)}
+.map2d-steps{position:relative;z-index:4;max-width:400px;margin-left:auto;margin-right:clamp(1rem,4vw,3rem)}
+.map2d-step{min-height:100vh;display:flex;align-items:center;padding:1rem 0}
+.map2d-step:first-child{padding-top:45vh}
+.map2d-step:last-child{padding-bottom:45vh}
+.map2d-step-card{background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.5);border-radius:10px;padding:1.4rem 1.6rem;box-shadow:0 4px 24px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.06);max-width:380px;opacity:.2;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease,box-shadow .5s ease}
+.map2d-step.is-active .map2d-step-card{opacity:1;transform:translateY(0);box-shadow:0 8px 40px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.06)}
+.map2d-step-card .badge{display:inline-block;font-size:.65rem;padding:3px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:.5rem}
+.map2d-step-body{font-family:var(--font-body);font-size:.95rem;line-height:1.65;color:var(--ink-black);font-weight:400}
+.map2d-cap{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;line-height:1.5;font-weight:400;padding:0 2rem}
+.map2d-credit{font-family:var(--font-body);font-size:.75rem;color:var(--steel);margin-top:.2rem;padding:0 2rem}
+/* Hide all Leaflet chrome — zoom, attribution, etc. */
+.map2d-scrolly .leaflet-control-zoom{display:none!important}
+.map2d-scrolly .leaflet-control-attribution{display:none!important}
+.map2d-scrolly .leaflet-control-layers{display:none!important}
 /* Leaflet popup styling */
-.map2d-scrolly .leaflet-popup-content-wrapper{border-radius:12px;font-family:var(--font-body);font-size:.9rem;box-shadow:0 4px 16px rgba(0,0,0,.12)}
-.map2d-scrolly .leaflet-popup-content{margin:12px 16px;line-height:1.5}
+.map2d-scrolly .leaflet-popup-content-wrapper{border-radius:10px;font-family:var(--font-body);font-size:.9rem;box-shadow:0 6px 24px rgba(0,0,0,.14)}
+.map2d-scrolly .leaflet-popup-content{margin:14px 18px;line-height:1.5}
 .map2d-scrolly .leaflet-popup-tip{display:none}
-.map2d-scrolly .leaflet-control-attribution{font-size:.65rem;background:rgba(255,255,255,.7)!important;backdrop-filter:blur(4px)}
-/* Marker styling */
-.map2d-marker{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:600;font-size:.75rem;font-family:var(--font-body);box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid #fff;transition:transform .3s ease,opacity .3s ease}
-.map2d-marker.is-hidden{transform:scale(0);opacity:0}
-.map2d-marker.is-visible{transform:scale(1);opacity:1}
-/* Route animation: stroke-dashoffset draws the path progressively */
-.map2d-scrolly .leaflet-overlay-pane svg path.map2d-route{transition:stroke-dashoffset 1.5s ease-in-out}
-.map2d-route-label{background:var(--card,rgba(255,255,255,.85));padding:2px 8px;border-radius:8px;font-family:var(--font-body);font-size:.75rem;font-weight:500;color:var(--ink-black);box-shadow:0 1px 4px rgba(0,0,0,.1);white-space:nowrap}
+/* Marker wrap — dot + name label stacked vertically */
+.map2d-marker-wrap{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%);transition:transform .4s cubic-bezier(.34,1.56,.64,1),opacity .4s ease;pointer-events:auto}
+.map2d-marker-wrap.is-hidden{transform:translate(-50%,-50%) scale(0);opacity:0}
+.map2d-marker-wrap.is-visible{transform:translate(-50%,-50%) scale(1);opacity:1}
+.map2d-marker{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;color:#fff;font-weight:700;font-size:.8rem;font-family:var(--font-body);box-shadow:0 3px 12px rgba(0,0,0,.35),0 0 0 3px rgba(255,255,255,.7);border:2.5px solid #fff}
+.map2d-marker-name{font-family:var(--font-body);font-size:.7rem;font-weight:600;color:var(--ink-black);white-space:nowrap;margin-top:4px;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);box-shadow:0 1px 4px rgba(0,0,0,.1);letter-spacing:.01em}
+/* Route animation — thicker, smoother lines */
+.map2d-scrolly .leaflet-overlay-pane svg path.map2d-route{transition:stroke-dashoffset 2s cubic-bezier(.4,0,.2,1);stroke-linecap:round;stroke-linejoin:round}
+.map2d-route-label{background:rgba(255,255,255,.92);backdrop-filter:blur(8px);padding:4px 12px;border-radius:6px;font-family:var(--font-body);font-size:.72rem;font-weight:600;color:var(--ink-black);box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap;pointer-events:none;transform:translate(-50%,-50%)}
 /* Area polygon transitions */
 .map2d-scrolly .leaflet-overlay-pane svg path.map2d-area{transition:fill-opacity .6s ease,stroke-opacity .6s ease}
-@media(max-width:900px){.map2d-scrolly{grid-template-columns:1fr;gap:0}.map2d-graphic{position:relative;height:50vh;margin-bottom:0}.map2d-step{min-height:70vh;padding-left:1rem}.map2d-step-card{max-width:100%}.map2d-scrolly.layout-behind .map2d-steps{max-width:100%;margin-right:1rem;margin-left:1rem}}
-@media(max-width:600px){.map2d-scrolly{padding:0 1rem}.map2d-graphic{height:40vh}.map2d-step{min-height:60vh}.map2d-step:first-child{padding-top:20vh}.map2d-step:last-child{padding-bottom:20vh}}
+/* layout-behind overrides — fixed instead of sticky */
+.map2d-scrolly.layout-behind .map2d-graphic{position:fixed;top:0;left:0;right:0}
+@media(max-width:900px){.map2d-steps{max-width:100%;margin-right:1rem;margin-left:1rem}.map2d-step{min-height:80vh}.map2d-step-card{max-width:100%}}
+@media(max-width:600px){.map2d-step{min-height:70vh}.map2d-step:first-child{padding-top:30vh}.map2d-step:last-child{padding-bottom:30vh}.map2d-graphic-title{font-size:1.1rem;padding:1rem 1rem .2rem}.map2d-graphic-sub{top:2.2rem;padding:0 1rem}}
+
+/* ── FullscreenImage block ── */
+.fsimg{position:relative;z-index:2;width:100%;min-height:100vh;overflow:hidden;background:#000;margin:0;padding:0}
+.fsimg-image{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.fsimg-image.ken-burns{animation:kenBurns 20s ease-in-out infinite alternate}
+@keyframes kenBurns{0%{transform:scale(1) translate(0,0)}100%{transform:scale(1.08) translate(-1%,-1%)}}
+.fsimg-scrim{position:absolute;inset:0;pointer-events:none;z-index:1}
+.fsimg-content{position:relative;z-index:2;display:flex;flex-direction:column;min-height:100vh;padding:2rem;max-width:720px;color:#fff}
+.fsimg-content.pos-bottom-left{justify-content:flex-end;align-items:flex-start;padding-bottom:5rem}
+.fsimg-content.pos-bottom-right{justify-content:flex-end;align-items:flex-end;text-align:right;margin-left:auto;padding-bottom:5rem}
+.fsimg-content.pos-center{justify-content:center;align-items:center;text-align:center;margin:0 auto}
+.fsimg-content.pos-top-left{justify-content:flex-start;align-items:flex-start;padding-top:5rem}
+.fsimg-kicker{font-family:var(--font-body);font-size:.72rem;font-weight:600;text-transform:uppercase;letter-spacing:.18em;color:rgba(255,255,255,.85);margin-bottom:.8rem;text-shadow:0 1px 6px rgba(0,0,0,.4)}
+.fsimg-title{font-family:var(--font-display);font-size:clamp(2.4rem,6vw,4.5rem);font-weight:300;color:#fff;line-height:1.05;letter-spacing:-.04em;margin-bottom:.6rem;text-shadow:0 2px 24px rgba(0,0,0,.5)}
+.fsimg-title span{color:var(--accent,#c06830)}
+.fsimg-subtitle{font-family:var(--font-body);font-size:clamp(1rem,2vw,1.3rem);color:rgba(255,255,255,.9);line-height:1.45;font-weight:400;max-width:560px;text-shadow:0 1px 10px rgba(0,0,0,.3);margin-bottom:.5rem}
+.fsimg-body{font-family:var(--font-body);font-size:1.0625rem;color:rgba(255,255,255,.82);line-height:1.6;max-width:560px;text-shadow:0 1px 8px rgba(0,0,0,.3);margin-top:.4rem}
+.fsimg-meta{position:relative;z-index:3;max-width:720px;margin:0 auto;padding:.6rem 2rem 0}
+.fsimg-caption{font-family:var(--font-body);font-size:.85rem;color:var(--graphite,#636363);line-height:1.5;font-style:italic}
+.fsimg-credit{font-family:var(--font-body);font-size:.75rem;color:var(--steel,#8c8078);margin-top:.15rem}
+.fsimg-scroll-cue{position:absolute;bottom:1.8rem;left:50%;transform:translateX(-50%);z-index:3;display:flex;flex-direction:column;align-items:center;gap:.3rem;color:rgba(255,255,255,.7);font-family:var(--font-body);font-size:.7rem;letter-spacing:.1em;text-transform:uppercase}
+.fsimg-scroll-cue .fsimg-chevron{width:20px;height:20px;border-right:2px solid rgba(255,255,255,.7);border-bottom:2px solid rgba(255,255,255,.7);transform:rotate(45deg);animation:fsimgBounce 2s ease-in-out infinite}
+@keyframes fsimgBounce{0%,100%{transform:translateY(0) rotate(45deg)}50%{transform:translateY(6px) rotate(45deg)}}
+@media(max-width:900px){.fsimg-content{padding:1.5rem 1.25rem}.fsimg-content.pos-bottom-left,.fsimg-content.pos-bottom-right{padding-bottom:4rem}.fsimg-content.pos-top-left{padding-top:4rem}}
+@media(max-width:600px){.fsimg-content{padding:1.25rem 1rem}.fsimg-title{font-size:clamp(1.8rem,7vw,2.5rem)}.fsimg-meta{padding:.5rem 1rem 0}}
+
+/* ── AudioPlayer block ── */
+.audioplayer{max-width:720px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3;background:var(--canvas,#fff)}
+.audioplayer-card{display:flex;gap:1.2rem;background:var(--card,#fff);border-radius:10px;padding:1.5rem;box-shadow:0 2px 16px rgba(0,0,0,.08);border:1px solid rgba(0,0,0,.06)}
+.audioplayer-cover{width:96px;height:96px;border-radius:10px;object-fit:cover;flex-shrink:0}
+.audioplayer-body{flex:1;min-width:0;display:flex;flex-direction:column}
+.audioplayer-title{font-family:var(--font-display);font-size:1.3rem;font-weight:500;color:var(--ink-black,#2a2320);line-height:1.2;letter-spacing:-.02em;margin-bottom:.15rem}
+.audioplayer-subtitle{font-family:var(--font-body);font-size:.82rem;color:var(--graphite,#636363);font-weight:500;letter-spacing:.04em;text-transform:uppercase;margin-bottom:.4rem}
+.audioplayer-desc{font-family:var(--font-body);font-size:.92rem;color:var(--steel,#8c8078);line-height:1.5;margin-bottom:.8rem}
+.audioplayer-controls{display:flex;align-items:center;gap:.8rem}
+.audioplayer-play{width:48px;height:48px;border-radius:50%;border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:transform .15s ease,box-shadow .15s ease}
+.audioplayer-play:hover{transform:scale(1.06);box-shadow:0 3px 12px rgba(0,0,0,.15)}
+.audioplayer-play svg{width:20px;height:20px;fill:#fff}
+.audioplayer-right{flex:1;min-width:0;display:flex;flex-direction:column;gap:.35rem}
+.audioplayer-waveform{display:flex;align-items:flex-end;gap:1.5px;height:32px;cursor:pointer;position:relative}
+.audioplayer-bar{flex:1;border-radius:1px;transition:background .15s ease;min-width:1px}
+.audioplayer-progress{position:relative;height:4px;background:rgba(0,0,0,.08);border-radius:2px;cursor:pointer;overflow:hidden}
+.audioplayer-progress-fill{position:absolute;top:0;left:0;height:100%;border-radius:2px;width:0%;transition:width .1s linear}
+.audioplayer-time{display:flex;justify-content:space-between;font-family:var(--font-body);font-size:.72rem;color:var(--steel,#8c8078);font-variant-numeric:tabular-nums}
+.audioplayer-transcript{margin-top:1rem}
+.audioplayer-transcript-toggle{background:none;border:none;cursor:pointer;font-family:var(--font-body);font-size:.85rem;color:var(--accent,#c06830);font-weight:500;padding:0;display:flex;align-items:center;gap:.3rem}
+.audioplayer-transcript-toggle::after{content:'\\25BC';font-size:.6rem;transition:transform .2s ease}
+.audioplayer-transcript-toggle.open::after{transform:rotate(180deg)}
+.audioplayer-transcript-text{font-family:var(--font-body);font-size:.92rem;line-height:1.65;color:var(--ink-black,#2a2320);padding-top:.8rem;max-height:0;overflow:hidden;transition:max-height .3s ease,padding .3s ease}
+.audioplayer-transcript-text.open{max-height:600px;overflow-y:auto}
+.audioplayer-meta{max-width:720px;margin:.5rem auto 0;padding:0 2rem}
+.audioplayer-caption{font-family:var(--font-body);font-size:.85rem;color:var(--graphite,#636363);font-style:italic;line-height:1.5}
+.audioplayer-credit{font-family:var(--font-body);font-size:.75rem;color:var(--steel,#8c8078);margin-top:.15rem}
+@media(max-width:600px){.audioplayer{padding:0 1rem}.audioplayer-card{flex-direction:column;padding:1.2rem}.audioplayer-cover{width:100%;height:160px}.audioplayer-meta{padding:0 1rem}}
 `;
 
 function injectComponentCSS() {
@@ -564,19 +631,24 @@ async function wireMap2D(blockId, d) {
   if (!steps.length) return;
 
   // Tile URLs
+  // Tile providers — prefer label-free/minimal variants to avoid text overlap
+  const STADIA = 'https://tiles.stadiamaps.com/tiles/';
   const TILES = {
-    default:      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-    toner:        'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png',
-    watercolor:   'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg',
-    'toner-lite': 'https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
-    dark:         'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+    default:      STADIA + 'stamen_toner_background/{z}/{x}/{y}{r}.png',
+    clean:        STADIA + 'alidade_smooth/{z}/{x}/{y}{r}.png',
+    toner:        STADIA + 'stamen_toner_background/{z}/{x}/{y}{r}.png',
+    'toner-lite': STADIA + 'stamen_toner_lite/{z}/{x}/{y}{r}.png',
+    watercolor:   STADIA + 'stamen_watercolor/{z}/{x}/{y}.jpg',
+    dark:         STADIA + 'alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+    'dark-nolabel': STADIA + 'alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+    osm:          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   };
+  const STADIA_ATTR = '&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>';
   const ATTR = {
-    default:    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-    toner:      '&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://stamen.com/">Stamen</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-    watercolor: '&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://stamen.com/">Stamen</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-    'toner-lite':'&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://stamen.com/">Stamen</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
-    dark:       '&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    default: STADIA_ATTR, clean: STADIA_ATTR, toner: STADIA_ATTR,
+    'toner-lite': STADIA_ATTR, watercolor: STADIA_ATTR,
+    dark: STADIA_ATTR, 'dark-nolabel': STADIA_ATTR,
+    osm: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   };
 
   function resolveColor(color) {
@@ -595,9 +667,14 @@ async function wireMap2D(blockId, d) {
   const map = L.map(host, {
     center: initCenter,
     zoom: initZoom,
-    scrollWheelZoom: d.scrollZoom === true,
-    zoomControl: d.zoomControl !== false,
-    attributionControl: true,
+    scrollWheelZoom: false,
+    zoomControl: false,
+    attributionControl: false,
+    dragging: false,
+    doubleClickZoom: false,
+    touchZoom: false,
+    boxZoom: false,
+    keyboard: false,
     preferCanvas: false,
   });
 
@@ -607,16 +684,17 @@ async function wireMap2D(blockId, d) {
   }).addTo(map);
   let currentTileKey = initTile;
 
-  // Create all markers (initially hidden)
+  // Create all markers (initially hidden) — each gets a dot + name label below
   const markerMap = {};
   (d.markers || []).forEach((m) => {
     const color = resolveColor(m.color);
+    const nameHtml = m.name ? '<div class="map2d-marker-name">' + escapeHtml(m.name) + '</div>' : '';
     const icon = L.divIcon({
       className: '',
-      html: '<div class="map2d-marker is-hidden" style="background:' + color + '">' + escapeHtml(m.label || '') + '</div>',
-      iconSize: [28, 28],
-      iconAnchor: [14, 14],
-      popupAnchor: [0, -18],
+      html: '<div class="map2d-marker-wrap is-hidden"><div class="map2d-marker" style="background:' + color + '">' + escapeHtml(m.label || '') + '</div>' + nameHtml + '</div>',
+      iconSize: [0, 0],
+      iconAnchor: [0, 0],
+      popupAnchor: [0, -24],
     });
     const marker = L.marker([m.lat, m.lng], { icon: icon }).addTo(map);
     if (m.popupHtml) marker.bindPopup(m.popupHtml, { maxWidth: 280, closeButton: true });
@@ -624,7 +702,7 @@ async function wireMap2D(blockId, d) {
     requestAnimationFrame(() => {
       const markerEl = marker.getElement();
       if (markerEl) {
-        const inner = markerEl.querySelector('.map2d-marker');
+        const inner = markerEl.querySelector('.map2d-marker-wrap');
         markerMap[m.id || ('m' + m.lat + m.lng)].el = inner;
       }
     });
@@ -637,9 +715,11 @@ async function wireMap2D(blockId, d) {
     const color = resolveColor(r.color);
     const line = L.polyline(r.points, {
       color: color,
-      weight: r.weight || 3,
+      weight: r.weight || 4,
       opacity: 0,
       dashArray: r.dashArray || null,
+      lineCap: 'round',
+      lineJoin: 'round',
       className: 'map2d-route',
     }).addTo(map);
     routeMap[r.id || ('r' + JSON.stringify(r.points[0]))] = {
@@ -650,13 +730,15 @@ async function wireMap2D(blockId, d) {
     };
 
     if (r.label) {
-      const mid = r.points[Math.floor(r.points.length / 2)];
+      // Place label at ~30% along the route to avoid marker clusters at endpoints/midpoints
+      const labelIdx = Math.max(0, Math.floor(r.points.length * 0.3));
+      const labelPos = r.points[labelIdx];
       const labelIcon = L.divIcon({
         className: '',
         html: '<div class="map2d-route-label" style="opacity:0;transition:opacity .6s">' + escapeHtml(r.label) + '</div>',
         iconSize: [0, 0],
       });
-      const labelMarker = L.marker(mid, { icon: labelIcon, interactive: false }).addTo(map);
+      const labelMarker = L.marker(labelPos, { icon: labelIcon, interactive: false }).addTo(map);
       routeMap[r.id || ('r' + JSON.stringify(r.points[0]))].labelMarker = labelMarker;
     }
   });
@@ -808,6 +890,245 @@ async function wireMap2D(blockId, d) {
   setTimeout(() => map.invalidateSize(), 300);
 }
 
+// ───────── FullscreenImage ─────────
+function renderFullscreenImage(d) {
+  const sec = el('section', { class: 'fsimg' });
+
+  const imgCls = 'fsimg-image' + (d.kenBurns !== false ? ' ken-burns' : '');
+  sec.appendChild(el('img', {
+    class: imgCls,
+    src: d.imageSrc || '',
+    alt: d.imageAlt || d.title || '',
+    loading: 'lazy',
+  }));
+
+  // Scrim gradient
+  const opacity = d.scrimOpacity != null ? d.scrimOpacity : 0.45;
+  const dir = d.scrimDirection || 'bottom';
+  let gradient;
+  if (dir === 'top') {
+    gradient = `linear-gradient(0deg,rgba(0,0,0,${opacity * 0.2}) 0%,rgba(0,0,0,${opacity}) 70%,rgba(0,0,0,${opacity * 1.1}) 100%)`;
+  } else if (dir === 'radial') {
+    gradient = `radial-gradient(ellipse at center,rgba(0,0,0,${opacity * 0.2}) 0%,rgba(0,0,0,${opacity}) 80%)`;
+  } else {
+    gradient = `linear-gradient(180deg,rgba(0,0,0,${opacity * 0.2}) 0%,rgba(0,0,0,${opacity}) 70%,rgba(0,0,0,${opacity * 1.1}) 100%)`;
+  }
+  sec.appendChild(el('div', {
+    class: 'fsimg-scrim',
+    style: `background:${gradient}`,
+    'aria-hidden': 'true',
+  }));
+
+  // Content overlay
+  const pos = d.overlayPosition || 'bottom-left';
+  const posCls = 'pos-' + pos.replace(/\s+/g, '-');
+  const content = el('div', { class: `fsimg-content ${posCls}` });
+  if (d.kicker) content.appendChild(el('div', { class: 'fsimg-kicker' }, d.kicker));
+  if (d.title) {
+    const h = el('h2', { class: 'fsimg-title' });
+    h.innerHTML = d.title;
+    content.appendChild(h);
+  }
+  if (d.subtitle) content.appendChild(el('p', { class: 'fsimg-subtitle' }, d.subtitle));
+  if (d.body) {
+    const p = el('p', { class: 'fsimg-body' });
+    p.innerHTML = d.body;
+    content.appendChild(p);
+  }
+  sec.appendChild(content);
+
+  // Scroll cue
+  if (d.scrollCue) {
+    const cue = el('div', { class: 'fsimg-scroll-cue' });
+    cue.appendChild(el('span', {}, 'scroll'));
+    cue.appendChild(el('span', { class: 'fsimg-chevron' }));
+    sec.appendChild(cue);
+  }
+
+  // Caption / credit below
+  if (d.caption || d.credit) {
+    const meta = el('div', { class: 'fsimg-meta' });
+    if (d.caption) meta.appendChild(el('div', { class: 'fsimg-caption' }, d.caption));
+    if (d.credit) meta.appendChild(el('div', { class: 'fsimg-credit' }, d.credit));
+    // Meta goes outside the image container — append to a wrapper
+    const wrap = el('div');
+    wrap.appendChild(sec);
+    wrap.appendChild(meta);
+    return wrap;
+  }
+
+  return sec;
+}
+
+// ───────── AudioPlayer ─────────
+function renderAudioPlayer(d, block) {
+  const sec = el('section', { class: 'audioplayer' });
+  const card = el('div', { class: 'audioplayer-card' });
+
+  // Cover art
+  if (d.coverSrc) {
+    card.appendChild(el('img', {
+      class: 'audioplayer-cover',
+      src: d.coverSrc,
+      alt: d.title || 'Cover',
+      loading: 'lazy',
+    }));
+  }
+
+  const body = el('div', { class: 'audioplayer-body' });
+
+  // Info
+  if (d.subtitle) body.appendChild(el('div', { class: 'audioplayer-subtitle' }, d.subtitle));
+  if (d.title) body.appendChild(el('div', { class: 'audioplayer-title' }, d.title));
+  if (d.description) body.appendChild(el('div', { class: 'audioplayer-desc' }, d.description));
+
+  // Controls
+  const controls = el('div', { class: 'audioplayer-controls' });
+
+  const accent = d.accentColor || 'var(--accent, #c06830)';
+  const waveColor = d.waveformColor || accent;
+
+  // Play button
+  const playBtn = el('button', {
+    class: 'audioplayer-play',
+    'aria-label': 'Play',
+    style: `background:${accent}`,
+  });
+  playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  controls.appendChild(playBtn);
+
+  const right = el('div', { class: 'audioplayer-right' });
+
+  // Waveform bars — deterministic pseudo-random from block id
+  const waveWrap = el('div', { class: 'audioplayer-waveform' });
+  const seed = (block && block.id ? block.id : 'default').split('').reduce((a, c) => ((a << 5) - a + c.charCodeAt(0)) | 0, 0);
+  const barCount = 60;
+  for (let i = 0; i < barCount; i++) {
+    const h = 20 + Math.abs(Math.sin(seed * 0.017 + i * 0.4) * 70 + Math.cos(seed * 0.031 + i * 0.7) * 30);
+    const bar = el('div', {
+      class: 'audioplayer-bar',
+      style: `height:${Math.min(100, h)}%;background:${waveColor};opacity:0.35`,
+      'data-idx': String(i),
+    });
+    waveWrap.appendChild(bar);
+  }
+  right.appendChild(waveWrap);
+
+  // Progress bar
+  const progress = el('div', { class: 'audioplayer-progress' });
+  const progressFill = el('div', {
+    class: 'audioplayer-progress-fill',
+    style: `background:${accent}`,
+  });
+  progress.appendChild(progressFill);
+  right.appendChild(progress);
+
+  // Time display
+  const timeRow = el('div', { class: 'audioplayer-time' });
+  const timeCurrent = el('span', {}, '0:00');
+  const timeTotal = el('span', {}, d.duration || '0:00');
+  timeRow.appendChild(timeCurrent);
+  timeRow.appendChild(timeTotal);
+  right.appendChild(timeRow);
+
+  controls.appendChild(right);
+  body.appendChild(controls);
+
+  // Transcript
+  if (d.transcript) {
+    const txWrap = el('div', { class: 'audioplayer-transcript' });
+    const toggle = el('button', { class: 'audioplayer-transcript-toggle' }, 'Transcript');
+    const txText = el('div', { class: 'audioplayer-transcript-text' });
+    txText.textContent = d.transcript;
+    toggle.addEventListener('click', () => {
+      toggle.classList.toggle('open');
+      txText.classList.toggle('open');
+    });
+    txWrap.appendChild(toggle);
+    txWrap.appendChild(txText);
+    body.appendChild(txWrap);
+  }
+
+  card.appendChild(body);
+  sec.appendChild(card);
+
+  // Caption / credit
+  if (d.caption || d.credit) {
+    const meta = el('div', { class: 'audioplayer-meta' });
+    if (d.caption) meta.appendChild(el('div', { class: 'audioplayer-caption' }, d.caption));
+    if (d.credit) meta.appendChild(el('div', { class: 'audioplayer-credit' }, d.credit));
+    sec.appendChild(meta);
+  }
+
+  // Wire up audio functionality
+  const audio = document.createElement('audio');
+  audio.preload = 'metadata';
+  if (d.audioSrc) audio.src = d.audioSrc;
+
+  let playing = false;
+
+  function formatTime(s) {
+    if (!s || !isFinite(s)) return '0:00';
+    const m = Math.floor(s / 60);
+    const sec = Math.floor(s % 60);
+    return m + ':' + (sec < 10 ? '0' : '') + sec;
+  }
+
+  function updateProgress() {
+    if (!audio.duration) return;
+    const pct = (audio.currentTime / audio.duration) * 100;
+    progressFill.style.width = pct + '%';
+    timeCurrent.textContent = formatTime(audio.currentTime);
+    // Update waveform bar highlights
+    const bars = waveWrap.children;
+    const activeIdx = Math.floor((pct / 100) * bars.length);
+    for (let i = 0; i < bars.length; i++) {
+      bars[i].style.opacity = i <= activeIdx ? '1' : '0.35';
+    }
+  }
+
+  audio.addEventListener('loadedmetadata', () => {
+    timeTotal.textContent = formatTime(audio.duration);
+  });
+  audio.addEventListener('timeupdate', updateProgress);
+  audio.addEventListener('ended', () => {
+    playing = false;
+    playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  });
+
+  playBtn.addEventListener('click', () => {
+    if (playing) {
+      audio.pause();
+      playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    } else {
+      audio.play().catch(() => {});
+      playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+    }
+    playing = !playing;
+  });
+
+  // Seekable progress bar
+  progress.addEventListener('click', (e) => {
+    if (!audio.duration) return;
+    const rect = progress.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = pct * audio.duration;
+    updateProgress();
+  });
+
+  // Seekable waveform
+  waveWrap.addEventListener('click', (e) => {
+    if (!audio.duration) return;
+    const rect = waveWrap.getBoundingClientRect();
+    const pct = (e.clientX - rect.left) / rect.width;
+    audio.currentTime = pct * audio.duration;
+    updateProgress();
+  });
+
+  sec.appendChild(audio);
+  return sec;
+}
+
 const BLOCK_RENDERERS = {
   Hero:           renderHero,
   VizPanel:       renderVizPanel,
@@ -829,6 +1150,8 @@ const BLOCK_RENDERERS = {
   EmbedBlock:     renderEmbed,
   ImageGrid:      renderImageGrid,
   Map2D:          renderMap2D,
+  FullscreenImage: renderFullscreenImage,
+  AudioPlayer:     renderAudioPlayer,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -881,6 +1204,28 @@ export async function render(jsonUrl, rootSelector = '#page-root') {
   const root = document.querySelector(rootSelector);
   if (!root) throw new Error(`render: root ${rootSelector} not found`);
 
+  // ── Page background image ──
+  const bg = doc.background;
+  let pageBgEl = null;
+  if (bg && bg.imageSrc) {
+    pageBgEl = document.getElementById('page-bg');
+    if (!pageBgEl) {
+      pageBgEl = document.createElement('div');
+      pageBgEl.id = 'page-bg';
+      const img = document.createElement('img');
+      img.id = 'page-bg-img';
+      img.src = bg.imageSrc;
+      img.alt = '';
+      img.setAttribute('aria-hidden', 'true');
+      pageBgEl.appendChild(img);
+      document.body.insertBefore(pageBgEl, document.body.firstChild);
+    } else {
+      const img = pageBgEl.querySelector('img');
+      if (img) img.src = bg.imageSrc;
+    }
+    pageBgEl.style.opacity = String(bg.defaultOpacity != null ? bg.defaultOpacity : 0.15);
+  }
+
   for (const block of (doc.blocks || [])) {
     const fn = BLOCK_RENDERERS[block.type];
     if (!fn) {
@@ -888,7 +1233,41 @@ export async function render(jsonUrl, rootSelector = '#page-root') {
       continue;
     }
     const node = fn(block.data || {}, block);
-    if (node) root.appendChild(node);
+    if (node) {
+      // Tag each rendered section with block id + bg opacity for the observer
+      if (node.nodeType === 1) {
+        node.dataset.blockId = block.id;
+        if (block.data && block.data.bgOpacity != null) {
+          node.dataset.bgOpacity = String(block.data.bgOpacity);
+        }
+      }
+      root.appendChild(node);
+    }
+  }
+
+  // ── Background opacity observer — smooth per-block transitions ──
+  if (pageBgEl) {
+    const defaultOp = bg.defaultOpacity != null ? bg.defaultOpacity : 0.15;
+    const sections = root.querySelectorAll('[data-block-id]');
+    if (sections.length) {
+      const bgObs = new IntersectionObserver((entries) => {
+        // Find the most-visible section currently intersecting
+        let best = null;
+        let bestRatio = 0;
+        entries.forEach(e => {
+          if (e.isIntersecting && e.intersectionRatio > bestRatio) {
+            best = e.target;
+            bestRatio = e.intersectionRatio;
+          }
+        });
+        if (best && best.dataset.bgOpacity != null) {
+          pageBgEl.style.opacity = best.dataset.bgOpacity;
+        } else if (best) {
+          pageBgEl.style.opacity = String(defaultOp);
+        }
+      }, { threshold: [0, 0.25, 0.5, 0.75] });
+      sections.forEach(s => bgObs.observe(s));
+    }
   }
 
   // Collect all footnote refs into a single endnotes section at the bottom.
