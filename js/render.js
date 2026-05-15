@@ -26,6 +26,27 @@ function loadDSChart() {
   return _dsChartModule;
 }
 
+let _leafletReady = null;
+
+function loadLeaflet() {
+  if (_leafletReady) return _leafletReady;
+  _leafletReady = new Promise((resolve, reject) => {
+    if (window.L) { resolve(window.L); return; }
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    link.crossOrigin = '';
+    document.head.appendChild(link);
+    const script = document.createElement('script');
+    script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    script.crossOrigin = '';
+    script.onload = () => resolve(window.L);
+    script.onerror = () => reject(new Error('Failed to load Leaflet'));
+    document.head.appendChild(script);
+  });
+  return _leafletReady;
+}
+
 // CSS for components introduced after the original site. Injected once on first render
 // so every page that uses render.js automatically picks up the new component styles.
 const COMPONENT_CSS = `
@@ -175,10 +196,11 @@ const COMPONENT_CSS = `
 .badge{display:inline-block;font-family:var(--font-body);font-size:.7rem;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:.3rem .75rem;border-radius:var(--radius-pill,100px);line-height:1.2;white-space:nowrap;vertical-align:middle}
 
 /* ── Scrolly (sticky image left, text cards right) ── */
-.scrolly{display:grid;grid-template-columns:1fr 420px;gap:0;max-width:1400px;margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
-.scrolly__sticky{position:sticky;top:0;height:100vh;display:flex;align-items:center;justify-content:center;overflow:hidden}
+/* All sizes driven by --scrolly-img-w and --scrolly-img-h custom props set by renderer */
+.scrolly{display:grid;grid-template-columns:var(--scrolly-img-w,1fr) var(--scrolly-card-w,minmax(320px,420px));gap:0;max-width:var(--scrolly-max-w,1400px);margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
+.scrolly__sticky{position:sticky;top:0;height:var(--scrolly-img-h,100vh);display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:var(--scrolly-img-radius,0)}
 .scrolly__images{position:relative;width:100%;height:100%}
-.scrolly__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s ease}
+.scrolly__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s ease;border-radius:var(--scrolly-img-radius,0)}
 .scrolly__img.active{opacity:1}
 .scrolly__img-ph{display:flex;align-items:center;justify-content:center;background:var(--fog,#f0f0f0);color:var(--graphite,#666)}
 .scrolly__ph-label{font-family:var(--font-display);font-size:clamp(1.2rem,3vw,2rem);font-weight:300;letter-spacing:-.02em;opacity:.4;text-align:center;padding:2rem}
@@ -418,6 +440,46 @@ const COMPONENT_CSS = `
   .fullbleed-content{padding:1.25rem 1rem}
   .fullbleed-title{font-size:clamp(1.8rem,7vw,2.5rem)}
 }
+/* ── Map2D scrollytelling block ── */
+.map2d-scrolly{display:grid;grid-template-columns:1fr var(--map-card-w,minmax(320px,420px));gap:0;max-width:var(--map-max-w,1400px);margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
+.map2d-graphic{position:sticky;top:0;height:var(--map-h,100vh);display:flex;flex-direction:column;overflow:hidden}
+.map2d-graphic-title{font-family:var(--font-display);font-size:clamp(1.1rem,2vw,1.4rem);font-weight:700;color:var(--ink-black);padding:.8rem 0 .2rem;letter-spacing:-.02em}
+.map2d-graphic-sub{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);padding-bottom:.5rem}
+.map2d-map-host{flex:1;border-radius:var(--map-radius,var(--radius-card,16px));overflow:hidden;box-shadow:var(--shadow-card);border:1px solid var(--fog,#e6e1da)}
+.map2d-map-host .leaflet-container{width:100%;height:100%;font-family:var(--font-body)}
+.map2d-graphic-source{font-family:var(--font-body);font-size:.75rem;color:var(--steel);padding:.4rem 0}
+.map2d-steps{position:relative;z-index:4}
+.map2d-step{min-height:100vh;display:flex;align-items:center;padding:1rem 0 1rem 2rem}
+.map2d-step:first-child{padding-top:40vh}
+.map2d-step:last-child{padding-bottom:40vh}
+.map2d-step-card{background:var(--card,rgba(255,255,255,.55));backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.35);border-radius:var(--radius-card,16px);padding:1.2rem 1.4rem;box-shadow:var(--shadow-card);max-width:380px;opacity:.35;transform:translateY(10px);transition:opacity .4s ease,transform .4s ease,box-shadow .4s ease}
+.map2d-step.is-active .map2d-step-card{opacity:1;transform:translateY(0);box-shadow:0 6px 32px rgba(0,0,0,.13)}
+.map2d-step-card .badge{display:inline-block;font-size:.7rem;padding:2px 8px;border-radius:4px;text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:.4rem}
+.map2d-step-body{font-family:var(--font-body);font-size:1rem;line-height:1.6;color:var(--ink-black);font-weight:400}
+.map2d-cap{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;line-height:1.5;font-weight:400;max-width:var(--map-max-w,1400px);margin-left:auto;margin-right:auto;padding:0 2rem}
+.map2d-credit{font-family:var(--font-body);font-size:.75rem;color:var(--steel);margin-top:.2rem;max-width:var(--map-max-w,1400px);margin-left:auto;margin-right:auto;padding:0 2rem}
+/* behind layout: full-viewport map, cards float on top */
+.map2d-scrolly.layout-behind{display:block;max-width:100%;padding:0;position:relative}
+.map2d-scrolly.layout-behind .map2d-graphic{position:fixed;top:0;left:0;right:0;height:100vh;z-index:1;border-radius:0}
+.map2d-scrolly.layout-behind .map2d-map-host{border-radius:0;box-shadow:none;border:0}
+.map2d-scrolly.layout-behind .map2d-steps{position:relative;z-index:4;max-width:420px;margin-left:auto;margin-right:2rem}
+.map2d-scrolly.layout-behind .map2d-step-card{background:rgba(255,255,255,.88);box-shadow:0 4px 20px rgba(0,0,0,.15)}
+/* Leaflet popup styling */
+.map2d-scrolly .leaflet-popup-content-wrapper{border-radius:12px;font-family:var(--font-body);font-size:.9rem;box-shadow:0 4px 16px rgba(0,0,0,.12)}
+.map2d-scrolly .leaflet-popup-content{margin:12px 16px;line-height:1.5}
+.map2d-scrolly .leaflet-popup-tip{display:none}
+.map2d-scrolly .leaflet-control-attribution{font-size:.65rem;background:rgba(255,255,255,.7)!important;backdrop-filter:blur(4px)}
+/* Marker styling */
+.map2d-marker{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:600;font-size:.75rem;font-family:var(--font-body);box-shadow:0 2px 8px rgba(0,0,0,.3);border:2px solid #fff;transition:transform .3s ease,opacity .3s ease}
+.map2d-marker.is-hidden{transform:scale(0);opacity:0}
+.map2d-marker.is-visible{transform:scale(1);opacity:1}
+/* Route animation: stroke-dashoffset draws the path progressively */
+.map2d-scrolly .leaflet-overlay-pane svg path.map2d-route{transition:stroke-dashoffset 1.5s ease-in-out}
+.map2d-route-label{background:var(--card,rgba(255,255,255,.85));padding:2px 8px;border-radius:8px;font-family:var(--font-body);font-size:.75rem;font-weight:500;color:var(--ink-black);box-shadow:0 1px 4px rgba(0,0,0,.1);white-space:nowrap}
+/* Area polygon transitions */
+.map2d-scrolly .leaflet-overlay-pane svg path.map2d-area{transition:fill-opacity .6s ease,stroke-opacity .6s ease}
+@media(max-width:900px){.map2d-scrolly{grid-template-columns:1fr;gap:0}.map2d-graphic{position:relative;height:50vh;margin-bottom:0}.map2d-step{min-height:70vh;padding-left:1rem}.map2d-step-card{max-width:100%}.map2d-scrolly.layout-behind .map2d-steps{max-width:100%;margin-right:1rem;margin-left:1rem}}
+@media(max-width:600px){.map2d-scrolly{padding:0 1rem}.map2d-graphic{height:40vh}.map2d-step{min-height:60vh}.map2d-step:first-child{padding-top:20vh}.map2d-step:last-child{padding-bottom:20vh}}
 `;
 
 function injectComponentCSS() {
@@ -426,6 +488,324 @@ function injectComponentCSS() {
   tag.id = '__component_css__';
   tag.textContent = COMPONENT_CSS;
   document.head.appendChild(tag);
+}
+
+// ───────── Map2D Scrollytelling ─────────
+function renderMap2D(d, block) {
+  const layoutCls = d.layout === 'behind' ? 'layout-behind' : 'layout-side';
+  const sec = el('section', { class: `map2d-scrolly ${layoutCls}`, 'data-map-id': block.id });
+
+  // Data-driven sizing
+  if (d.height) sec.style.setProperty('--map-h', d.height);
+  if (d.maxWidth) sec.style.setProperty('--map-max-w', d.maxWidth);
+  if (d.mapRadius) sec.style.setProperty('--map-radius', d.mapRadius);
+  if (d.cardWidth) sec.style.setProperty('--map-card-w', d.cardWidth);
+
+  // Sticky map panel
+  const graphic = el('div', { class: 'map2d-graphic' });
+  if (d.title) graphic.appendChild(el('div', { class: 'map2d-graphic-title' }, d.title));
+  if (d.subtitle) graphic.appendChild(el('div', { class: 'map2d-graphic-sub' }, d.subtitle));
+  const mapHost = el('div', { class: 'map2d-map-host', id: 'map2d-host-' + block.id });
+  graphic.appendChild(mapHost);
+  if (d.source) graphic.appendChild(el('div', { class: 'map2d-graphic-source' }, d.source));
+  sec.appendChild(graphic);
+
+  // Scrolling step cards
+  const stepsCol = el('div', { class: 'map2d-steps' });
+  (d.steps || []).forEach((step, i) => {
+    const stepEl = el('div', {
+      class: 'map2d-step' + (i === 0 ? ' is-active' : ''),
+      'data-map-id': block.id,
+      'data-map-idx': String(i),
+    });
+    const card = el('div', { class: 'map2d-step-card' });
+    if (step.badgeLabel) {
+      card.appendChild(el('div', {
+        class: 'badge b-' + (step.badgeKind || 'data'),
+      }, step.badgeLabel));
+    }
+    if (step.heading) card.appendChild(el('h3', { class: 'map2d-step-heading', style: 'font-family:var(--font-display);font-size:1.15rem;font-weight:500;margin-bottom:.4rem' }, step.heading));
+    const body = el('div', { class: 'map2d-step-body' });
+    body.innerHTML = step.body || '';
+    card.appendChild(body);
+    stepEl.appendChild(card);
+    stepsCol.appendChild(stepEl);
+  });
+  sec.appendChild(stepsCol);
+
+  if (d.caption) {
+    const cap = el('p', { class: 'map2d-cap' }, d.caption);
+    sec.appendChild(cap);
+  }
+  if (d.credit) {
+    const cred = el('p', { class: 'map2d-credit' }, d.credit);
+    sec.appendChild(cred);
+  }
+
+  // Wire Leaflet after DOM mount (same pattern as DataScrolly)
+  Promise.resolve().then(() => wireMap2D(block.id, d));
+  return sec;
+}
+
+async function wireMap2D(blockId, d) {
+  let L;
+  try {
+    L = await loadLeaflet();
+  } catch (err) {
+    console.error('Leaflet failed to load:', err);
+    const host = document.getElementById('map2d-host-' + blockId);
+    if (host) host.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;background:var(--fog,#e6e1da);color:var(--graphite,#6b6158);font-family:var(--font-body);font-size:.9rem;padding:2rem;text-align:center">Map could not load. Please refresh.</div>';
+    return;
+  }
+
+  const host = document.getElementById('map2d-host-' + blockId);
+  if (!host) return;
+  const steps = Array.from(document.querySelectorAll('.map2d-step[data-map-id="' + blockId + '"]'));
+  if (!steps.length) return;
+
+  // Tile URLs
+  const TILES = {
+    default:      'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    toner:        'https://tiles.stadiamaps.com/tiles/stamen_toner/{z}/{x}/{y}{r}.png',
+    watercolor:   'https://tiles.stadiamaps.com/tiles/stamen_watercolor/{z}/{x}/{y}.jpg',
+    'toner-lite': 'https://tiles.stadiamaps.com/tiles/stamen_toner_lite/{z}/{x}/{y}{r}.png',
+    dark:         'https://tiles.stadiamaps.com/tiles/alidade_smooth_dark/{z}/{x}/{y}{r}.png',
+  };
+  const ATTR = {
+    default:    '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    toner:      '&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://stamen.com/">Stamen</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    watercolor: '&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://stamen.com/">Stamen</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    'toner-lite':'&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://stamen.com/">Stamen</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+    dark:       '&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>',
+  };
+
+  function resolveColor(color) {
+    if (!color || color.startsWith('var(')) {
+      return getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#c06830';
+    }
+    return color;
+  }
+
+  const initCenter = Array.isArray(d.initialCenter) && d.initialCenter.length === 2
+    ? d.initialCenter : [52.52, 13.405];
+  const initZoom = d.initialZoom != null ? d.initialZoom : 6;
+  const initTile = TILES[d.tileStyle] ? d.tileStyle : 'default';
+  const flyDuration = d.flyDuration != null ? d.flyDuration : 2;
+
+  const map = L.map(host, {
+    center: initCenter,
+    zoom: initZoom,
+    scrollWheelZoom: d.scrollZoom === true,
+    zoomControl: d.zoomControl !== false,
+    attributionControl: true,
+    preferCanvas: false,
+  });
+
+  let currentTileLayer = L.tileLayer(TILES[initTile], {
+    attribution: ATTR[initTile] || ATTR.default,
+    maxZoom: 19,
+  }).addTo(map);
+  let currentTileKey = initTile;
+
+  // Create all markers (initially hidden)
+  const markerMap = {};
+  (d.markers || []).forEach((m) => {
+    const color = resolveColor(m.color);
+    const icon = L.divIcon({
+      className: '',
+      html: '<div class="map2d-marker is-hidden" style="background:' + color + '">' + escapeHtml(m.label || '') + '</div>',
+      iconSize: [28, 28],
+      iconAnchor: [14, 14],
+      popupAnchor: [0, -18],
+    });
+    const marker = L.marker([m.lat, m.lng], { icon: icon }).addTo(map);
+    if (m.popupHtml) marker.bindPopup(m.popupHtml, { maxWidth: 280, closeButton: true });
+    markerMap[m.id || ('m' + m.lat + m.lng)] = { marker: marker, el: null };
+    requestAnimationFrame(() => {
+      const markerEl = marker.getElement();
+      if (markerEl) {
+        const inner = markerEl.querySelector('.map2d-marker');
+        markerMap[m.id || ('m' + m.lat + m.lng)].el = inner;
+      }
+    });
+  });
+
+  // Create all routes (initially hidden)
+  const routeMap = {};
+  (d.routes || []).forEach((r) => {
+    if (!r.points || r.points.length < 2) return;
+    const color = resolveColor(r.color);
+    const line = L.polyline(r.points, {
+      color: color,
+      weight: r.weight || 3,
+      opacity: 0,
+      dashArray: r.dashArray || null,
+      className: 'map2d-route',
+    }).addTo(map);
+    routeMap[r.id || ('r' + JSON.stringify(r.points[0]))] = {
+      line: line,
+      points: r.points,
+      animate: r.animate !== false,
+      revealed: false,
+    };
+
+    if (r.label) {
+      const mid = r.points[Math.floor(r.points.length / 2)];
+      const labelIcon = L.divIcon({
+        className: '',
+        html: '<div class="map2d-route-label" style="opacity:0;transition:opacity .6s">' + escapeHtml(r.label) + '</div>',
+        iconSize: [0, 0],
+      });
+      const labelMarker = L.marker(mid, { icon: labelIcon, interactive: false }).addTo(map);
+      routeMap[r.id || ('r' + JSON.stringify(r.points[0]))].labelMarker = labelMarker;
+    }
+  });
+
+  // Create all areas (initially hidden)
+  const areaMap = {};
+  (d.areas || []).forEach((a) => {
+    if (!a.points || a.points.length < 3) return;
+    const color = resolveColor(a.color);
+    const polygon = L.polygon(a.points, {
+      color: color,
+      fillColor: color,
+      fillOpacity: 0,
+      weight: a.weight || 2,
+      opacity: 0,
+      className: 'map2d-area',
+    }).addTo(map);
+    areaMap[a.id || ('a' + JSON.stringify(a.points[0]))] = { polygon: polygon, label: a.label, targetFillOpacity: a.fillOpacity != null ? a.fillOpacity : 0.2 };
+  });
+
+  // Step transition logic
+  let currentIdx = -1;
+
+  function showStep(idx) {
+    if (idx === currentIdx) return;
+    currentIdx = idx;
+    const step = (d.steps || [])[idx];
+    if (!step) return;
+    const ms = step.mapState || {};
+
+    // Fly to new center/zoom
+    if (ms.center && ms.zoom != null) {
+      if (ms.fitBounds) {
+        const pts = [];
+        (ms.showMarkers || []).forEach(id => {
+          const m = (d.markers || []).find(mk => mk.id === id);
+          if (m) pts.push([m.lat, m.lng]);
+        });
+        (ms.showAreas || []).forEach(id => {
+          const a = (d.areas || []).find(ar => ar.id === id);
+          if (a && a.points) a.points.forEach(p => pts.push(p));
+        });
+        if (pts.length > 1) map.flyToBounds(L.latLngBounds(pts), { padding: [50, 50], duration: flyDuration });
+        else map.flyTo(ms.center, ms.zoom, { duration: flyDuration });
+      } else {
+        map.flyTo(ms.center, ms.zoom, { duration: flyDuration });
+      }
+    } else if (ms.center) {
+      map.flyTo(ms.center, map.getZoom(), { duration: flyDuration });
+    } else if (ms.zoom != null) {
+      map.flyTo(map.getCenter(), ms.zoom, { duration: flyDuration });
+    }
+
+    // Show/hide markers
+    if (Array.isArray(ms.showMarkers)) {
+      Object.keys(markerMap).forEach(id => {
+        const entry = markerMap[id];
+        const visible = ms.showMarkers.includes(id);
+        if (entry.el) {
+          entry.el.classList.toggle('is-visible', visible);
+          entry.el.classList.toggle('is-hidden', !visible);
+        }
+      });
+    }
+
+    // Show/hide areas
+    if (Array.isArray(ms.showAreas)) {
+      Object.keys(areaMap).forEach(id => {
+        const entry = areaMap[id];
+        const visible = ms.showAreas.includes(id);
+        entry.polygon.setStyle({
+          fillOpacity: visible ? entry.targetFillOpacity : 0,
+          opacity: visible ? 0.8 : 0,
+        });
+      });
+    }
+
+    // Animate route drawing
+    if (ms.animateRoute) {
+      const entry = routeMap[ms.animateRoute];
+      if (entry && !entry.revealed) {
+        entry.line.setStyle({ opacity: 0.8 });
+        requestAnimationFrame(() => {
+          const pathEl = entry.line.getElement();
+          if (pathEl && entry.animate) {
+            const len = pathEl.getTotalLength();
+            pathEl.style.strokeDasharray = len + '';
+            pathEl.style.strokeDashoffset = len + '';
+            pathEl.getBoundingClientRect();
+            pathEl.style.strokeDashoffset = '0';
+          }
+        });
+        if (entry.labelMarker) {
+          const lEl = entry.labelMarker.getElement();
+          if (lEl) {
+            const inner = lEl.querySelector('.map2d-route-label');
+            if (inner) setTimeout(() => { inner.style.opacity = '1'; }, 800);
+          }
+        }
+        entry.revealed = true;
+      } else if (entry) {
+        entry.line.setStyle({ opacity: 0.8 });
+      }
+    }
+
+    // Switch tile style mid-story
+    if (ms.tileStyle && ms.tileStyle !== currentTileKey && TILES[ms.tileStyle]) {
+      map.removeLayer(currentTileLayer);
+      currentTileLayer = L.tileLayer(TILES[ms.tileStyle], {
+        attribution: ATTR[ms.tileStyle] || ATTR.default,
+        maxZoom: 19,
+      }).addTo(map);
+      currentTileKey = ms.tileStyle;
+    }
+  }
+
+  // Initial state = step 0
+  showStep(0);
+
+  // IntersectionObserver for scroll-driven transitions
+  const obs = new IntersectionObserver((entries) => {
+    const intersecting = entries.filter(e => e.isIntersecting);
+    if (!intersecting.length) return;
+    intersecting.sort((a, b) => Number(b.target.dataset.mapIdx) - Number(a.target.dataset.mapIdx));
+    const idx = Number(intersecting[0].target.dataset.mapIdx);
+    if (!Number.isNaN(idx)) {
+      showStep(idx);
+      steps.forEach(s => s.classList.toggle('is-active', Number(s.dataset.mapIdx) === idx));
+    }
+  }, { rootMargin: '-35% 0px -55% 0px' });
+
+  steps.forEach(s => obs.observe(s));
+
+  // Handle layout-behind: hide map when block exits viewport
+  if (d.layout === 'behind') {
+    const sec = host.closest('.map2d-scrolly');
+    if (sec) {
+      const secObs = new IntersectionObserver((entries) => {
+        entries.forEach(e => {
+          const graphic = sec.querySelector('.map2d-graphic');
+          if (graphic) graphic.style.visibility = e.isIntersecting ? 'visible' : 'hidden';
+        });
+      }, { threshold: 0 });
+      secObs.observe(sec);
+    }
+  }
+
+  // Force Leaflet recalc
+  setTimeout(() => map.invalidateSize(), 300);
 }
 
 const BLOCK_RENDERERS = {
@@ -448,6 +828,7 @@ const BLOCK_RENDERERS = {
   ProgressNav:    renderProgressNav,
   EmbedBlock:     renderEmbed,
   ImageGrid:      renderImageGrid,
+  Map2D:          renderMap2D,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -847,6 +1228,15 @@ function renderEditorialItem(item) {
 // ───────── Scrolly section ─────────
 function renderScrolly(d) {
   const section = el('section', { class: 'scrolly', id: d.scrollyId || '' });
+
+  // ── Data-driven sizing via CSS custom properties ──
+  const sizeMap = { small: '35%', medium: '50%', large: '65%', full: '1fr' };
+  const imgW = d.imageSize ? (sizeMap[d.imageSize] || d.imageSize) : null;
+  if (imgW) section.style.setProperty('--scrolly-img-w', imgW);
+  if (d.imageHeight) section.style.setProperty('--scrolly-img-h', d.imageHeight);
+  if (d.imageRadius) section.style.setProperty('--scrolly-img-radius', d.imageRadius);
+  if (d.maxWidth) section.style.setProperty('--scrolly-max-w', d.maxWidth);
+  if (d.cardWidth) section.style.setProperty('--scrolly-card-w', d.cardWidth);
 
   // ── Sticky image panel (left on desktop, top on mobile) ──
   const stickyWrap = el('div', { class: 'scrolly__sticky' });
