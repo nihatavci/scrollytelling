@@ -13,6 +13,10 @@
     '.editorial .lead':                         { field: 'content', type: 'text', indexed: true, subfield: 'text' },
     '.editorial p:not(.lead):not([style])':     { field: 'content', type: 'html', indexed: true, subfield: 'html' },
     '.pullquote':                               { field: 'content', type: 'text', indexed: true, subfield: 'text' },
+    // FullBleed
+    '.fullbleed-title':                         { field: 'title',     type: 'html' },
+    '.fullbleed-sub':                           { field: 'subtitle',  type: 'text' },
+    '.fullbleed-body':                          { field: 'body',      type: 'html' },
     // FullscreenImage
     '.fsimg-kicker':                            { field: 'kicker',    type: 'text' },
     '.fsimg-title':                             { field: 'title',     type: 'html' },
@@ -52,6 +56,7 @@
     '.timeline-body':                           { field: 'events', type: 'html', indexed: true, subfield: 'body' },
     // Images
     '.editorial figure img':                    { field: 'content', type: 'image', indexed: true, subfield: 'src' },
+    '.scrolly-step-image':                      { field: 'steps',   type: 'image', indexed: true, subfield: 'imageSrc' },
   };
 
   // ── Inject CSS ──────────────────────────────────────────────────────────────
@@ -223,7 +228,7 @@
     const msg = e.data;
     if (!msg || msg.type !== 'visual-edit-response') return;
 
-    if (msg.action === 'image-replace') {
+    if (msg.action === 'image-replaced') {
       // Find the image element and update its src
       const blockEl = document.querySelector('[data-block-id="' + msg.blockId + '"]');
       if (!blockEl) return;
@@ -255,24 +260,34 @@
   });
 
   // ── Click anywhere in a block → tell parent to select it ──────────────────
-  document.querySelectorAll('[data-block-id]').forEach(function(blockEl) {
-    blockEl.addEventListener('click', function(e) {
-      // Don't fire if clicking an editable or image (those have their own handlers)
-      if (e.target.closest('[data-ve-editable]') || e.target.closest('[data-ve-img]')) return;
-      window.parent.postMessage({
-        type: 'visual-edit',
-        action: 'select-block',
-        blockId: blockEl.dataset.blockId,
-      }, '*');
+  function bindBlockClicks() {
+    document.querySelectorAll('[data-block-id]').forEach(function(blockEl) {
+      if (blockEl.hasAttribute('data-ve-block-click')) return; // already bound
+      blockEl.setAttribute('data-ve-block-click', '');
+      blockEl.addEventListener('click', function(e) {
+        // Don't fire if clicking an editable or image (those have their own handlers)
+        if (e.target.closest('[data-ve]') || e.target.closest('[data-ve-img]')) return;
+        window.parent.postMessage({
+          type: 'visual-edit',
+          action: 'select-block',
+          blockId: blockEl.dataset.blockId,
+        }, '*');
+      });
     });
-  });
+  }
 
-  // ── Initial bind + re-bind on DOM mutations ─────────────────────────────────
-  bindEditables();
+  // ── Initial bind + re-bind on DOM mutations (debounced) ─────────────────────
+  function bindAll() { bindEditables(); bindBlockClicks(); }
+  bindAll();
 
-  // Re-bind after dynamic renders (e.g. scrolly lazy-loads)
-  const observer = new MutationObserver(function () {
-    bindEditables();
+  var bindPending = false;
+  var observer = new MutationObserver(function () {
+    if (bindPending) return;
+    bindPending = true;
+    requestAnimationFrame(function () {
+      bindAll();
+      bindPending = false;
+    });
   });
   observer.observe(document.body, { childList: true, subtree: true });
 

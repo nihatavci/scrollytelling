@@ -2726,7 +2726,7 @@ function getPreviewBlobUrl() {
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <link rel="stylesheet" href="${origin}/css/site.css">
 ${themeLink}
-<script>window.__PAGE_DATA__ = ${JSON.stringify(doc)};<\/script>
+<script>window.__PAGE_DATA__ = ${JSON.stringify(doc).replace(/<\//g, '<\\/')};<\/script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"><\/script>
 <base href="${origin}/">
 </head>
@@ -2784,6 +2784,7 @@ window.addEventListener('message', async (evt) => {
         }
       }
     } else if (index != null) {
+      if (!Array.isArray(block.data[field])) return;
       block.data[field][index] = value;
     } else {
       block.data[field] = value;
@@ -2815,6 +2816,7 @@ window.addEventListener('message', async (evt) => {
             }
           }
         } else if (index != null) {
+          if (!Array.isArray(block.data[field])) return;
           block.data[field][index] = newSrc;
         } else {
           block.data[field] = newSrc;
@@ -2825,7 +2827,7 @@ window.addEventListener('message', async (evt) => {
         const previewFrame = $('#preview-frame');
         if (previewFrame && previewFrame.contentWindow) {
           previewFrame.contentWindow.postMessage(
-            { type: 'visual-edit-response', action: 'image-replaced', blockId, field, newSrc },
+            { type: 'visual-edit-response', action: 'image-replaced', blockId, field, index, newSrc },
             '*'
           );
         }
