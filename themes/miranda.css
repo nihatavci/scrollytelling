@@ -457,3 +457,22 @@ body {
 .ig-cell-cap{background:linear-gradient(transparent,rgba(0,0,0,.7))}
 .ig-grid{gap:3px}
 .ig-caption,.ig-credit{color:rgba(205,198,190,.6)}
+
+/* ── Map2D dark overrides ── */
+.map2d-map-host{border-color:rgba(205,198,190,.1);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.map2d-graphic-title{color:#cdc6be}
+.map2d-graphic-sub{color:#a8a29e}
+.map2d-graphic-source{color:rgba(205,198,190,.4)}
+.map2d-step-card{background:rgba(42,42,40,.92);border-color:rgba(205,198,190,.08)}
+.map2d-step.is-active .map2d-step-card{box-shadow:0 4px 20px rgba(0,0,0,.4);border-color:rgba(205,198,190,.15)}
+.map2d-step-body{color:#cdc6be}
+.map2d-cap{color:rgba(205,198,190,.6)}
+.map2d-credit{color:rgba(205,198,190,.4)}
+.map2d-scrolly .leaflet-popup-content-wrapper{background:rgba(42,42,40,.92);color:#cdc6be;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.map2d-scrolly .leaflet-popup-close-button{color:#a8a29e}
+.map2d-scrolly .leaflet-control-attribution{background:rgba(29,29,27,.7)!important;color:rgba(205,198,190,.5)}
+.map2d-scrolly .leaflet-control-attribution a{color:rgba(205,198,190,.6)}
+.map2d-scrolly .leaflet-control-zoom a{background:rgba(42,42,40,.9);color:#cdc6be;border-color:rgba(205,198,190,.1)}
+.map2d-scrolly .leaflet-control-zoom a:hover{background:rgba(53,53,51,.9)}
+.map2d-route-label{background:rgba(42,42,40,.9);color:#cdc6be;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+.map2d-scrolly.layout-behind .map2d-step-card{background:rgba(42,42,40,.92)}
