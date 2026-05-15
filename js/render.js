@@ -331,6 +331,66 @@ const COMPONENT_CSS = `
 @media(max-width:900px){.embed-block{margin:3rem auto;padding:0 1.25rem}}
 @media(max-width:600px){.embed-block{margin:2rem auto;padding:0 1rem}.embed-container.ar-auto iframe{min-height:300px}}
 
+/* ── ImageGrid (smart auto-layout) ── */
+.ig{position:relative;z-index:3;margin:4.5rem auto;padding:0}
+.ig.ig-editorial{max-width:720px;padding:0 2rem}
+.ig.ig-wide{max-width:1100px;padding:0 2rem}
+.ig.ig-full{max-width:100%;padding:0}
+.ig.ig-bleed{max-width:100vw;width:100vw;margin-left:calc(-50vw + 50%);padding:0}
+.ig-title{font-family:var(--font-display);font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:300;color:var(--ink-black);letter-spacing:-.03em;margin-bottom:1.2rem;text-align:center}
+.ig-grid{display:grid;gap:6px}
+/* Auto layouts by image count */
+.ig-grid.ig-1{grid-template-columns:1fr}
+.ig-grid.ig-2{grid-template-columns:1fr 1fr}
+.ig-grid.ig-3{grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr}
+.ig-grid.ig-3 .ig-cell:first-child{grid-row:1/3}
+.ig-grid.ig-4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.ig-grid.ig-5{grid-template-columns:3fr 2fr 2fr;grid-template-rows:1fr 1fr}
+.ig-grid.ig-5 .ig-cell:first-child{grid-row:1/3}
+.ig-grid.ig-5 .ig-cell:nth-child(4){grid-column:2/3}
+.ig-grid.ig-5 .ig-cell:nth-child(5){grid-column:3/4}
+.ig-grid.ig-6{grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr}
+.ig-grid.ig-many{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+/* Explicit layout overrides */
+.ig-grid.ig-row{grid-template-columns:repeat(var(--ig-cols),1fr);grid-template-rows:auto}
+.ig-grid.ig-row .ig-cell:first-child{grid-row:auto}
+.ig-grid.ig-masonry{columns:3;column-gap:6px;display:block}
+.ig-grid.ig-masonry .ig-cell{break-inside:avoid;margin-bottom:6px}
+/* Cell */
+.ig-cell{position:relative;overflow:hidden;border-radius:2px;background:var(--fog);min-height:0}
+.ig-cell img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
+.ig-cell:hover img{transform:scale(1.02)}
+.ig-cell.ig-span-2{grid-column:span 2}
+.ig-cell.ig-span-row{grid-row:span 2}
+/* Aspect ratios for auto layout */
+.ig-grid:not(.ig-row):not(.ig-masonry):not(.ig-1) .ig-cell{aspect-ratio:4/3}
+.ig-grid.ig-1 .ig-cell{aspect-ratio:16/9}
+.ig-grid.ig-3 .ig-cell:first-child{aspect-ratio:auto}
+/* Caption */
+.ig-caption{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;line-height:1.5;font-weight:400;text-align:center;padding:0 2rem}
+.ig-cell-cap{position:absolute;bottom:0;left:0;right:0;padding:.5rem .7rem;background:linear-gradient(transparent,rgba(0,0,0,.55));color:#fff;font-family:var(--font-body);font-size:.75rem;line-height:1.35;opacity:0;transition:opacity .3s}
+.ig-cell:hover .ig-cell-cap{opacity:1}
+.ig-credit{font-family:var(--font-body);font-size:.72rem;color:var(--ash);margin-top:.35rem;text-align:center;letter-spacing:.02em}
+@media(max-width:900px){
+  .ig{margin:3rem auto}
+  .ig.ig-editorial,.ig.ig-wide{padding:0 1.25rem}
+  .ig-grid.ig-3{grid-template-columns:1fr 1fr;grid-template-rows:auto}
+  .ig-grid.ig-3 .ig-cell:first-child{grid-row:auto;grid-column:1/-1}
+  .ig-grid.ig-5{grid-template-columns:1fr 1fr;grid-template-rows:auto}
+  .ig-grid.ig-5 .ig-cell:first-child{grid-column:1/-1;grid-row:auto}
+  .ig-grid.ig-5 .ig-cell:nth-child(4),.ig-grid.ig-5 .ig-cell:nth-child(5){grid-column:auto}
+  .ig-grid.ig-masonry{columns:2}
+}
+@media(max-width:600px){
+  .ig{margin:2rem auto;padding:0 1rem}
+  .ig.ig-editorial,.ig.ig-wide{padding:0 1rem}
+  .ig-grid.ig-2,.ig-grid.ig-4,.ig-grid.ig-6{grid-template-columns:1fr}
+  .ig-grid.ig-5{grid-template-columns:1fr}
+  .ig-grid.ig-5 .ig-cell:first-child{grid-column:auto}
+  .ig-grid.ig-masonry{columns:1}
+  .ig-grid{gap:4px}
+}
+
 /* ── FullBleed (viewport media + text overlay) ── */
 .fullbleed{position:relative;z-index:2;width:100%;overflow:hidden;background:#000}
 .fullbleed-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
@@ -383,6 +443,7 @@ const BLOCK_RENDERERS = {
   AccordionBlock: renderAccordion,
   ProgressNav:    renderProgressNav,
   EmbedBlock:     renderEmbed,
+  ImageGrid:      renderImageGrid,
 };
 
 // Resolve which content file to load based on the current URL path.
@@ -1369,6 +1430,71 @@ function renderEmbed(d) {
 
   sec.appendChild(container);
   if (d.caption) sec.appendChild(el('p', { class: 'embed-cap' }, d.caption));
+  return sec;
+}
+
+// ───────── ImageGrid (smart auto-layout) ─────────
+function renderImageGrid(d) {
+  // Parse layout hint — supports natural language
+  const hint = (d.layout || '').toLowerCase().trim();
+  // Determine width class from hint
+  let widthCls = 'ig-wide';   // default
+  if (/editorial|narrow|small|article/.test(hint))      widthCls = 'ig-editorial';
+  else if (/full|viewport|edge/.test(hint))              widthCls = 'ig-full';
+  else if (/bleed|screen|bigger.*editorial/.test(hint))  widthCls = 'ig-bleed';
+  else if (/wide|large|big|reuters|cinematic/.test(hint)) widthCls = 'ig-wide';
+
+  const sec = el('section', { class: `ig ${widthCls}` });
+  if (d.title) sec.appendChild(el('h3', { class: 'ig-title' }, d.title));
+
+  const images = d.images || [];
+  const n = images.length;
+
+  // Determine grid layout class
+  let gridCls = '';
+  let explicitCols = 0;
+  if (/masonry|pinterest/.test(hint)) {
+    gridCls = 'ig-masonry';
+  } else if (/(\d)\s*(col|grid|column|row|across|wide)/i.test(hint)) {
+    explicitCols = parseInt(RegExp.$1);
+    gridCls = 'ig-row';
+  } else if (/row|strip|film|horizontal|side.*side|nebeneinander/.test(hint)) {
+    explicitCols = n;
+    gridCls = 'ig-row';
+  } else if (/stack|vertical|übereinander/.test(hint)) {
+    explicitCols = 1;
+    gridCls = 'ig-row';
+  } else {
+    // Auto-detect best layout from image count
+    if (n <= 6) gridCls = `ig-${n}`;
+    else gridCls = 'ig-many';
+  }
+
+  const grid = el('div', { class: `ig-grid ${gridCls}` });
+  if (explicitCols) grid.style.setProperty('--ig-cols', explicitCols);
+
+  images.forEach((img, i) => {
+    const cell = el('div', { class: 'ig-cell' });
+    // Support span hints per image
+    if (img.span === 2 || img.wide) cell.classList.add('ig-span-2');
+    if (img.tall) cell.classList.add('ig-span-row');
+
+    const imgEl = el('img', {
+      src: img.src || img.url || '',
+      alt: img.alt || img.caption || '',
+      loading: i < 2 ? 'eager' : 'lazy',
+    });
+    cell.appendChild(imgEl);
+    // Per-image caption overlay on hover
+    if (img.caption) {
+      cell.appendChild(el('div', { class: 'ig-cell-cap' }, img.caption));
+    }
+    grid.appendChild(cell);
+  });
+
+  sec.appendChild(grid);
+  if (d.caption) sec.appendChild(el('p', { class: 'ig-caption' }, d.caption));
+  if (d.credit) sec.appendChild(el('p', { class: 'ig-credit' }, d.credit));
   return sec;
 }
 

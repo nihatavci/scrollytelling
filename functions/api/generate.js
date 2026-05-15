@@ -309,6 +309,40 @@ Fields:
 For Datawrapper, always use aspectRatio "auto" — Datawrapper sends its own height via postMessage.`,
   },
 
+  ImageGrid: {
+    example: {
+      layout: 'wide',
+      title: '',
+      images: [
+        { src: 'https://example.com/photo1.jpg', alt: 'Newsroom in the 1920s', caption: 'The FAZ newsroom, circa 1924' },
+        { src: 'https://example.com/photo2.jpg', alt: 'Modern digital newsroom', caption: 'A digital-first newsroom in 2024' },
+        { src: 'https://example.com/photo3.jpg', alt: 'Printing press', caption: 'Rotary press at the Berliner Tageblatt' }
+      ],
+      caption: 'Photos: Bundesarchiv, DPA',
+      credit: ''
+    },
+    description: `Smart image grid with auto-layout. Detects the number of images and picks the best grid arrangement automatically. Supports natural language layout hints.
+
+Fields:
+- layout (string): controls width and arrangement. Accepts natural language:
+  - Width: "editorial" (narrow 720px), "wide" (1100px, default), "full" (edge-to-edge), "bleed" (beyond container)
+  - Arrangement: "2 grid" (2 columns), "3 columns", "masonry", "row" (single horizontal strip), "stack" (vertical)
+  - Or combine: "wide 3 grid", "bleed masonry", "editorial 2 columns"
+  - If empty, auto-detects best layout from image count (1=hero, 2=side-by-side, 3=1big+2small, 4=2x2, 5=reuters, 6=3x2)
+- title (string, optional): heading above the grid
+- images (array): each image has:
+  - src (string): image URL
+  - alt (string): accessibility description
+  - caption (string, optional): hover caption overlay
+  - span (number, optional): set to 2 to make image span two columns
+  - wide (boolean, optional): same as span:2
+  - tall (boolean, optional): span two rows
+- caption (string, optional): overall caption below the grid
+- credit (string, optional): photo credit line
+
+The user may paste raw image URLs — put each URL as a src in the images array. Generate meaningful alt text and captions.`,
+  },
+
   FullBleed: {
     example: {
       mediaSrc: '/images/redaktion-1924.jpg',

@@ -196,6 +196,20 @@ const BLOCK_SCHEMAS = {
       { key: 'fallbackImage', label: 'Fallback image', kind: 'text' },
     ]
   },
+  ImageGrid: {
+    label: 'Image Grid',
+    fields: [
+      { key: 'layout',  label: 'Layout',  kind: 'text', hint: 'Auto-detects from count. Or: "wide", "bleed", "editorial", "2 grid", "3 columns", "masonry", "row", "stack"' },
+      { key: 'title',   label: 'Title',   kind: 'text', hint: 'Optional heading above images' },
+      { key: 'images',  label: 'Images',  kind: 'array', itemFields: [
+        { key: 'src',     label: 'Image URL', kind: 'text' },
+        { key: 'alt',     label: 'Alt text',  kind: 'text' },
+        { key: 'caption', label: 'Caption',   kind: 'text', hint: 'Shows on hover' },
+      ]},
+      { key: 'caption', label: 'Overall caption', kind: 'textarea' },
+      { key: 'credit',  label: 'Photo credit',    kind: 'text' },
+    ]
+  },
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -272,6 +286,7 @@ const PALETTE_BLOCKS = [
   { type: 'VizPanel',       desc: 'Advanced — visualization container' },
   { type: 'ProgressNav',    desc: 'Reading progress bar + chapter navigation dots' },
   { type: 'EmbedBlock',     desc: 'Datawrapper, Flourish, Twitter, or any iframe embed' },
+  { type: 'ImageGrid',      desc: 'Smart image grid — auto-detects layout from count. Paste URLs or upload.' },
 ];
 
 // Tiny inline mockups shown inside the palette cards and at the top of the
@@ -963,6 +978,7 @@ function blockSummary(block) {
     case 'AccordionBlock': return d.title || `${(d.items || []).length} items`;
     case 'ProgressNav': return 'Progress bar';
     case 'EmbedBlock': return d.provider || (d.url ? 'Embed' : 'Empty embed');
+    case 'ImageGrid': return `${(d.images || []).length} images` + (d.layout ? ` · ${d.layout}` : '');
     default:          return block.id;
   }
 }
@@ -1051,6 +1067,14 @@ function blockDetailSummary(block) {
       if (d.provider) lines.push(`<strong>Provider:</strong> ${escapeText(d.provider)}`);
       if (d.url) lines.push(`<strong>URL:</strong> ${escapeText(d.url).slice(0, 60)}`);
       if (d.caption) lines.push(`<strong>Caption:</strong> ${escapeText(d.caption).slice(0, 60)}`);
+      break;
+    case 'ImageGrid':
+      lines.push(`<strong>Images:</strong> ${(d.images || []).length}`);
+      if (d.layout) lines.push(`<strong>Layout:</strong> ${escapeText(d.layout)}`);
+      if (d.caption) lines.push(`<strong>Caption:</strong> ${escapeText(d.caption).slice(0, 60)}`);
+      (d.images || []).slice(0, 3).forEach((img, i) => {
+        lines.push(`<strong>${i + 1}.</strong> ${escapeText((img.alt || img.src || '').slice(0, 50))}`);
+      });
       break;
     default:
       const keys = Object.keys(d);

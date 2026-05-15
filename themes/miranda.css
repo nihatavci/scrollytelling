@@ -451,3 +451,9 @@ body {
 
 /* ── EmbedBlock dark overrides ── */
 .embed-container{background:rgba(42,42,40,.5);border:1px solid rgba(205,198,190,.06)}
+
+/* ── ImageGrid dark overrides ── */
+.ig-cell{background:rgba(42,42,40,.5);border-radius:0}
+.ig-cell-cap{background:linear-gradient(transparent,rgba(0,0,0,.7))}
+.ig-grid{gap:3px}
+.ig-caption,.ig-credit{color:rgba(205,198,190,.6)}
