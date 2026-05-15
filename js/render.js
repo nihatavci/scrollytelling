@@ -180,6 +180,8 @@ const COMPONENT_CSS = `
 .scrolly__images{position:relative;width:100%;height:100%}
 .scrolly__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s ease}
 .scrolly__img.active{opacity:1}
+.scrolly__img-ph{display:flex;align-items:center;justify-content:center;background:var(--fog,#f0f0f0);color:var(--graphite,#666)}
+.scrolly__ph-label{font-family:var(--font-display);font-size:clamp(1.2rem,3vw,2rem);font-weight:300;letter-spacing:-.02em;opacity:.4;text-align:center;padding:2rem}
 .scrolly__steps{padding:30vh 0;display:flex;flex-direction:column}
 .step{min-height:100vh;display:flex;align-items:center;padding:1.5rem 0 1.5rem 3rem}
 .step:first-child{padding-top:15vh}.step:last-child{margin-bottom:30vh}
@@ -371,6 +373,8 @@ const COMPONENT_CSS = `
 .ig-cell-cap{position:absolute;bottom:0;left:0;right:0;padding:.5rem .7rem;background:linear-gradient(transparent,rgba(0,0,0,.55));color:#fff;font-family:var(--font-body);font-size:.75rem;line-height:1.35;opacity:0;transition:opacity .3s}
 .ig-cell:hover .ig-cell-cap{opacity:1}
 .ig-credit{font-family:var(--font-body);font-size:.72rem;color:var(--ash);margin-top:.35rem;text-align:center;letter-spacing:.02em}
+.ig-cell-broken{display:flex;align-items:center;justify-content:center}
+.ig-cell-ph{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);opacity:.5;text-align:center;padding:1.5rem}
 @media(max-width:900px){
   .ig{margin:3rem auto}
   .ig.ig-editorial,.ig.ig-wide{padding:0 1.25rem}
@@ -863,6 +867,16 @@ function renderScrolly(d) {
         loading: i === 0 ? 'eager' : 'lazy',
         'data-step-idx': String(i),
       });
+      // Fallback for broken/blocked images: show styled placeholder
+      img.onerror = function() {
+        const ph = el('div', {
+          class: 'scrolly__img scrolly__img-ph' + (i === 0 ? ' active' : ''),
+          'data-step-idx': String(i),
+        });
+        ph.innerHTML = `<span class="scrolly__ph-label">${escapeHtml(step.badgeLabel || 'Step ' + (i + 1))}</span>`;
+        this.replaceWith(ph);
+        stepImages[i] = ph;
+      };
       imgContainer.appendChild(img);
       return img;
     }
@@ -1484,6 +1498,11 @@ function renderImageGrid(d) {
       alt: img.alt || img.caption || '',
       loading: i < 2 ? 'eager' : 'lazy',
     });
+    imgEl.onerror = function() {
+      this.style.display = 'none';
+      cell.classList.add('ig-cell-broken');
+      cell.insertAdjacentHTML('afterbegin', '<div class="ig-cell-ph">' + escapeHtml(img.alt || img.caption || 'Image') + '</div>');
+    };
     cell.appendChild(imgEl);
     // Per-image caption overlay on hover
     if (img.caption) {
