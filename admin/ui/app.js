@@ -16,6 +16,31 @@ const state = {
   visualEditMode: false,
 };
 
+// ─────────────────────────── HTML sanitization ──────────────
+// Strip dangerous tags/attributes, keep safe formatting
+function sanitizeHtml(html) {
+  if (!html || typeof html !== 'string') return html;
+  const div = document.createElement('div');
+  div.innerHTML = html;
+  // Remove script, style, iframe, object, embed, form tags
+  const dangerous = div.querySelectorAll('script, style, iframe, object, embed, form, link, meta, base');
+  dangerous.forEach(el => el.remove());
+  // Remove event handler attributes from all elements
+  div.querySelectorAll('*').forEach(el => {
+    for (const attr of [...el.attributes]) {
+      if (attr.name.startsWith('on') || attr.name === 'srcdoc' || attr.name === 'formaction') {
+        el.removeAttribute(attr.name);
+      }
+      // Strip javascript: URLs
+      if (['href', 'src', 'action', 'data'].includes(attr.name) &&
+          attr.value.trim().toLowerCase().startsWith('javascript:')) {
+        el.removeAttribute(attr.name);
+      }
+    }
+  });
+  return div.innerHTML;
+}
+
 // ─────────────────────────── Block type schemas ──────────────
 // Drives the form generator. Each block type lists its top-level fields.
 // Editorial uses a separate content[] editor for inline items.
@@ -858,8 +883,12 @@ $('#btn-new-page').addEventListener('click', () => {
     create.className = 'primary';
     create.textContent = 'Create page';
     create.addEventListener('click', async () => {
-      const id = slugInp.value.trim();
+      const id = slugInp.value.trim().toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+      slugInp.value = id;
       const title = titleInp.value.trim();
+      if (!id) { err.textContent = 'Page URL cannot be empty.'; return; }
+      if (id.length < 2) { err.textContent = 'Page URL must be at least 2 characters.'; return; }
+      if (id.length > 80) { err.textContent = 'Page URL is too long (max 80 characters).'; return; }
       if (!/^[a-z0-9-]+$/.test(id)) { err.textContent = 'ID must be lowercase letters, numbers, and dashes only.'; return; }
       if (id === 'admin') { err.textContent = '"admin" is reserved.'; return; }
       create.disabled = true;
@@ -1344,6 +1373,9 @@ function duplicateBlock(idx) {
 }
 function deleteBlock(idx) {
   const block = state.doc.blocks[idx];
+  if (!block) return;
+  const name = block.type + (block.data?.title ? `: ${block.data.title}` : '');
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
   if (block.id === state.selectedBlockId) state.selectedBlockId = null;
   state.doc.blocks.splice(idx, 1);
   setDirty(true);
@@ -1529,7 +1561,12 @@ function openClaudeModal(opts) {
     previewWrap.className = 'claude-modal-thumbs';
 
     async function handleModalUpload(files) {
+      const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
       for (const f of Array.from(files)) {
+        if (f.size > MAX_UPLOAD_SIZE) {
+          toast(`File too large (${(f.size / 1024 / 1024).toFixed(1)} MB). Maximum is 50 MB.`, 'error');
+          continue;
+        }
         try {
           const r = await SB.uploadFile(f);
           uploadedImages.push(r.url);
@@ -1583,6 +1620,8 @@ function openClaudeModal(opts) {
     genBtn.addEventListener('click', async () => {
       const prompt = ta.value.trim();
       if (!prompt) { ta.focus(); return; }
+      if (prompt.length < 3) { toast('Please enter a longer prompt', 'error'); ta.focus(); return; }
+      if (prompt.length > 10000) { toast('Prompt is too long (max 10,000 characters). Try shortening it.', 'error'); ta.focus(); return; }
 
       // ── Both modes go through AI — direct just tells it to preserve text verbatim ──
       const origBtnText = genBtn.textContent;
@@ -1885,7 +1924,10 @@ function renderField(field, data, onChange) {
       const ta = document.createElement('textarea');
       ta.rows = field.kind === 'textarea_html' ? 6 : 3;
       ta.value = val ?? '';
-      ta.addEventListener('input', () => { data[field.key] = ta.value; onChange(); updateBlockSummary(); });
+      ta.addEventListener('input', () => {
+        data[field.key] = field.kind === 'textarea_html' ? sanitizeHtml(ta.value) : ta.value;
+        onChange(); updateBlockSummary();
+      });
       wrap.appendChild(ta);
       break;
     }
@@ -2459,7 +2501,7 @@ function simpleField(f, obj, onChange) {
       const ta = document.createElement('textarea');
       ta.rows = f.kind === 'textarea_html' ? 5 : 3;
       ta.value = getVal() ?? '';
-      ta.addEventListener('input', () => setVal(ta.value));
+      ta.addEventListener('input', () => setVal(f.kind === 'textarea_html' ? sanitizeHtml(ta.value) : ta.value));
       wrap.appendChild(ta); break;
     }
     case 'tone_select': {
@@ -2640,7 +2682,12 @@ function mediaField(initial, onChange, opts = {}) {
 
   // Upload handler (reused by button + drag-drop)
   async function handleFiles(files) {
+    const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
     for (const f of Array.from(files)) {
+      if (f.size > MAX_UPLOAD_SIZE) {
+        toast(`File too large (${(f.size / 1024 / 1024).toFixed(1)} MB). Maximum is 50 MB.`, 'error');
+        continue;
+      }
       try {
         const r = await SB.uploadFile(f);
         inp.value = r.url;
@@ -2786,6 +2833,15 @@ function ensureScrollyIds(doc) {
 
 $('#btn-publish').addEventListener('click', async () => {
   if (!state.doc) return;
+  // Publish validation
+  if (!state.doc.blocks || state.doc.blocks.length === 0) {
+    toast('Cannot publish an empty page — add at least one block', 'error');
+    return;
+  }
+  const hero = state.doc.blocks.find(b => b.type === 'Hero');
+  if (hero && (!hero.data?.titleHtml || hero.data.titleHtml.trim() === '')) {
+    if (!confirm('Your Hero block has no title. Publish anyway?')) return;
+  }
   ensureScrollyIds(state.doc);
   $('#btn-publish').disabled = true;
   setSaveStatus('publishing');
@@ -2871,25 +2927,26 @@ $('#btn-visual-edit').addEventListener('click', () => {
 // Visual edit postMessage handler (receives events from visual-edit.js inside the preview iframe)
 window.addEventListener('message', async (evt) => {
   if (!evt.data || evt.data.type !== 'visual-edit') return;
-  const { action, blockId, field, subfield, index, value, currentSrc } = evt.data;
+  const { action, blockId, field, subfield, index, value, valueType, currentSrc } = evt.data;
 
   if (action === 'text-change') {
     const block = state.doc.blocks.find(b => b.id === blockId);
     if (!block) return;
+    const safeValue = (valueType === 'html') ? sanitizeHtml(value) : value;
     if (index != null && subfield) {
       const arr = block.data[field];
       if (Array.isArray(arr) && arr[index] != null) {
         if (typeof arr[index] === 'string') {
-          arr[index] = value;
+          arr[index] = safeValue;
         } else {
-          arr[index][subfield] = value;
+          arr[index][subfield] = safeValue;
         }
       }
     } else if (index != null) {
       if (!Array.isArray(block.data[field])) return;
-      block.data[field][index] = value;
+      block.data[field][index] = safeValue;
     } else {
-      block.data[field] = value;
+      block.data[field] = safeValue;
     }
     setDirty(true);
     if (block.id === state.selectedBlockId) renderEditor();
@@ -2905,6 +2962,11 @@ window.addEventListener('message', async (evt) => {
     input.addEventListener('change', async () => {
       const file = input.files[0];
       if (!file) return;
+      const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
+      if (file.size > MAX_UPLOAD_SIZE) {
+        toast(`File too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum is 50 MB.`, 'error');
+        return;
+      }
       try {
         toast('Uploading image…', 'info');
         const r = await SB.uploadFile(file);
@@ -3031,6 +3093,12 @@ $('#btn-settings').addEventListener('click', () => {
     bgUploadBtn.addEventListener('click', () => bgUploadFile.click());
     bgUploadFile.addEventListener('change', async () => {
       if (!bgUploadFile.files.length) return;
+      const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
+      if (bgUploadFile.files[0].size > MAX_UPLOAD_SIZE) {
+        toast(`File too large (${(bgUploadFile.files[0].size / 1024 / 1024).toFixed(1)} MB). Maximum is 50 MB.`, 'error');
+        bgUploadFile.value = '';
+        return;
+      }
       try {
         bgUploadBtn.textContent = 'Uploading…';
         bgUploadBtn.disabled = true;
@@ -3204,16 +3272,19 @@ window.addEventListener('beforeunload', (e) => {
 // Does NOT publish or create history — just persists the draft so you never lose work.
 let _autosaveTimer = null;
 let _autosaving = false;
+let _autosaveFailCount = 0;
 
 function startAutosave() {
   if (_autosaveTimer) return;
   _autosaveTimer = setInterval(async () => {
     if (!state.dirty || !state.doc || !state.currentPageId || _autosaving) return;
+    if (_autosaveFailCount >= 3) return; // Stop retrying after 3 failures
     _autosaving = true;
     setSaveStatus('saving');
     try {
       await SB.autoSave(state.currentPageId, state.doc);
       clearLocalBackup(state.currentPageId);
+      _autosaveFailCount = 0;
       setSaveStatus('saved');
       // Don't clear dirty — dirty means "unpublished changes"
       // But update status to show autosave happened
@@ -3222,10 +3293,17 @@ function startAutosave() {
       s.className = 'status dirty';
     } catch (e) {
       console.error('Autosave failed:', e.message);
+      _autosaveFailCount++;
       setSaveStatus('error');
       const s = $('#page-status');
-      s.textContent = '⚠ Autosave failed';
-      s.className = 'status dirty';
+      if (_autosaveFailCount >= 3) {
+        s.textContent = '⚠ Autosave disabled — check connection';
+        s.className = 'status dirty';
+        toast('Autosave has failed 3 times. Your changes are backed up locally. Check your connection.', 'error');
+      } else {
+        s.textContent = '⚠ Autosave failed';
+        s.className = 'status dirty';
+      }
     } finally {
       _autosaving = false;
     }
