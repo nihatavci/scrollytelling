@@ -584,6 +584,72 @@ function setDirty(d) {
   s.className = 'status ' + (d ? 'dirty' : 'saved');
   s.textContent = d ? '● Unsaved changes' : (state.savedVersion ? `Saved · v${state.savedVersion}` : 'Loaded');
   $('#btn-publish').disabled = !d;
+  if (d) backupToLocal();
+}
+
+// ── Local backup (crash recovery) ─────────────────────────────────────────
+function backupToLocal() {
+  if (!state.doc || !state.currentPageId) return;
+  try {
+    const key = `scrollycms_backup_${state.currentPageId}`;
+    localStorage.setItem(key, JSON.stringify({
+      doc: state.doc,
+      ts: Date.now(),
+      version: state.doc.version || 0,
+    }));
+  } catch (e) { /* localStorage full or disabled — ignore */ }
+}
+
+function getLocalBackup(id) {
+  try {
+    const key = `scrollycms_backup_${id}`;
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    const backup = JSON.parse(raw);
+    // Expire backups older than 24 hours
+    if (Date.now() - backup.ts > 24 * 60 * 60 * 1000) {
+      localStorage.removeItem(key);
+      return null;
+    }
+    return backup;
+  } catch (e) { return null; }
+}
+
+function clearLocalBackup(id) {
+  try { localStorage.removeItem(`scrollycms_backup_${id}`); } catch (e) {}
+}
+
+// ── Save status indicator ─────────────────────────────────────────────────
+function setSaveStatus(status) {
+  const el = $('#save-status');
+  if (!el) return;
+  el.className = 'save-status';
+  switch (status) {
+    case 'saving':
+      el.textContent = 'Saving…';
+      el.classList.add('status-saving');
+      break;
+    case 'saved':
+      el.textContent = 'Saved ✓';
+      el.classList.add('status-saved');
+      setTimeout(() => { if (el.textContent === 'Saved ✓') el.textContent = ''; }, 3000);
+      break;
+    case 'error':
+      el.textContent = 'Save failed';
+      el.classList.add('status-error');
+      break;
+    case 'publishing':
+      el.textContent = 'Publishing…';
+      el.classList.add('status-saving');
+      break;
+    case 'published':
+      el.textContent = 'Published ✓';
+      el.classList.add('status-saved');
+      setTimeout(() => { if (el.textContent === 'Published ✓') el.textContent = ''; }, 3000);
+      break;
+    default:
+      el.textContent = '';
+  }
 }
 // ─────────────────────────── API (Supabase-backed) ─────────
 // SB.* functions from supabase-client.js replace the old fetch-based api().
@@ -833,6 +899,22 @@ async function loadPage(id) {
   state.currentPageId = id;
   state.doc = await SB.getPage(id);
   state.savedVersion = state.doc.version || 0;
+
+  // Check for local backup that's newer than server version
+  const backup = getLocalBackup(id);
+  if (backup && backup.ts > (state.doc._lastSaveTs || 0)) {
+    const recover = confirm(
+      `Found unsaved local changes from ${new Date(backup.ts).toLocaleString()}.\n\nRecover them?`
+    );
+    if (recover) {
+      state.doc = backup.doc;
+      setDirty(true);
+      toast('Local backup restored', 'success');
+    } else {
+      clearLocalBackup(id);
+    }
+  }
+
   state.selectedBlockId = null;
   state.selectedItemIdx = null;
   setDirty(false);
@@ -1503,7 +1585,9 @@ function openClaudeModal(opts) {
       if (!prompt) { ta.focus(); return; }
 
       // ── Both modes go through AI — direct just tells it to preserve text verbatim ──
+      const origBtnText = genBtn.textContent;
       genBtn.disabled = true;
+      genBtn.textContent = '⏳ Generating…';
       manualBtn.disabled = true;
       const spinner = document.createElement('div');
       spinner.className = 'claude-modal-spinner loading';
@@ -1551,6 +1635,7 @@ function openClaudeModal(opts) {
         spinner.className = 'claude-modal-spinner error';
         spinner.textContent = 'Failed: ' + e.message;
         genBtn.disabled = false;
+        genBtn.textContent = origBtnText;
         manualBtn.disabled = false;
       }
     });
@@ -2690,11 +2775,14 @@ $('#btn-publish').addEventListener('click', async () => {
   if (!state.doc) return;
   ensureScrollyIds(state.doc);
   $('#btn-publish').disabled = true;
+  setSaveStatus('publishing');
   try {
     const r = await SB.saveDraft(state.currentPageId, state.doc);
     state.doc.version = r.version;
     state.savedVersion = r.version;
     setDirty(false);
+    clearLocalBackup(state.currentPageId);
+    setSaveStatus('published');
     toast(`Published · v${r.version}`, 'success');
     refreshPreview();
 
@@ -2702,6 +2790,7 @@ $('#btn-publish').addEventListener('click', async () => {
     const liveUrl = await getPublicUrl();
     if (liveUrl) showPublishedBanner(liveUrl);
   } catch (e) {
+    setSaveStatus('error');
     toast('Save failed: ' + e.message, 'error');
     $('#btn-publish').disabled = false;
   }
@@ -2804,6 +2893,7 @@ window.addEventListener('message', async (evt) => {
       const file = input.files[0];
       if (!file) return;
       try {
+        toast('Uploading image…', 'info');
         const r = await SB.uploadFile(file);
         const newSrc = r.url;
         if (index != null && subfield) {
@@ -3107,8 +3197,11 @@ function startAutosave() {
   _autosaveTimer = setInterval(async () => {
     if (!state.dirty || !state.doc || !state.currentPageId || _autosaving) return;
     _autosaving = true;
+    setSaveStatus('saving');
     try {
       await SB.autoSave(state.currentPageId, state.doc);
+      clearLocalBackup(state.currentPageId);
+      setSaveStatus('saved');
       // Don't clear dirty — dirty means "unpublished changes"
       // But update status to show autosave happened
       const s = $('#page-status');
@@ -3116,6 +3209,7 @@ function startAutosave() {
       s.className = 'status dirty';
     } catch (e) {
       console.error('Autosave failed:', e.message);
+      setSaveStatus('error');
       const s = $('#page-status');
       s.textContent = '⚠ Autosave failed';
       s.className = 'status dirty';
@@ -3124,6 +3218,13 @@ function startAutosave() {
     }
   }, 5000);
 }
+
+// Auth expiry — save locally before showing login prompt
+window.addEventListener('scrollycms:auth-expired', () => {
+  backupToLocal();
+  toast('Session expired — your work is saved locally. Please log in again.', 'error');
+  setTimeout(() => { location.reload(); }, 3000);
+});
 
 // Start autosave once authenticated
 startAutosave();

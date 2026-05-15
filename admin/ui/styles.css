@@ -115,6 +115,34 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; border-radius: 
 .status.dirty { color: var(--marigold); font-weight: 500; }
 .status.saved { color: var(--ink-black); font-weight: 500; }
 
+/* Save status indicator */
+.save-status {
+  font-size: 11px;
+  font-weight: 500;
+  padding: 0 8px;
+  transition: opacity .3s;
+  white-space: nowrap;
+}
+.status-saving { color: var(--signal-blue, #6366f1); }
+.status-saved { color: #22c55e; }
+.status-error { color: #ef4444; }
+
+/* AI generation overlay */
+.claude-generating {
+  pointer-events: none;
+  opacity: .6;
+}
+.claude-generating::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.5);
+  z-index: 10;
+}
+
 .layout {
   flex: 1; display: grid;
   grid-template-columns: 280px 1fr 480px;
