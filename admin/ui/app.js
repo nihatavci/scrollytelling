@@ -1055,6 +1055,17 @@ function renderBlockList() {
       state.selectedItemIdx = null;
       renderBlockList();
       renderEditor();
+      // Scroll preview to this block in visual edit mode
+      if (state.visualEditMode) {
+        var iframe = $('#preview-frame');
+        if (iframe && iframe.contentWindow) {
+          iframe.contentWindow.postMessage({
+            type: 'visual-edit-response',
+            action: 'scroll-to-block',
+            blockId: block.id,
+          }, '*');
+        }
+      }
     });
     li.querySelector('[data-act="claude"]').addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
     li.querySelector('[data-act="dup"]').addEventListener('click', (e) => { e.stopPropagation(); duplicateBlock(idx); });
@@ -2827,6 +2838,15 @@ window.addEventListener('message', async (evt) => {
     });
     document.body.appendChild(input);
     input.click();
+  }
+
+  if (action === 'select-block') {
+    const block = state.doc.blocks.find(b => b.id === blockId);
+    if (block && block.id !== state.selectedBlockId) {
+      state.selectedBlockId = block.id;
+      renderBlockList();
+      renderEditor();
+    }
   }
 });
 

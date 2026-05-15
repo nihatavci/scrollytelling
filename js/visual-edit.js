@@ -254,6 +254,19 @@
     }
   });
 
+  // ── Click anywhere in a block → tell parent to select it ──────────────────
+  document.querySelectorAll('[data-block-id]').forEach(function(blockEl) {
+    blockEl.addEventListener('click', function(e) {
+      // Don't fire if clicking an editable or image (those have their own handlers)
+      if (e.target.closest('[data-ve-editable]') || e.target.closest('[data-ve-img]')) return;
+      window.parent.postMessage({
+        type: 'visual-edit',
+        action: 'select-block',
+        blockId: blockEl.dataset.blockId,
+      }, '*');
+    });
+  });
+
   // ── Initial bind + re-bind on DOM mutations ─────────────────────────────────
   bindEditables();
 
