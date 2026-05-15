@@ -650,6 +650,53 @@ IMPROVE RULES:
 - ALWAYS return the complete data object with ALL fields, not just the changed ones` : 'You are creating a NEW block from scratch based on the user prompt. Write in the SAME language the user used.'}`;
 }
 
+function validateBlockData(type, data) {
+  if (!data || typeof data !== 'object') return 'Response is not a valid object';
+
+  const REQUIRED_FIELDS = {
+    Hero: ['titleHtml'],
+    Editorial: ['content'],
+    FullscreenImage: ['imageSrc', 'title'],
+    FullBleed: ['title'],
+    Quote: ['text'],
+    Aside: ['title', 'body'],
+    Outro: ['h2'],
+    ChapterDivider: ['title'],
+    Scrolly: ['steps'],
+    DataScrolly: ['steps'],
+    Map2D: ['steps'],
+    AudioPlayer: ['src'],
+    StatRow: ['stats'],
+    Timeline: ['events'],
+    ImageCompare: ['beforeSrc', 'afterSrc'],
+    ImageHotspot: ['imageSrc', 'hotspots'],
+    AccordionBlock: ['items'],
+    ImageGrid: ['images'],
+    VizPanel: ['spec'],
+    VideoEmbed: ['src'],
+    EmbedBlock: ['html'],
+    ProgressNav: ['items'],
+    Separator: [],
+    Figure: ['images'],
+  };
+
+  const required = REQUIRED_FIELDS[type];
+  if (!required) return null; // unknown type, skip validation
+
+  const missing = required.filter(f => data[f] === undefined || data[f] === null);
+  if (missing.length > 0) return `Missing required fields: ${missing.join(', ')}`;
+
+  // Array fields must be arrays
+  const ARRAY_FIELDS = ['content', 'steps', 'stats', 'events', 'hotspots', 'items', 'images', 'paragraphs'];
+  for (const f of ARRAY_FIELDS) {
+    if (data[f] !== undefined && !Array.isArray(data[f])) {
+      return `Field '${f}' must be an array, got ${typeof data[f]}`;
+    }
+  }
+
+  return null; // valid
+}
+
 export async function onRequest(context) {
   const { request, env } = context;
 
@@ -769,6 +816,14 @@ export async function onRequest(context) {
           throw new Error('AI did not return valid JSON. Raw: ' + text.slice(0, 300));
         }
       }
+    }
+
+    const validationError = validateBlockData(type, data);
+    if (validationError) {
+      return new Response(JSON.stringify({ error: `AI returned invalid data: ${validationError}` }), {
+        status: 422,
+        headers: { 'Content-Type': 'application/json' },
+      });
     }
 
     return new Response(JSON.stringify({ data }), {

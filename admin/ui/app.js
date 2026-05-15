@@ -1605,7 +1605,20 @@ function openClaudeModal(opts) {
           direct: !aiMode || undefined,
         });
         if (isImprove) {
-          opts.block.data = r.data;
+          // Deep merge — AI response overwrites matched fields, preserves unmentioned ones
+          function deepMerge(target, source) {
+            const result = { ...target };
+            for (const key of Object.keys(source)) {
+              if (source[key] && typeof source[key] === 'object' && !Array.isArray(source[key])
+                  && target[key] && typeof target[key] === 'object' && !Array.isArray(target[key])) {
+                result[key] = deepMerge(target[key], source[key]);
+              } else {
+                result[key] = source[key];
+              }
+            }
+            return result;
+          }
+          opts.block.data = deepMerge(opts.block.data || {}, r.data);
           setDirty(true);
           renderBlockList();
           if (opts.block.id === state.selectedBlockId) renderEditor();
