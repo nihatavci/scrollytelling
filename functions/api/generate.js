@@ -397,7 +397,18 @@ ${schema.description}
 Example output (note: examples may be in German — adapt to the correct language):
 ${JSON.stringify(schema.example, null, 2)}
 
-${mode === 'improve' ? 'You are IMPROVING an existing block. Keep the structure, apply the requested changes, return the complete updated data object.' : 'You are creating a NEW block from scratch based on the user prompt. Write in the SAME language the user used.'}`;
+${mode === 'improve' ? `You are IMPROVING an existing block. The user's current data is provided — apply their requested changes and return the COMPLETE updated data object.
+
+IMPROVE RULES:
+- Keep all existing fields unless the user explicitly asks to change them
+- If the user says "make images smaller" or "smaller layout" → change layout to "editorial" (720px narrow)
+- If they say "bigger" or "wider" or "full width" → change layout to "bleed" or "full"
+- If they say "2 grid" or "3 columns" etc → set the layout field accordingly
+- If they say "remove image 2" or "swap images" → modify the images array
+- If they say "add caption" or "change credit" → update those fields
+- If they mention sizing like "make the image half size" → change layout to "editorial" for narrow
+- For Scrolly blocks: if they say "remove images" → clear imageSrc fields. If "add image to step 3" → set imageSrc on that step
+- ALWAYS return the complete data object with ALL fields, not just the changed ones` : 'You are creating a NEW block from scratch based on the user prompt. Write in the SAME language the user used.'}`;
 }
 
 export async function onRequest(context) {
