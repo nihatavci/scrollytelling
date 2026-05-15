@@ -13,6 +13,7 @@ const state = {
   selectedItemIdx: null, // For editorial sub-items
   dirty: false,
   savedVersion: null,
+  visualEditMode: false,
 };
 
 // ─────────────────────────── Block type schemas ──────────────
@@ -23,48 +24,48 @@ const BLOCK_SCHEMAS = {
     name: 'Hero',
     description: 'Top of page — brand line, big title, animated intro lines',
     fields: [
-      { key: 'brand',          label: 'Brand line (small caps at top)',     kind: 'text' },
-      { key: 'titleHtml',      label: 'Title',                              kind: 'textarea',
+      { key: 'brand',          label: 'Brand line (small caps at top)',     kind: 'text', group: 'content' },
+      { key: 'titleHtml',      label: 'Title',                              kind: 'textarea', group: 'content',
         hint: 'Wrap a word in <code>&lt;span&gt;…&lt;/span&gt;</code> to highlight it in orange. Use <code>&lt;br&gt;</code> for a line break.' },
-      { key: 'subtitle',       label: 'Subtitle',      kind: 'text' },
-      { key: 'scrollCueText',  label: 'Scroll-down cue text',   kind: 'text' },
-      { key: 'lines',          label: 'Intro lines (appear one by one before the title)', kind: 'lines' },
+      { key: 'subtitle',       label: 'Subtitle',      kind: 'text', group: 'content' },
+      { key: 'scrollCueText',  label: 'Scroll-down cue text',   kind: 'text', group: 'style' },
+      { key: 'lines',          label: 'Intro lines (appear one by one before the title)', kind: 'lines', group: 'data' },
     ],
   },
   VizPanel: {
     name: 'Visualization',
     description: 'Shared interactive chart that scrolly sections drive',
     fields: [
-      { key: 'initialTitle', label: 'Chart title (initial)',    kind: 'text' },
-      { key: 'initialSub',   label: 'Chart subtitle (initial)', kind: 'text' },
+      { key: 'initialTitle', label: 'Chart title (initial)',    kind: 'text', group: 'content' },
+      { key: 'initialSub',   label: 'Chart subtitle (initial)', kind: 'text', group: 'content' },
     ],
   },
   Editorial: {
     name: 'Editorial',
     description: 'Long-form text section — paragraphs, quotes, images',
     fields: [
-      { key: 'content', label: 'Content', kind: 'editorial_items' },
+      { key: 'content', label: 'Content', kind: 'editorial_items', group: 'data' },
     ],
   },
   Scrolly: {
     name: 'Scrolly',
     description: 'Sticky-chart section with stepped narrative on the side',
     fields: [
-      { key: 'imageSize',   label: 'Image size', kind: 'text', hint: 'small (35%), medium (50%), large (65%), full, or any CSS value like "40%"' },
-      { key: 'imageHeight', label: 'Image height', kind: 'text', hint: 'CSS height: 100vh, 80vh, 60vh, 400px etc.' },
-      { key: 'imageRadius', label: 'Image corner radius', kind: 'text', hint: '0 (sharp), 12px, 24px etc.' },
-      { key: 'maxWidth',    label: 'Max width', kind: 'text', hint: '1400px (default), 1100px (editorial), 900px (narrow)' },
-      { key: 'steps',       label: 'Steps', kind: 'scrolly_steps' },
+      { key: 'imageSize',   label: 'Image size', kind: 'text', group: 'layout', hint: 'small (35%), medium (50%), large (65%), full, or any CSS value like "40%"' },
+      { key: 'imageHeight', label: 'Image height', kind: 'text', group: 'layout', hint: 'CSS height: 100vh, 80vh, 60vh, 400px etc.' },
+      { key: 'imageRadius', label: 'Image corner radius', kind: 'text', group: 'layout', hint: '0 (sharp), 12px, 24px etc.' },
+      { key: 'maxWidth',    label: 'Max width', kind: 'text', group: 'layout', hint: '1400px (default), 1100px (editorial), 900px (narrow)' },
+      { key: 'steps',       label: 'Steps', kind: 'scrolly_steps', group: 'data' },
     ],
   },
   Outro: {
     name: 'Outro',
     description: 'Closing section — paragraphs, final emphasized line, sources',
     fields: [
-      { key: 'h2',          label: 'Heading',     kind: 'text' },
-      { key: 'paragraphs',  label: 'Paragraphs',  kind: 'string_list' },
-      { key: 'finalLine',   label: 'Final emphasized line',  kind: 'text' },
-      { key: 'sourcesHtml', label: 'Sources',     kind: 'textarea_html',
+      { key: 'h2',          label: 'Heading',     kind: 'text', group: 'content' },
+      { key: 'paragraphs',  label: 'Paragraphs',  kind: 'string_list', group: 'content' },
+      { key: 'finalLine',   label: 'Final emphasized line',  kind: 'text', group: 'content' },
+      { key: 'sourcesHtml', label: 'Sources',     kind: 'textarea_html', group: 'meta',
         hint: 'Separate citations with " · ". Use <code>&lt;br&gt;</code> for line breaks.' },
     ],
   },
@@ -72,170 +73,223 @@ const BLOCK_SCHEMAS = {
     name: 'Stat row',
     description: 'A horizontal row of 2–4 large numbers with labels',
     fields: [
-      { key: 'title', label: 'Heading (optional)', kind: 'text' },
-      { key: 'stats', label: 'Stats',              kind: 'stat_list' },
+      { key: 'title', label: 'Heading (optional)', kind: 'text', group: 'content' },
+      { key: 'stats', label: 'Stats',              kind: 'stat_list', group: 'data' },
     ],
   },
   Timeline: {
     name: 'Timeline',
     description: 'Vertical timeline — dated events with title and body',
     fields: [
-      { key: 'title',  label: 'Heading (optional)', kind: 'text' },
-      { key: 'events', label: 'Events',             kind: 'timeline_events' },
+      { key: 'title',  label: 'Heading (optional)', kind: 'text', group: 'content' },
+      { key: 'events', label: 'Events',             kind: 'timeline_events', group: 'data' },
     ],
   },
   Aside: {
     name: 'Aside',
     description: 'Full-width highlighted callout box',
     fields: [
-      { key: 'tone',  label: 'Tone', kind: 'tone_select' },
-      { key: 'title', label: 'Title (optional)', kind: 'text' },
-      { key: 'body',  label: 'Body (separate paragraphs with a blank line)', kind: 'textarea' },
+      { key: 'tone',  label: 'Tone', kind: 'tone_select', group: 'style' },
+      { key: 'title', label: 'Title (optional)', kind: 'text', group: 'content' },
+      { key: 'body',  label: 'Body (separate paragraphs with a blank line)', kind: 'textarea', group: 'content' },
     ],
   },
   ChapterDivider: {
     name: 'Chapter divider',
     description: 'Chapter break — number, title, optional subtitle',
     fields: [
-      { key: 'number',   label: 'Number / label (optional)',     kind: 'text', hint: 'e.g. <code>I</code>, <code>01</code>, <code>Kapitel 2</code>' },
-      { key: 'title',    label: 'Title',                          kind: 'text' },
-      { key: 'subtitle', label: 'Subtitle (optional)',            kind: 'textarea' },
+      { key: 'number',   label: 'Number / label (optional)',     kind: 'text', group: 'content', hint: 'e.g. <code>I</code>, <code>01</code>, <code>Kapitel 2</code>' },
+      { key: 'title',    label: 'Title',                          kind: 'text', group: 'content' },
+      { key: 'subtitle', label: 'Subtitle (optional)',            kind: 'textarea', group: 'content' },
     ],
   },
   Quote: {
     name: 'Quote',
     description: 'Featured money quote — large, optional portrait',
     fields: [
-      { key: 'text',         label: 'Quote (without surrounding quote marks)', kind: 'textarea' },
-      { key: 'attribution',  label: 'Attribution (Name)',                       kind: 'text' },
-      { key: 'role',         label: 'Role / context (optional)',                kind: 'text' },
-      { key: 'portraitSrc',  label: 'Portrait (optional)',                      kind: 'image' },
-      { key: 'sourceUrl',    label: 'Source URL (optional)',                    kind: 'text' },
-      { key: 'sourceLabel',  label: 'Source link label (optional)',             kind: 'text' },
+      { key: 'text',         label: 'Quote (without surrounding quote marks)', kind: 'textarea', group: 'content' },
+      { key: 'attribution',  label: 'Attribution (Name)',                       kind: 'text', group: 'content' },
+      { key: 'role',         label: 'Role / context (optional)',                kind: 'text', group: 'content' },
+      { key: 'portraitSrc',  label: 'Portrait (optional)',                      kind: 'image', group: 'media' },
+      { key: 'sourceUrl',    label: 'Source URL (optional)',                    kind: 'text', group: 'meta' },
+      { key: 'sourceLabel',  label: 'Source link label (optional)',             kind: 'text', group: 'meta' },
     ],
   },
   VideoEmbed: {
     name: 'Video embed',
     description: 'YouTube or Vimeo video with caption',
     fields: [
-      { key: 'url',     label: 'Video URL', kind: 'text', hint: 'Paste a YouTube or Vimeo URL.' },
-      { key: 'caption', label: 'Caption',   kind: 'textarea' },
-      { key: 'credit',  label: 'Credit (optional)', kind: 'text', hint: 'e.g. <code>via NYT</code>' },
+      { key: 'url',     label: 'Video URL', kind: 'text', group: 'media', hint: 'Paste a YouTube or Vimeo URL.' },
+      { key: 'caption', label: 'Caption',   kind: 'textarea', group: 'meta' },
+      { key: 'credit',  label: 'Credit (optional)', kind: 'text', group: 'meta', hint: 'e.g. <code>via NYT</code>' },
     ],
   },
   DataScrolly: {
     name: 'Data scrolly',
     description: 'Sticky chart + stepped narrative — each step updates the chart',
     fields: [
-      { key: 'title',     label: 'Chart title',     kind: 'text' },
-      { key: 'subtitle',  label: 'Chart subtitle',  kind: 'text' },
-      { key: 'source',    label: 'Data source',     kind: 'text', hint: 'Citation or <code>[estimated illustrative values]</code>' },
-      { key: 'chartSpec', label: 'Chart',           kind: 'chart_spec' },
-      { key: 'steps',     label: 'Steps',           kind: 'data_scrolly_steps' },
+      { key: 'title',     label: 'Chart title',     kind: 'text', group: 'content' },
+      { key: 'subtitle',  label: 'Chart subtitle',  kind: 'text', group: 'content' },
+      { key: 'source',    label: 'Data source',     kind: 'text', group: 'meta', hint: 'Citation or <code>[estimated illustrative values]</code>' },
+      { key: 'chartSpec', label: 'Chart',           kind: 'chart_spec', group: 'data' },
+      { key: 'steps',     label: 'Steps',           kind: 'data_scrolly_steps', group: 'data' },
     ],
   },
   ImageCompare: {
+    name: 'Image Compare',
     label: 'Image Compare',
     fields: [
-      { key: 'beforeSrc',       label: 'Before image URL',  kind: 'text' },
-      { key: 'beforeLabel',     label: 'Before label',      kind: 'text' },
-      { key: 'afterSrc',        label: 'After image URL',   kind: 'text' },
-      { key: 'afterLabel',      label: 'After label',       kind: 'text' },
-      { key: 'initialPosition', label: 'Start position %',  kind: 'text', hint: '0-100, default 50' },
-      { key: 'caption',         label: 'Caption',           kind: 'textarea' },
-      { key: 'credit',          label: 'Credit',            kind: 'text' },
+      { key: 'beforeSrc',       label: 'Before image URL',  kind: 'text', group: 'media' },
+      { key: 'beforeLabel',     label: 'Before label',      kind: 'text', group: 'content' },
+      { key: 'afterSrc',        label: 'After image URL',   kind: 'text', group: 'media' },
+      { key: 'afterLabel',      label: 'After label',       kind: 'text', group: 'content' },
+      { key: 'initialPosition', label: 'Start position %',  kind: 'text', group: 'layout', hint: '0-100, default 50' },
+      { key: 'caption',         label: 'Caption',           kind: 'textarea', group: 'meta', inline: true },
+      { key: 'credit',          label: 'Credit',            kind: 'text', group: 'meta', inline: true },
     ]
   },
   ImageHotspot: {
+    name: 'Image Hotspot',
     label: 'Image Hotspot',
     fields: [
-      { key: 'src',     label: 'Image URL',   kind: 'text' },
-      { key: 'alt',     label: 'Alt text',     kind: 'text' },
-      { key: 'caption', label: 'Caption',      kind: 'textarea' },
-      { key: 'credit',  label: 'Credit',       kind: 'text' },
-      { key: 'hotspots', label: 'Hotspots',    kind: 'textarea_html', hint: 'AI generates these — use Enhance to add/modify hotspots' },
+      { key: 'src',     label: 'Image URL',   kind: 'text', group: 'media' },
+      { key: 'alt',     label: 'Alt text',     kind: 'text', group: 'content' },
+      { key: 'caption', label: 'Caption',      kind: 'textarea', group: 'meta', inline: true },
+      { key: 'credit',  label: 'Credit',       kind: 'text', group: 'meta', inline: true },
+      { key: 'hotspots', label: 'Hotspots',    kind: 'textarea_html', group: 'data', hint: 'AI generates these — use Enhance to add/modify hotspots' },
     ]
   },
   AccordionBlock: {
+    name: 'Accordion',
     label: 'Accordion',
     fields: [
-      { key: 'title',     label: 'Section title',  kind: 'text' },
-      { key: 'multiOpen', label: 'Allow multi-open', kind: 'text', hint: 'true or false, default false' },
-      { key: 'items',     label: 'Items',           kind: 'textarea_html', hint: 'AI generates these — use Enhance to add/modify' },
+      { key: 'title',     label: 'Section title',  kind: 'text', group: 'content' },
+      { key: 'multiOpen', label: 'Allow multi-open', kind: 'text', group: 'content', hint: 'true or false, default false' },
+      { key: 'items',     label: 'Items',           kind: 'textarea_html', group: 'data', hint: 'AI generates these — use Enhance to add/modify' },
     ]
   },
   FullBleed: {
+    name: 'Full Bleed',
     label: 'Full Bleed',
     fields: [
-      { key: 'mediaSrc',         label: 'Image URL',       kind: 'text' },
-      { key: 'mediaType',        label: 'Media type',      kind: 'text', hint: 'image, video, or loop' },
-      { key: 'videoSrc',         label: 'Video URL',       kind: 'text' },
-      { key: 'posterSrc',        label: 'Poster image',    kind: 'text' },
-      { key: 'overlayPosition',  label: 'Text position',   kind: 'text', hint: 'center, bottom-left, or bottom-right' },
-      { key: 'scrimOpacity',     label: 'Scrim opacity',   kind: 'text', hint: '0 to 1, default 0.4' },
-      { key: 'height',           label: 'Height',          kind: 'text', hint: '100vh, 75vh, or 50vh' },
-      { key: 'title',            label: 'Title (HTML)',     kind: 'textarea_html' },
-      { key: 'subtitle',         label: 'Subtitle',        kind: 'text' },
-      { key: 'body',             label: 'Body text',       kind: 'textarea_html' },
+      { key: 'mediaSrc',         label: 'Image / poster',  kind: 'image', group: 'media' },
+      { key: 'mediaType',        label: 'Media type',      kind: 'select', group: 'layout', options: ['image', 'video', 'loop'] },
+      { key: 'videoSrc',         label: 'Video file',      kind: 'video', group: 'media' },
+      { key: 'posterSrc',        label: 'Poster image',    kind: 'image', group: 'media' },
+      { key: 'overlayPosition',  label: 'Text position',   kind: 'select', group: 'layout', options: ['bottom-left', 'bottom-right', 'center', 'top-left'] },
+      { key: 'scrimOpacity',     label: 'Scrim opacity',   kind: 'text', group: 'layout', hint: '0 to 1, default 0.4' },
+      { key: 'height',           label: 'Height',          kind: 'select', group: 'layout', options: ['100vh', '75vh', '50vh'] },
+      { key: 'title',            label: 'Title (HTML)',     kind: 'textarea_html', group: 'content' },
+      { key: 'subtitle',         label: 'Subtitle',        kind: 'text', group: 'content' },
+      { key: 'body',             label: 'Body text',       kind: 'textarea_html', group: 'content' },
     ]
   },
   ProgressNav: {
+    name: 'Progress Nav',
     label: 'Progress Nav',
     fields: [
-      { key: 'mode',           label: 'Mode',           kind: 'text', hint: 'bar (default)' },
-      { key: 'autoGenerate',   label: 'Auto-generate',  kind: 'text', hint: 'true (auto-detect chapters) or false' },
-      { key: 'showPercentage', label: 'Show %',         kind: 'text', hint: 'true or false' },
+      { key: 'mode',           label: 'Mode',           kind: 'text', group: 'content', hint: 'bar (default)' },
+      { key: 'autoGenerate',   label: 'Auto-generate',  kind: 'text', group: 'content', hint: 'true (auto-detect chapters) or false' },
+      { key: 'showPercentage', label: 'Show %',         kind: 'text', group: 'content', hint: 'true or false' },
     ]
   },
   EmbedBlock: {
+    name: 'Embed',
     label: 'Embed',
     fields: [
-      { key: 'provider',      label: 'Provider',      kind: 'text', hint: 'datawrapper, flourish, twitter, etc.' },
-      { key: 'url',           label: 'Embed URL',     kind: 'text' },
-      { key: 'embedHtml',     label: 'Raw HTML',      kind: 'textarea_html', hint: 'Paste iframe code here instead of URL' },
-      { key: 'aspectRatio',   label: 'Aspect ratio',  kind: 'text', hint: '16:9, 4:3, 1:1, or auto' },
-      { key: 'maxWidth',      label: 'Max width',     kind: 'text', hint: 'e.g. 720px' },
-      { key: 'caption',       label: 'Caption',       kind: 'textarea' },
-      { key: 'lazyLoad',      label: 'Lazy load',     kind: 'text', hint: 'true (default) or false' },
-      { key: 'fallbackImage', label: 'Fallback image', kind: 'text' },
+      { key: 'provider',      label: 'Provider',      kind: 'text', group: 'content', hint: 'datawrapper, flourish, twitter, etc.' },
+      { key: 'url',           label: 'Embed URL',     kind: 'text', group: 'content' },
+      { key: 'embedHtml',     label: 'Raw HTML',      kind: 'textarea_html', group: 'content', hint: 'Paste iframe code here instead of URL' },
+      { key: 'aspectRatio',   label: 'Aspect ratio',  kind: 'text', group: 'content', hint: '16:9, 4:3, 1:1, or auto' },
+      { key: 'maxWidth',      label: 'Max width',     kind: 'text', group: 'content', hint: 'e.g. 720px' },
+      { key: 'caption',       label: 'Caption',       kind: 'textarea', group: 'content' },
+      { key: 'lazyLoad',      label: 'Lazy load',     kind: 'text', group: 'content', hint: 'true (default) or false' },
+      { key: 'fallbackImage', label: 'Fallback image', kind: 'text', group: 'content' },
     ]
   },
   ImageGrid: {
+    name: 'Image Grid',
     label: 'Image Grid',
     fields: [
-      { key: 'layout',  label: 'Layout',  kind: 'text', hint: 'Auto-detects from count. Or: "wide", "bleed", "editorial", "2 grid", "3 columns", "masonry", "row", "stack"' },
-      { key: 'title',   label: 'Title',   kind: 'text', hint: 'Optional heading above images' },
-      { key: 'images',  label: 'Images',  kind: 'array', itemFields: [
+      { key: 'images',  label: 'Images',  kind: 'array', group: 'media', itemFields: [
         { key: 'src',     label: 'Image URL', kind: 'text' },
         { key: 'alt',     label: 'Alt text',  kind: 'text' },
         { key: 'caption', label: 'Caption',   kind: 'text', hint: 'Shows on hover' },
       ]},
-      { key: 'caption', label: 'Overall caption', kind: 'textarea' },
-      { key: 'credit',  label: 'Photo credit',    kind: 'text' },
+      { key: 'layout',  label: 'Layout',  kind: 'text', group: 'layout', hint: 'Auto-detects from count. Or: "wide", "bleed", "editorial", "2 grid", "3 columns", "masonry", "row", "stack"' },
+      { key: 'title',   label: 'Title',   kind: 'text', group: 'layout', hint: 'Optional heading above images' },
+      { key: 'caption', label: 'Overall caption', kind: 'textarea', group: 'meta', inline: true },
+      { key: 'credit',  label: 'Photo credit',    kind: 'text', group: 'meta', inline: true },
+    ]
+  },
+  FullscreenImage: {
+    name: 'Fullscreen Image',
+    label: 'Fullscreen Image',
+    fields: [
+      { key: 'imageSrc',         label: 'Image',              kind: 'image', group: 'media' },
+      { key: 'imageAlt',         label: 'Alt text',           kind: 'text', group: 'media' },
+      { key: 'kicker',           label: 'Kicker (optional)',   kind: 'text', group: 'content', hint: 'Small category label, e.g. "INVESTIGATION"' },
+      { key: 'title',            label: 'Title (HTML)',        kind: 'textarea_html', group: 'content', hint: 'Use <code>&lt;span&gt;word&lt;/span&gt;</code> for accent color' },
+      { key: 'subtitle',         label: 'Subtitle',           kind: 'text', group: 'content' },
+      { key: 'body',             label: 'Body text',          kind: 'textarea_html', group: 'content' },
+      { key: 'overlayPosition',  label: 'Text position',      kind: 'select', group: 'layout', options: ['bottom-left', 'bottom-right', 'center', 'top-left'] },
+      { key: 'scrimOpacity',     label: 'Scrim opacity',      kind: 'text', group: 'layout', inline: true, hint: '0 to 1, default 0.45' },
+      { key: 'scrimDirection',   label: 'Scrim direction',    kind: 'select', group: 'layout', inline: true, options: ['bottom', 'top', 'radial'] },
+      { key: 'kenBurns',         label: 'Ken Burns animation', kind: 'select', group: 'style', inline: true, options: ['true', 'false'] },
+      { key: 'scrollCue',        label: 'Scroll indicator',   kind: 'select', group: 'style', inline: true, options: ['true', 'false'] },
+      { key: 'caption',          label: 'Caption',            kind: 'textarea', group: 'meta', inline: true },
+      { key: 'credit',           label: 'Credit',             kind: 'text', group: 'meta', inline: true },
+    ]
+  },
+  AudioPlayer: {
+    name: 'Audio Player',
+    label: 'Audio Player',
+    fields: [
+      { key: 'audioSrc',       label: 'Audio file',        kind: 'audio', group: 'media' },
+      { key: 'title',          label: 'Title',             kind: 'text', group: 'content' },
+      { key: 'subtitle',       label: 'Subtitle',          kind: 'text', group: 'content', hint: 'Series name or context' },
+      { key: 'description',    label: 'Description',       kind: 'textarea', group: 'content' },
+      { key: 'duration',       label: 'Duration',          kind: 'text', group: 'content', hint: 'e.g. 4:32' },
+      { key: 'waveformColor',  label: 'Waveform color',    kind: 'text', group: 'style', inline: true, hint: 'Hex color, default accent' },
+      { key: 'accentColor',    label: 'Accent color',      kind: 'text', group: 'style', inline: true, hint: 'Play button & progress color' },
+      { key: 'coverSrc',       label: 'Cover art',         kind: 'image', group: 'media' },
+      { key: 'transcript',     label: 'Transcript',        kind: 'textarea', group: 'content', hint: 'Full transcript text (expandable)' },
+      { key: 'caption',        label: 'Caption',           kind: 'textarea', group: 'meta', inline: true },
+      { key: 'credit',         label: 'Credit',            kind: 'text', group: 'meta', inline: true },
     ]
   },
   Map2D: {
     name: 'Map 2D',
     description: 'Scrollytelling map — fly between locations as the reader scrolls',
     fields: [
-      { key: 'title',         label: 'Title (optional)', kind: 'text' },
-      { key: 'subtitle',      label: 'Subtitle (optional)', kind: 'text' },
-      { key: 'source',        label: 'Source attribution', kind: 'text' },
-      { key: 'layout',        label: 'Layout', kind: 'text', hint: '"side" (map left, cards right) or "behind" (full-viewport map)' },
-      { key: 'tileStyle',     label: 'Tile style', kind: 'text', hint: 'default, toner, watercolor, toner-lite, dark' },
-      { key: 'height',        label: 'Map height', kind: 'text', hint: '100vh, 80vh, 500px, etc.' },
-      { key: 'maxWidth',      label: 'Max width', kind: 'text', hint: '1400px (default), 1100px, 100%' },
-      { key: 'initialCenter', label: 'Initial center [lat, lng]', kind: 'text', hint: 'e.g. 52.52, 13.405 for Berlin' },
-      { key: 'initialZoom',   label: 'Initial zoom (1-18)', kind: 'text', hint: '6=country, 12=city, 15=neighborhood' },
-      { key: 'flyDuration',   label: 'Fly duration (seconds)', kind: 'text', hint: 'Default 2. Slower = more dramatic.' },
-      { key: 'markers',       label: 'Markers (JSON)', kind: 'textarea', hint: 'Array of {id, lat, lng, label, popupHtml, color}. Use ✨ Enhance to generate.' },
-      { key: 'routes',        label: 'Routes (JSON)', kind: 'textarea', hint: 'Array of {id, points, color, weight, animate, label}. Use ✨ Enhance.' },
-      { key: 'areas',         label: 'Areas (JSON)', kind: 'textarea', hint: 'Array of {id, points, color, fillOpacity, label}. Use ✨ Enhance.' },
-      { key: 'steps',         label: 'Steps (JSON)', kind: 'textarea', hint: 'Array of {badgeKind, badgeLabel, body, mapState}. Use ✨ Enhance to edit.' },
-      { key: 'caption',       label: 'Caption', kind: 'textarea' },
-      { key: 'credit',        label: 'Credit', kind: 'text' },
+      { key: 'title',         label: 'Title (optional)', kind: 'text', group: 'content' },
+      { key: 'subtitle',      label: 'Subtitle (optional)', kind: 'text', group: 'content' },
+      { key: 'source',        label: 'Source attribution', kind: 'text', group: 'meta' },
+      { key: 'layout',        label: 'Layout', kind: 'select', group: 'layout', options: ['behind', 'side'] },
+      { key: 'tileStyle',     label: 'Tile style', kind: 'select', group: 'layout', options: ['default', 'clean', 'toner', 'toner-lite', 'watercolor', 'dark', 'osm'] },
+      { key: 'height',        label: 'Map height', kind: 'text', group: 'layout', hint: '100vh, 80vh, 500px, etc.' },
+      { key: 'maxWidth',      label: 'Max width', kind: 'text', group: 'layout', hint: '1400px (default), 1100px, 100%' },
+      { key: 'initialCenter', label: 'Initial center [lat, lng]', kind: 'text', group: 'layout', hint: 'e.g. 52.52, 13.405 for Berlin' },
+      { key: 'initialZoom',   label: 'Initial zoom (1-18)', kind: 'text', group: 'layout', hint: '6=country, 12=city, 15=neighborhood' },
+      { key: 'flyDuration',   label: 'Fly duration (seconds)', kind: 'text', group: 'layout', hint: 'Default 2. Slower = more dramatic.' },
+      { key: 'markers',       label: 'Markers (JSON)', kind: 'textarea', group: 'data', hint: 'Array of {id, lat, lng, label, popupHtml, color}. Use ✨ Enhance to generate.' },
+      { key: 'routes',        label: 'Routes (JSON)', kind: 'textarea', group: 'data', hint: 'Array of {id, points, color, weight, animate, label}. Use ✨ Enhance.' },
+      { key: 'areas',         label: 'Areas (JSON)', kind: 'textarea', group: 'data', hint: 'Array of {id, points, color, fillOpacity, label}. Use ✨ Enhance.' },
+      { key: 'steps',         label: 'Steps (JSON)', kind: 'textarea', group: 'data', hint: 'Array of {badgeKind, badgeLabel, body, mapState}. Use ✨ Enhance to edit.' },
+      { key: 'caption',       label: 'Caption', kind: 'textarea', group: 'meta', inline: true },
+      { key: 'credit',        label: 'Credit', kind: 'text', group: 'meta', inline: true },
     ],
   },
+};
+
+const BLOCK_ICONS = {
+  Hero: '\u{1F3E0}', VizPanel: '\u{1F4CA}', Editorial: '\u{1F4DD}', Scrolly: '\u{1F4DC}',
+  Outro: '\u{1F51A}', StatRow: '\u{1F522}', Timeline: '\u{1F4C5}', Aside: '\u{1F4A1}',
+  ChapterDivider: '\u{2550}', Quote: '\u{1F4AC}', VideoEmbed: '\u{1F3AC}',
+  DataScrolly: '\u{1F4C8}', FullBleed: '\u{1F5BC}', ImageCompare: '\u{2696}\u{FE0F}',
+  ImageHotspot: '\u{1F4CC}', AccordionBlock: '\u{1FA97}', ProgressNav: '\u{25B0}',
+  EmbedBlock: '\u{1F9E9}', ImageGrid: '\u{1F3D7}', Map2D: '\u{1F5FA}',
+  FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}',
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -314,6 +368,8 @@ const PALETTE_BLOCKS = [
   { type: 'EmbedBlock',     desc: 'Datawrapper, Flourish, Twitter, or any iframe embed' },
   { type: 'ImageGrid',      desc: 'Smart image grid — auto-detects layout from count. Paste URLs or upload.' },
   { type: 'Map2D',          desc: 'Scrollytelling map — fly between locations, animate routes, reveal markers as reader scrolls' },
+  { type: 'FullscreenImage', desc: 'Full-viewport immersive image with text overlay, Ken Burns zoom, and scroll cue' },
+  { type: 'AudioPlayer',     desc: 'Professional audio player with waveform, progress bar, and optional transcript' },
 ];
 
 // Tiny inline mockups shown inside the palette cards and at the top of the
@@ -425,6 +481,32 @@ const BLOCK_PREVIEWS = {
         <div style="background:#fff;border:1px solid #eaeef2;border-radius:3px;padding:2px 4px;font:500 6px 'DM Sans',sans-serif;color:#8c8078;opacity:.5;">📍 Frankfurt</div>
       </div>
     </div>`,
+  FullscreenImage: `
+    <div style="background:linear-gradient(135deg,#2a2320 0%,#1a1510 100%);border-radius:6px;height:56px;position:relative;overflow:hidden;">
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.7) 100%);"></div>
+      <div style="position:absolute;bottom:6px;left:8px;z-index:1;">
+        <div style="font:600 5px 'DM Sans',sans-serif;letter-spacing:.12em;color:rgba(255,255,255,.6);text-transform:uppercase;margin-bottom:2px;">KICKER</div>
+        <div style="font:700 12px 'Source Serif 4',serif;color:#fff;line-height:1.1;">Title <span style="color:#c06830;">word</span></div>
+        <div style="font:400 6px 'DM Sans',sans-serif;color:rgba(255,255,255,.7);margin-top:2px;">subtitle text</div>
+      </div>
+      <div style="position:absolute;bottom:4px;left:50%;transform:translateX(-50%);width:6px;height:6px;border-right:1px solid rgba(255,255,255,.5);border-bottom:1px solid rgba(255,255,255,.5);transform:translateX(-50%) rotate(45deg);"></div>
+    </div>`,
+  AudioPlayer: `
+    <div style="display:flex;gap:8px;background:#fff;border:1px solid #eaeef2;border-radius:6px;padding:6px;">
+      <div style="width:28px;height:28px;border-radius:6px;background:#f4ebe3;flex-shrink:0;"></div>
+      <div style="flex:1;min-width:0;">
+        <div style="font:600 5px 'DM Sans',sans-serif;letter-spacing:.06em;color:#8c8078;text-transform:uppercase;">SERIES</div>
+        <div style="font:700 9px 'Source Serif 4',serif;color:#2a2320;line-height:1.2;">Episode title</div>
+        <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
+          <div style="width:16px;height:16px;border-radius:50%;background:#c06830;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <div style="width:0;height:0;border-left:5px solid #fff;border-top:3px solid transparent;border-bottom:3px solid transparent;margin-left:1px;"></div>
+          </div>
+          <div style="flex:1;display:flex;align-items:flex-end;gap:1px;height:12px;">
+            ${Array.from({length:20},(_,i)=>`<div style="flex:1;background:#c06830;opacity:.3;border-radius:0.5px;height:${25+Math.abs(Math.sin(i*0.5))*75}%;"></div>`).join('')}
+          </div>
+        </div>
+      </div>
+    </div>`,
 };
 
 // ─────────────────────────── DOM refs ────────────────────────
@@ -436,8 +518,8 @@ function uid(prefix = 'b') {
   return prefix + '_' + Math.random().toString(36).slice(2, 9);
 }
 function clone(x) { return JSON.parse(JSON.stringify(x)); }
-// Production domain for public pages
-const PROD_DOMAIN = 'https://scrollycms.pages.dev';
+// Production domain — auto-detect from current origin (supports custom domains)
+const PROD_DOMAIN = window.location.origin;
 
 function toast(msg, kind = '') {
   const t = document.createElement('div');
@@ -901,12 +983,19 @@ function renderBlockList() {
     li.className = 'block-item' + (block.id === state.selectedBlockId ? ' active' : '');
     li.draggable = true;
     li.dataset.idx = idx;
+    const schemaName = BLOCK_SCHEMAS[block.type]?.name || block.type;
+    const icon = BLOCK_ICONS[block.type] || '';
     li.innerHTML = `
-      <span class="drag-handle" title="Drag to reorder">⠿</span>
-      <span class="block-type">${block.type}</span>
-      <span class="block-title">${blockSummary(block)}</span>
+      <div class="block-item-left">
+        <span class="drag-handle" title="Drag to reorder">⠿</span>
+        <span class="block-icon">${icon}</span>
+      </div>
+      <div class="block-item-center">
+        <span class="block-name">${schemaName}</span>
+        <span class="block-summary">${blockSummary(block)}</span>
+      </div>
       <span class="block-ctrl">
-        <button data-act="claude" title="Enhance with Claude" class="enhance-btn">✨ Enhance</button>
+        <button data-act="claude" title="Enhance with Claude" class="enhance-btn">✨</button>
         <button data-act="dup"    title="Duplicate">⧉</button>
         <button data-act="del"    title="Delete">✕</button>
       </span>`;
@@ -1020,6 +1109,8 @@ function blockSummary(block) {
     case 'EmbedBlock': return d.provider || (d.url ? 'Embed' : 'Empty embed');
     case 'ImageGrid': return `${(d.images || []).length} images` + (d.layout ? ` · ${d.layout}` : '');
     case 'Map2D': return `${(d.steps || []).length} steps · ${(d.markers || []).length} markers` + (d.tileStyle && d.tileStyle !== 'default' ? ` · ${d.tileStyle}` : '');
+    case 'FullscreenImage': return d.title?.replace(/<[^>]+>/g, '') || 'Fullscreen Image';
+    case 'AudioPlayer': return d.title || 'Audio Player';
     default:          return block.id;
   }
 }
@@ -1130,6 +1221,20 @@ function blockDetailSummary(block) {
         });
       }
       break;
+    case 'FullscreenImage':
+      if (d.title) lines.push(`<strong>Title:</strong> ${escapeText(d.title.replace(/<[^>]+>/g, ' ')).slice(0, 80)}`);
+      if (d.kicker) lines.push(`<strong>Kicker:</strong> ${escapeText(d.kicker)}`);
+      if (d.imageSrc) lines.push(`<strong>Image:</strong> ${escapeText(d.imageSrc).slice(0, 60)}`);
+      if (d.overlayPosition) lines.push(`<strong>Position:</strong> ${d.overlayPosition}`);
+      if (d.kenBurns !== undefined) lines.push(`<strong>Ken Burns:</strong> ${d.kenBurns ? 'on' : 'off'}`);
+      break;
+    case 'AudioPlayer':
+      if (d.title) lines.push(`<strong>Title:</strong> ${escapeText(d.title)}`);
+      if (d.subtitle) lines.push(`<strong>Series:</strong> ${escapeText(d.subtitle)}`);
+      if (d.audioSrc) lines.push(`<strong>Audio:</strong> ${escapeText(d.audioSrc).slice(0, 60)}`);
+      if (d.duration) lines.push(`<strong>Duration:</strong> ${escapeText(d.duration)}`);
+      if (d.transcript) lines.push(`<strong>Transcript:</strong> ${escapeText(d.transcript).slice(0, 60)}...`);
+      break;
     default:
       const keys = Object.keys(d);
       if (keys.length) lines.push(`<strong>Fields:</strong> ${keys.slice(0, 5).join(', ')}`);
@@ -1182,6 +1287,14 @@ function renderPalette(body) {
 }
 // Legacy name kept for backwards-compat; routes through the Claude flow.
 function addBlock(type) { openClaudeModal({ mode: 'create', type }); }
+
+// Block types where Direct mode doesn't make sense (need AI to generate structured data)
+const DIRECT_MODE_DISABLED = new Set([
+  'Map2D', 'DataScrolly', 'Scrolly', 'StatRow', 'Timeline',
+  'ImageCompare', 'ImageHotspot', 'AccordionBlock', 'ImageGrid',
+  'VizPanel', 'ProgressNav', 'EmbedBlock', 'VideoEmbed',
+]);
+
 // ─────────────────────────── Claude-powered create / improve ──
 // opts: { mode: 'create' | 'improve', type, block? (for improve) }
 function openClaudeModal(opts) {
@@ -1195,12 +1308,12 @@ function openClaudeModal(opts) {
 
     if (BLOCK_PREVIEWS[type]) {
       const previewBox = document.createElement('div');
-      previewBox.style.cssText = 'border:1px solid #d0d7de;border-radius:8px;padding:12px;margin-bottom:14px;background:#faf7f2;';
+      previewBox.className = 'claude-modal-preview';
       const previewLabel = document.createElement('div');
-      previewLabel.style.cssText = 'font-size:10px;font-weight:600;color:#8c959f;text-transform:uppercase;letter-spacing:.08em;margin-bottom:8px;';
-      previewLabel.textContent = `${type} preview (rough mock)`;
+      previewLabel.className = 'claude-modal-preview-label';
+      previewLabel.textContent = `${type} preview`;
       const previewMock = document.createElement('div');
-      previewMock.style.cssText = 'max-width:280px;margin:0 auto;';
+      previewMock.className = 'claude-modal-preview-mock';
       previewMock.innerHTML = BLOCK_PREVIEWS[type];
       previewBox.appendChild(previewLabel);
       previewBox.appendChild(previewMock);
@@ -1210,60 +1323,160 @@ function openClaudeModal(opts) {
     // Show current block data summary for improve mode
     if (isImprove && opts.block) {
       const dataCard = document.createElement('div');
-      dataCard.style.cssText = 'background:#f6f8fa;border:1px solid #d0d7de;border-radius:8px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.6;color:#24292f;';
-      dataCard.innerHTML = `<div style="font-size:10px;font-weight:600;color:#8c959f;text-transform:uppercase;letter-spacing:.08em;margin-bottom:6px;">Current content</div>${blockDetailSummary(opts.block)}`;
+      dataCard.className = 'claude-modal-data';
+      dataCard.innerHTML = `<div class="claude-modal-data-label">Current content</div>${blockDetailSummary(opts.block)}`;
       body.appendChild(dataCard);
     }
 
-    const hint = document.createElement('p');
-    hint.style.cssText = 'margin-bottom:12px;color:#57606a;font-size:12.5px;line-height:1.5;';
-    hint.innerHTML = isImprove
-      ? `Tell Claude what to change — <strong>anything</strong> goes:<br>• "Make the hero cover the full viewport"<br>• "Rewrite the text in a more dramatic tone"<br>• "Add an image of Pacific islands"<br>• "Change the stats to show 5 items instead of 3"<br>• "Make the title shorter and punchier"`
-      : `Describe what this section should be about. Claude writes the content (German, matching the existing voice). Examples:<br>• "A section about how Watergate changed investigative journalism"<br>• "3 scrolly steps explaining what NLP is"<br>• "A pull quote from Hannah Arendt and 2 paragraphs about press freedom"`;
+    // ── Mode toggle: AI Enhanced ↔ Direct Paste ──
+    let aiMode = true; // true = AI enhanced, false = direct paste
+    const canDirect = !DIRECT_MODE_DISABLED.has(type);
+    const toggle = document.createElement('div');
+    toggle.className = 'claude-modal-mode-toggle';
+    const aiBtn = document.createElement('button');
+    aiBtn.type = 'button';
+    aiBtn.className = 'claude-modal-mode-btn active';
+    aiBtn.innerHTML = '✨ AI Enhanced';
+    const directBtn = document.createElement('button');
+    directBtn.type = 'button';
+    directBtn.className = 'claude-modal-mode-btn';
+    directBtn.innerHTML = '📝 Direct';
+    if (!canDirect) { directBtn.disabled = true; directBtn.title = `${type} requires AI to generate structured data`; directBtn.style.opacity = '0.35'; directBtn.style.cursor = 'not-allowed'; }
+    toggle.appendChild(aiBtn);
+    toggle.appendChild(directBtn);
+    body.appendChild(toggle);
+
+    const hint = document.createElement('div');
+    hint.className = 'claude-modal-hint';
+
+    const aiHintIntro = isImprove
+      ? `Tell Claude what to change — <strong>anything</strong> goes:`
+      : `Describe what this section should be about. Claude writes the content (German, matching the existing voice):`;
+    const aiHintExamples = isImprove
+      ? [
+          'Make the hero cover the full viewport',
+          'Rewrite the text in a more dramatic tone',
+          'Add an image of Pacific islands',
+          'Change the stats to show 5 items instead of 3',
+          'Make the title shorter and punchier',
+        ]
+      : [
+          'A section about how Watergate changed investigative journalism',
+          '3 scrolly steps explaining what NLP is',
+          'A pull quote from Hannah Arendt and 2 paragraphs about press freedom',
+        ];
+    const directHintIntro = isImprove
+      ? `Paste your text below — Claude will place it in the right fields but <strong>won't rewrite</strong> a single word:`
+      : `Paste or type your content — Claude will structure it into the right fields but <strong>keep every word exactly as you wrote it</strong>:`;
+
+    function updateHint() {
+      if (aiMode) {
+        hint.innerHTML = `<span>${aiHintIntro}</span><div class="claude-modal-examples">${aiHintExamples.map(e => `<div class="claude-modal-example">${e}</div>`).join('')}</div>`;
+      } else {
+        hint.innerHTML = `<span>${directHintIntro}</span>`;
+      }
+    }
+    updateHint();
     body.appendChild(hint);
 
     // Prompt textarea
     const ta = document.createElement('textarea');
+    ta.className = 'claude-modal-textarea';
     ta.rows = 5;
-    ta.placeholder = isImprove
-      ? 'Describe the change you want…'
-      : `Describe the ${type.toLowerCase()} you want…`;
+
+    function updateTextarea() {
+      if (aiMode) {
+        ta.placeholder = isImprove ? 'Describe the change you want…' : `Describe the ${type.toLowerCase()} you want…`;
+      } else {
+        ta.placeholder = isImprove ? 'Paste your updated text here…' : `Paste your ${type.toLowerCase()} content here…`;
+      }
+    }
+    updateTextarea();
     body.appendChild(ta);
 
-    // Image upload area — works for both create and enhance modes
+    // Toggle handler
+    function setMode(ai) {
+      aiMode = ai;
+      aiBtn.classList.toggle('active', ai);
+      directBtn.classList.toggle('active', !ai);
+      updateHint();
+      updateTextarea();
+      // Update action button text
+      if (genBtn) {
+        genBtn.textContent = ai
+          ? (isImprove ? '✨ Enhance with Claude' : '✨ Generate with Claude')
+          : (isImprove ? 'Apply text' : 'Create block');
+      }
+    }
+    aiBtn.addEventListener('click', () => setMode(true));
+    directBtn.addEventListener('click', () => setMode(false));
+
+    // File upload area — accepts type-relevant files (audio for AudioPlayer, images for others)
+    const isAudioBlock = type === 'AudioPlayer';
+    const isVideoBlock = type === 'VideoEmbed' || type === 'FullBleed';
+    const acceptTypes = isAudioBlock ? 'audio/*' : isVideoBlock ? 'image/*,video/*' : 'image/*';
+    const attachLabel = isAudioBlock ? 'Attach audio files (optional)' : 'Attach files (optional)';
+    const attachSub = isAudioBlock ? 'Upload audio for Claude to reference' : 'Claude will use these in the section';
+
     const imgsWrap = document.createElement('div');
-    imgsWrap.style.cssText = 'margin-top:14px;';
-    const imgsLabel = document.createElement('label');
-    imgsLabel.className = 'field-label';
-    imgsLabel.textContent = 'Images (optional) — Claude will use these in the section';
+    imgsWrap.className = 'claude-modal-upload';
+    const imgsLabel = document.createElement('div');
+    imgsLabel.className = 'claude-modal-upload-label';
+    imgsLabel.textContent = attachLabel;
+    const imgsSub = document.createElement('div');
+    imgsSub.className = 'claude-modal-upload-sublabel';
+    imgsSub.textContent = attachSub;
     imgsWrap.appendChild(imgsLabel);
+    imgsWrap.appendChild(imgsSub);
     const filePick = document.createElement('input');
     filePick.type = 'file';
-    filePick.accept = 'image/*';
+    filePick.accept = acceptTypes;
     filePick.multiple = true;
-    filePick.style.cssText = 'margin-top:4px;';
     const previewWrap = document.createElement('div');
-    previewWrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;';
-    filePick.addEventListener('change', async () => {
-      for (const f of Array.from(filePick.files)) {
+    previewWrap.className = 'claude-modal-thumbs';
+
+    async function handleModalUpload(files) {
+      for (const f of Array.from(files)) {
         try {
-          const r = await SB.uploadImage(f);
+          const r = await SB.uploadFile(f);
           uploadedImages.push(r.url);
           const thumb = document.createElement('div');
-          thumb.style.cssText = `width:60px;height:60px;background:url('${encodeURI(r.url)}') center/cover no-repeat;border:1px solid #d0d7de;border-radius:4px;`;
+          thumb.className = 'claude-modal-thumb';
+          if (f.type.startsWith('audio/')) {
+            thumb.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--fog,#eaeef2);';
+            thumb.textContent = '🎵';
+          } else if (f.type.startsWith('video/')) {
+            thumb.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--fog,#eaeef2);';
+            thumb.textContent = '🎬';
+          } else {
+            thumb.style.backgroundImage = `url('${encodeURI(r.url)}')`;
+          }
           thumb.title = r.url;
           previewWrap.appendChild(thumb);
         } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
       }
+    }
+
+    filePick.addEventListener('change', async () => {
+      await handleModalUpload(filePick.files);
       filePick.value = '';
     });
     imgsWrap.appendChild(filePick);
     imgsWrap.appendChild(previewWrap);
+    // Click anywhere on the upload zone to trigger file picker
+    imgsWrap.addEventListener('click', (e) => { if (e.target !== filePick && e.target !== previewWrap && !e.target.closest('.claude-modal-thumb')) filePick.click(); });
+    // Drag & drop
+    imgsWrap.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); imgsWrap.classList.add('drag-active'); });
+    imgsWrap.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); imgsWrap.classList.remove('drag-active'); });
+    imgsWrap.addEventListener('drop', async (e) => {
+      e.preventDefault(); e.stopPropagation(); imgsWrap.classList.remove('drag-active');
+      if (e.dataTransfer.files.length) await handleModalUpload(e.dataTransfer.files);
+    });
     body.appendChild(imgsWrap);
 
     // Actions
     const actions = document.createElement('div');
-    actions.style.cssText = 'margin-top:16px;display:flex;gap:8px;justify-content:flex-end;';
+    actions.className = 'claude-modal-actions';
     const manualBtn = document.createElement('button');
     manualBtn.className = 'ghost';
     manualBtn.textContent = isImprove ? 'Cancel' : 'Skip — add empty block';
@@ -1277,11 +1490,13 @@ function openClaudeModal(opts) {
     genBtn.addEventListener('click', async () => {
       const prompt = ta.value.trim();
       if (!prompt) { ta.focus(); return; }
+
+      // ── Both modes go through AI — direct just tells it to preserve text verbatim ──
       genBtn.disabled = true;
       manualBtn.disabled = true;
       const spinner = document.createElement('div');
-      spinner.style.cssText = 'margin-top:14px;padding:10px;background:#ddf4ff;border-radius:6px;font-size:12.5px;color:#0969da;';
-      spinner.textContent = 'Claude is writing… (this can take 30–60 seconds)';
+      spinner.className = 'claude-modal-spinner loading';
+      spinner.textContent = aiMode ? 'Claude is writing… (this can take 30–60 seconds)' : 'Structuring your text… (a few seconds)';
       body.appendChild(spinner);
       try {
         const r = await SB.generate({
@@ -1292,13 +1507,14 @@ function openClaudeModal(opts) {
           mode: isImprove ? 'improve' : 'create',
           pageId: state.currentPageId,
           lang: state.doc?.lang || undefined,
+          direct: !aiMode || undefined,
         });
         if (isImprove) {
           opts.block.data = r.data;
           setDirty(true);
           renderBlockList();
           if (opts.block.id === state.selectedBlockId) renderEditor();
-          toast(`${type} enhanced by Claude`, 'success');
+          toast(aiMode ? `${type} enhanced by Claude` : `${type} updated — text preserved`, 'success');
         } else {
           // If no page is loaded yet, auto-create one first
           if (!state.doc) {
@@ -1316,13 +1532,12 @@ function openClaudeModal(opts) {
           setDirty(true);
           renderBlockList();
           renderEditor();
-          toast(`${type} block created by Claude`, 'success');
+          toast(aiMode ? `${type} block created by Claude` : `${type} block created — text preserved`, 'success');
         }
         closeModal();
         refreshPreview();
       } catch (e) {
-        spinner.style.background = '#ffebe9';
-        spinner.style.color = '#cf222e';
+        spinner.className = 'claude-modal-spinner error';
         spinner.textContent = 'Failed: ' + e.message;
         genBtn.disabled = false;
         manualBtn.disabled = false;
@@ -1380,7 +1595,9 @@ function defaultDataFor(type) {
         { badgeKind: 'data', badgeLabel: 'Today',   body: 'In 2020 it reached 40.',           vizState: { highlightX: 2020, annotation: '40' } },
       ],
     };
-    case 'Map2D': return { title: '', subtitle: '', source: '', layout: 'side', tileStyle: 'toner-lite', height: '100vh', maxWidth: '1400px', initialCenter: [52.52, 13.405], initialZoom: 6, flyDuration: 2, scrollZoom: false, markers: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', popupHtml: '<strong>Location</strong>', color: '#c06830' }], routes: [], areas: [], steps: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }], caption: '', credit: 'OpenStreetMap' };
+    case 'Map2D': return { title: '', subtitle: '', source: '', layout: 'behind', tileStyle: 'default', height: '100vh', maxWidth: '100%', initialCenter: [52.52, 13.405], initialZoom: 6, flyDuration: 2, scrollZoom: false, markers: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', name: 'Berlin', popupHtml: '<strong>Berlin</strong>', color: '#c06830' }], routes: [], areas: [], steps: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }], caption: '', credit: 'OpenStreetMap' };
+    case 'FullscreenImage': return { imageSrc: '', imageAlt: '', kicker: '', title: 'Title', subtitle: '', body: '', overlayPosition: 'bottom-left', scrimOpacity: 0.45, scrimDirection: 'bottom', kenBurns: true, scrollCue: false, caption: '', credit: '' };
+    case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
     default:          return {};
   }
 }
@@ -1419,9 +1636,114 @@ function renderEditor() {
     return;
   }
 
+  // Group fields by their group property
+  const groups = {};
   schema.fields.forEach(field => {
-    form.appendChild(renderField(field, block.data, () => { setDirty(true); refreshPreview(); updateBlockSummary(); }));
+    const g = field.group || 'content';
+    if (!groups[g]) groups[g] = [];
+    groups[g].push(field);
   });
+
+  const GROUP_ORDER = ['content', 'media', 'data', 'layout', 'style', 'meta', 'advanced'];
+  const GROUP_LABELS = {
+    content: 'Content', media: 'Media', data: 'Data',
+    layout: 'Layout & Position', style: 'Style & Animation',
+    meta: 'Caption & Credits', advanced: 'Advanced',
+  };
+  const OPEN_GROUPS = new Set(['content', 'media', 'data']);
+
+  const onFieldChange = () => { setDirty(true); refreshPreview(); updateBlockSummary(); };
+
+  GROUP_ORDER.forEach(groupKey => {
+    const fields = groups[groupKey];
+    if (!fields || !fields.length) return;
+
+    const section = document.createElement('div');
+    section.className = 'editor-group';
+
+    const header = document.createElement('button');
+    header.className = 'editor-group-header';
+    header.type = 'button';
+    const isOpen = OPEN_GROUPS.has(groupKey);
+    header.innerHTML = `<span class="editor-group-arrow">${isOpen ? '▼' : '▸'}</span> ${GROUP_LABELS[groupKey] || groupKey}`;
+
+    const body = document.createElement('div');
+    body.className = 'editor-group-body' + (isOpen ? '' : ' collapsed');
+
+    // Render fields — handle inline pairs
+    let i = 0;
+    while (i < fields.length) {
+      if (fields[i].inline && i + 1 < fields.length && fields[i + 1].inline) {
+        const row = document.createElement('div');
+        row.className = 'field-row';
+        row.appendChild(renderField(fields[i], block.data, onFieldChange));
+        row.appendChild(renderField(fields[i + 1], block.data, onFieldChange));
+        body.appendChild(row);
+        i += 2;
+      } else {
+        body.appendChild(renderField(fields[i], block.data, onFieldChange));
+        i++;
+      }
+    }
+
+    header.addEventListener('click', () => {
+      body.classList.toggle('collapsed');
+      header.querySelector('.editor-group-arrow').textContent = body.classList.contains('collapsed') ? '▸' : '▼';
+    });
+
+    section.appendChild(header);
+    section.appendChild(body);
+    form.appendChild(section);
+  });
+
+  // ── Universal: background opacity per block ──
+  if (state.doc.background && state.doc.background.imageSrc) {
+    const bgWrap = document.createElement('div');
+    bgWrap.className = 'field';
+    bgWrap.style.cssText = 'margin-top:16px;padding-top:12px;border-top:1px solid #eaeef2;';
+    const bgLabel = document.createElement('label');
+    bgLabel.className = 'field-label';
+    bgLabel.innerHTML = 'Background opacity <span style="font-weight:400;color:#8c959f;font-size:11px;">for this block</span>';
+    bgWrap.appendChild(bgLabel);
+    const bgHint = document.createElement('div');
+    bgHint.style.cssText = 'font-size:11px;color:#8c959f;margin-bottom:5px;line-height:1.45;';
+    bgHint.textContent = 'Controls page background image visibility when this block is in viewport. Empty = use page default.';
+    bgWrap.appendChild(bgHint);
+    const bgRow = document.createElement('div');
+    bgRow.style.cssText = 'display:flex;align-items:center;gap:10px;';
+    const bgRange = document.createElement('input');
+    bgRange.type = 'range';
+    bgRange.min = '0'; bgRange.max = '1'; bgRange.step = '0.05';
+    bgRange.value = block.data.bgOpacity != null ? String(block.data.bgOpacity) : '';
+    bgRange.style.cssText = 'flex:1;';
+    const bgValSpan = document.createElement('span');
+    bgValSpan.style.cssText = 'font-size:12px;color:#57606a;font-variant-numeric:tabular-nums;min-width:32px;';
+    bgValSpan.textContent = block.data.bgOpacity != null ? String(block.data.bgOpacity) : '—';
+    const bgClear = document.createElement('button');
+    bgClear.className = 'ghost';
+    bgClear.style.cssText = 'font-size:11px;padding:2px 8px;';
+    bgClear.textContent = 'Reset';
+    bgClear.title = 'Use page default opacity';
+    bgRange.addEventListener('input', () => {
+      const v = parseFloat(bgRange.value);
+      block.data.bgOpacity = v;
+      bgValSpan.textContent = String(v);
+      setDirty(true);
+      refreshPreview();
+    });
+    bgClear.addEventListener('click', () => {
+      delete block.data.bgOpacity;
+      bgRange.value = '';
+      bgValSpan.textContent = '—';
+      setDirty(true);
+      refreshPreview();
+    });
+    bgRow.appendChild(bgRange);
+    bgRow.appendChild(bgValSpan);
+    bgRow.appendChild(bgClear);
+    bgWrap.appendChild(bgRow);
+    form.appendChild(bgWrap);
+  }
 }
 
 function renderField(field, data, onChange) {
@@ -1534,6 +1856,25 @@ function renderField(field, data, onChange) {
         sel.appendChild(o);
       });
       sel.addEventListener('change', () => { data[field.key] = sel.value; onChange(); });
+      wrap.appendChild(sel);
+      break;
+    }
+    case 'select': {
+      const sel = document.createElement('select');
+      (field.options || []).forEach(opt => {
+        const o = document.createElement('option');
+        o.value = opt;
+        o.textContent = opt;
+        if (String(val) === String(opt)) o.selected = true;
+        sel.appendChild(o);
+      });
+      sel.addEventListener('change', () => {
+        let v = sel.value;
+        if (v === 'true') v = true;
+        else if (v === 'false') v = false;
+        data[field.key] = v;
+        onChange();
+      });
       wrap.appendChild(sel);
       break;
     }
@@ -2040,7 +2381,19 @@ function simpleField(f, obj, onChange) {
     }
     case 'image':
     case 'image_nested': {
-      wrap.appendChild(imageField(getVal() ?? '', (v) => setVal(v)));
+      wrap.appendChild(mediaField(getVal() ?? '', (v) => setVal(v), { accept: 'image/*', kind: 'image', browseFilter: 'image' }));
+      break;
+    }
+    case 'audio': {
+      wrap.appendChild(mediaField(getVal() ?? '', (v) => setVal(v), { accept: 'audio/*', kind: 'audio', browseFilter: 'audio' }));
+      break;
+    }
+    case 'video': {
+      wrap.appendChild(mediaField(getVal() ?? '', (v) => setVal(v), { accept: 'video/*', kind: 'video', browseFilter: 'video' }));
+      break;
+    }
+    case 'media': {
+      wrap.appendChild(mediaField(getVal() ?? '', (v) => setVal(v), { accept: 'image/*,audio/*,video/*', kind: 'media', browseFilter: 'all' }));
       break;
     }
     case 'image_pair': {
@@ -2144,18 +2497,50 @@ function simpleField(f, obj, onChange) {
   return wrap;
 }
 
-function imageField(initial, onChange) {
+// Generic media upload field — supports image, audio, video with drag-drop
+function mediaField(initial, onChange, opts = {}) {
+  const accept = opts.accept || 'image/*';
+  const kind = opts.kind || 'image'; // 'image' | 'audio' | 'video' | 'media'
+  const browseFilter = opts.browseFilter || kind;
+
   const box = document.createElement('div');
   box.className = 'img-field';
+
+  // Thumbnail / preview
   const thumb = document.createElement('div');
   thumb.className = 'img-thumb';
-  if (initial) thumb.style.backgroundImage = `url('${encodeURI(initial)}')`;
+  if (kind === 'audio') {
+    thumb.style.cssText = 'display:flex;align-items:center;justify-content:center;font-size:24px;background:var(--fog,#eaeef2);';
+    thumb.textContent = initial ? '🔊' : '🎵';
+  } else {
+    if (initial) thumb.style.backgroundImage = `url('${encodeURI(initial)}')`;
+  }
+
+  function updatePreview(url) {
+    if (kind === 'audio') {
+      thumb.textContent = url ? '🔊' : '🎵';
+    } else {
+      thumb.style.backgroundImage = url ? `url('${encodeURI(url)}')` : '';
+    }
+  }
+
   const inp = document.createElement('input');
-  inp.type = 'text'; inp.value = initial; inp.placeholder = 'images/...';
-  inp.addEventListener('input', () => {
-    onChange(inp.value);
-    thumb.style.backgroundImage = inp.value ? `url('${encodeURI(inp.value)}')` : '';
-  });
+  inp.type = 'text'; inp.value = initial || '';
+  inp.placeholder = kind === 'audio' ? 'audio file URL or upload…' : 'images/...';
+  inp.addEventListener('input', () => { onChange(inp.value); updatePreview(inp.value); });
+
+  // Upload handler (reused by button + drag-drop)
+  async function handleFiles(files) {
+    for (const f of Array.from(files)) {
+      try {
+        const r = await SB.uploadFile(f);
+        inp.value = r.url;
+        onChange(r.url);
+        updatePreview(r.url);
+        toast('Uploaded · ' + r.url, 'success');
+      } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
+    }
+  }
 
   const actions = document.createElement('div');
   actions.className = 'img-field-actions';
@@ -2165,31 +2550,26 @@ function imageField(initial, onChange) {
     e.preventDefault();
     const file = document.createElement('input');
     file.type = 'file';
-    file.accept = 'image/*';
-    file.addEventListener('change', async () => {
-      if (!file.files[0]) return;
-      try {
-        const r = await SB.uploadImage(file.files[0]);
-        inp.value = r.url;
-        onChange(r.url);
-        thumb.style.backgroundImage = `url('${encodeURI(r.url)}')`;
-        toast('Uploaded · ' + r.url, 'success');
-      } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
-    });
+    file.accept = accept;
+    file.addEventListener('change', () => { if (file.files.length) handleFiles(file.files); });
     file.click();
   });
   const browseBtn = document.createElement('button');
   browseBtn.textContent = 'Browse…';
   browseBtn.addEventListener('click', (e) => {
     e.preventDefault();
-    openImagePicker((url) => {
-      inp.value = url;
-      onChange(url);
-      thumb.style.backgroundImage = `url('${encodeURI(url)}')`;
-    });
+    openFilePicker(browseFilter, (url) => { inp.value = url; onChange(url); updatePreview(url); });
   });
   actions.appendChild(uploadBtn);
   actions.appendChild(browseBtn);
+
+  // Drag & drop zone
+  box.addEventListener('dragover', (e) => { e.preventDefault(); e.stopPropagation(); box.classList.add('drag-active'); });
+  box.addEventListener('dragleave', (e) => { e.preventDefault(); e.stopPropagation(); box.classList.remove('drag-active'); });
+  box.addEventListener('drop', (e) => {
+    e.preventDefault(); e.stopPropagation(); box.classList.remove('drag-active');
+    if (e.dataTransfer.files.length) handleFiles(e.dataTransfer.files);
+  });
 
   box.appendChild(thumb);
   const col = document.createElement('div');
@@ -2198,6 +2578,49 @@ function imageField(initial, onChange) {
   box.appendChild(col);
   box.appendChild(actions);
   return box;
+}
+
+// Backward compat wrapper
+function imageField(initial, onChange) {
+  return mediaField(initial, onChange, { accept: 'image/*', kind: 'image', browseFilter: 'image' });
+}
+
+// Generic file picker (images, audio, video)
+function openFilePicker(filter, onSelect) {
+  if (filter === 'image') {
+    // Use existing image picker
+    openImagePicker(onSelect);
+    return;
+  }
+  // For audio/video/all — fetch from storage and show a simple list modal
+  openModal('Browse files', async (body) => {
+    body.innerHTML = '<div style="text-align:center;color:#8c959f;padding:2rem;">Loading…</div>';
+    try {
+      const { files } = await SB.listFiles(filter);
+      if (!files.length) { body.innerHTML = '<div style="text-align:center;color:#8c959f;padding:2rem;">No files found. Upload one first.</div>'; return; }
+      body.innerHTML = '';
+      files.forEach(f => {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;transition:background .15s;';
+        row.addEventListener('mouseenter', () => { row.style.background = '#f6f8fa'; });
+        row.addEventListener('mouseleave', () => { row.style.background = ''; });
+        const icon = document.createElement('span');
+        icon.style.cssText = 'font-size:20px;flex-shrink:0;';
+        icon.textContent = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(f.name) ? '🎵' : /\.(mp4|webm|mov)$/i.test(f.name) ? '🎬' : '📄';
+        const name = document.createElement('span');
+        name.style.cssText = 'flex:1;font-size:13px;color:#24292f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
+        name.textContent = f.name;
+        const size = document.createElement('span');
+        size.style.cssText = 'font-size:11px;color:#8c959f;flex-shrink:0;';
+        size.textContent = f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : f.size > 1024 ? Math.round(f.size / 1024) + ' KB' : f.size + ' B';
+        row.appendChild(icon);
+        row.appendChild(name);
+        row.appendChild(size);
+        row.addEventListener('click', () => { onSelect(f.url); closeModal(); });
+        body.appendChild(row);
+      });
+    } catch (err) { body.innerHTML = `<div style="color:#cf222e;padding:1rem;">Failed: ${err.message}</div>`; }
+  }, '');
 }
 
 async function openImagePicker(cb) {
@@ -2223,11 +2646,14 @@ async function openImagePicker(cb) {
 }
 
 function updateBlockSummary() {
-  // Re-render only the active row's title text without rebuilding the list
+  // Re-render only the active row's summary text without rebuilding the list
   const block = state.doc.blocks.find(b => b.id === state.selectedBlockId);
   if (!block) return;
-  const li = document.querySelector(`.block-item.active .block-title`);
-  if (li) li.textContent = blockSummary(block);
+  const li = document.querySelector('.block-item.active');
+  if (li) {
+    const summaryEl = li.querySelector('.block-summary');
+    if (summaryEl) summaryEl.textContent = blockSummary(block);
+  }
 }
 
 // ─────────────────────────── Save / Publish ──────────────────
@@ -2281,12 +2707,13 @@ function getPreviewBlobUrl() {
   const origin = window.location.origin;
   const theme = doc.theme || 'dia';
   const themeLink = theme !== 'dia' ? `<link rel="stylesheet" href="${origin}/themes/${theme}.css">` : '';
+  const veScript = state.visualEditMode ? `<script src="${origin}/js/visual-edit.js" defer><\/script>` : '';
   const html = `<!DOCTYPE html>
 <html lang="${doc.lang || 'de'}" data-theme="${theme}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:opsz,wght@8..60,400;8..60,600;8..60,700&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,300;1,400&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="${origin}/css/site.css">
 ${themeLink}
 <script>window.__PAGE_DATA__ = ${JSON.stringify(doc)};<\/script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"><\/script>
@@ -2298,7 +2725,7 @@ ${themeLink}
 import { render } from '${origin}/js/render.js';
 render();
 <\/script>
-</body></html>`;
+${veScript}</body></html>`;
   return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
 }
 function refreshPreview() {
@@ -2320,6 +2747,12 @@ $('#btn-refresh-preview').addEventListener('click', () => {
   const url = pageUrl();
   iframe._blobUrl = url;
   iframe.src = url;
+});
+$('#btn-visual-edit').addEventListener('click', () => {
+  state.visualEditMode = !state.visualEditMode;
+  $('#btn-visual-edit').classList.toggle('active', state.visualEditMode);
+  $('#btn-visual-edit').textContent = state.visualEditMode ? '✏️ Editing' : '✏️ Edit';
+  refreshPreview();
 });
 
 // Page settings (theme, title, meta)
@@ -2359,6 +2792,81 @@ $('#btn-settings').addEventListener('click', () => {
     langSel.innerHTML = `<option value="de" ${state.doc.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.doc.lang === 'en' ? 'selected' : ''}>English</option>`;
     body.appendChild(langSel);
 
+    // ── Background image ──
+    const bgData = state.doc.background || {};
+
+    const bgSep = document.createElement('div');
+    bgSep.style.cssText = 'margin-top:20px;padding-top:16px;border-top:1px solid #eaeef2;';
+    const bgTitle = document.createElement('div');
+    bgTitle.style.cssText = 'font-weight:600;font-size:13px;color:#24292f;margin-bottom:10px;';
+    bgTitle.textContent = 'Page background image';
+    bgSep.appendChild(bgTitle);
+    body.appendChild(bgSep);
+
+    const bgImgLabel = document.createElement('label');
+    bgImgLabel.className = 'field-label';
+    bgImgLabel.textContent = 'Background image URL';
+    body.appendChild(bgImgLabel);
+    const bgImgHint = document.createElement('div');
+    bgImgHint.style.cssText = 'font-size:11px;color:#8c959f;margin-bottom:5px;line-height:1.45;';
+    bgImgHint.textContent = 'Fixed behind all content. Per-block bgOpacity (0–1) controls visibility as user scrolls.';
+    body.appendChild(bgImgHint);
+    const bgImgInp = document.createElement('input');
+    bgImgInp.type = 'text';
+    bgImgInp.placeholder = '/images/texture.jpg or full URL';
+    bgImgInp.value = bgData.imageSrc || '';
+    body.appendChild(bgImgInp);
+
+    // Upload button for background
+    const bgUploadRow = document.createElement('div');
+    bgUploadRow.style.cssText = 'margin-top:6px;display:flex;gap:8px;align-items:center;';
+    const bgUploadBtn = document.createElement('button');
+    bgUploadBtn.className = 'ghost';
+    bgUploadBtn.textContent = '📎 Upload image';
+    bgUploadBtn.style.fontSize = '12px';
+    const bgUploadFile = document.createElement('input');
+    bgUploadFile.type = 'file';
+    bgUploadFile.accept = 'image/*,video/*';
+    bgUploadFile.style.display = 'none';
+    bgUploadBtn.addEventListener('click', () => bgUploadFile.click());
+    bgUploadFile.addEventListener('change', async () => {
+      if (!bgUploadFile.files.length) return;
+      try {
+        bgUploadBtn.textContent = 'Uploading…';
+        bgUploadBtn.disabled = true;
+        const r = await SB.uploadImage(bgUploadFile.files[0]);
+        bgImgInp.value = r.url;
+        toast('Background image uploaded', 'success');
+      } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
+      bgUploadBtn.textContent = '📎 Upload image';
+      bgUploadBtn.disabled = false;
+      bgUploadFile.value = '';
+    });
+    bgUploadRow.appendChild(bgUploadBtn);
+    bgUploadRow.appendChild(bgUploadFile);
+    body.appendChild(bgUploadRow);
+
+    const bgOpLabel = document.createElement('label');
+    bgOpLabel.className = 'field-label';
+    bgOpLabel.textContent = 'Default opacity (0–1)';
+    bgOpLabel.style.marginTop = '12px';
+    body.appendChild(bgOpLabel);
+    const bgOpHint = document.createElement('div');
+    bgOpHint.style.cssText = 'font-size:11px;color:#8c959f;margin-bottom:5px;line-height:1.45;';
+    bgOpHint.textContent = 'Used when a block doesn\'t specify its own bgOpacity. 0 = invisible, 1 = fully visible.';
+    body.appendChild(bgOpHint);
+    const bgOpInp = document.createElement('input');
+    bgOpInp.type = 'range';
+    bgOpInp.min = '0'; bgOpInp.max = '1'; bgOpInp.step = '0.05';
+    bgOpInp.value = bgData.defaultOpacity != null ? String(bgData.defaultOpacity) : '0.15';
+    bgOpInp.style.cssText = 'width:100%;margin-bottom:2px;';
+    const bgOpVal = document.createElement('span');
+    bgOpVal.style.cssText = 'font-size:12px;color:#57606a;font-variant-numeric:tabular-nums;';
+    bgOpVal.textContent = bgOpInp.value;
+    bgOpInp.addEventListener('input', () => { bgOpVal.textContent = bgOpInp.value; });
+    body.appendChild(bgOpInp);
+    body.appendChild(bgOpVal);
+
     const actions = document.createElement('div');
     actions.style.cssText = 'margin-top:16px;display:flex;gap:8px;justify-content:flex-end;';
     const cancel = document.createElement('button');
@@ -2371,6 +2879,16 @@ $('#btn-settings').addEventListener('click', () => {
       state.doc.lang = langSel.value;
       if (!state.doc.meta) state.doc.meta = {};
       state.doc.meta.title = titleInp.value.trim();
+      // Background
+      const bgSrc = bgImgInp.value.trim();
+      if (bgSrc) {
+        state.doc.background = {
+          imageSrc: bgSrc,
+          defaultOpacity: parseFloat(bgOpInp.value) || 0.15,
+        };
+      } else {
+        delete state.doc.background;
+      }
       setDirty(true);
       refreshPreview();
       closeModal();

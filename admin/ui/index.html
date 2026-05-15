@@ -2,12 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f8f8f8">
 <title>ScrollyCMS · Admin</title>
 <!-- Supabase config — replaced at deploy or set in env -->
 <meta name="supabase-url" content="https://dwdwrmdqdqikiryhgqtm.supabase.co">
 <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZHdybWRxZHFpa2lyeWhncXRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2ODk2ODAsImV4cCI6MjA5NDI2NTY4MH0.28-7FMq74AOo_4cD8EbOxdC6DV3Sg5ZZBjH794rNwOQ">
-<link rel="stylesheet" href="/admin/static/styles.css">
+<link rel="stylesheet" href="/admin/ui/styles.css">
 </head>
 <body>
 
@@ -87,6 +91,7 @@
     <aside class="preview">
       <div class="aside-head">
         <span>Preview</span>
+        <button id="btn-visual-edit" class="small ve-toggle" title="Edit text &amp; images directly on preview">✏️ Edit</button>
         <button id="btn-refresh-preview" class="small">Reload</button>
       </div>
       <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
@@ -99,7 +104,7 @@
 
 <!-- ───────── Scripts ───────── -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/admin/static/supabase-client.js"></script>
-<script src="/admin/static/app.js"></script>
+<script src="/admin/ui/supabase-client.js"></script>
+<script src="/admin/ui/app.js"></script>
 </body>
 </html>
