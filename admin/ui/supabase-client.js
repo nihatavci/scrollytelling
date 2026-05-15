@@ -18,15 +18,63 @@
 
   let _user = null;    // cached auth.users row
   let _profile = null; // cached profiles row
+  let _lastAuthCheck = 0;
+  const AUTH_CHECK_INTERVAL = 5 * 60 * 1000; // 5 minutes
 
   // ── Internals ─────────────────────────────────────────
 
   async function getUser() {
-    if (_user) return _user;
-    const { data: { user }, error } = await client.auth.getUser();
-    if (error || !user) throw new Error('Not authenticated');
-    _user = user;
-    return user;
+    const now = Date.now();
+    if (_user && (now - _lastAuthCheck) < AUTH_CHECK_INTERVAL) {
+      return _user;
+    }
+    // Re-validate session
+    const { data: { session } } = await client.auth.getSession();
+    if (!session) {
+      _user = null;
+      _profile = null;
+      throw new Error('SESSION_EXPIRED');
+    }
+    _user = session.user;
+    _lastAuthCheck = now;
+    return _user;
+  }
+
+  // ── Retry wrapper with auth recovery ──────────────────
+
+  async function withRetry(fn, maxRetries = 2) {
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        return await fn();
+      } catch (err) {
+        const isAuthError = err.message === 'SESSION_EXPIRED' ||
+                            err.message === 'Not authenticated' ||
+                            err.message?.includes('JWT expired') ||
+                            err.message?.includes('Invalid token');
+        const isNetworkError = err.message?.includes('Failed to fetch') ||
+                               err.message?.includes('NetworkError') ||
+                               err.message?.includes('Load failed');
+
+        if (isAuthError && attempt < maxRetries) {
+          // Try to refresh the session
+          const { data: { session } } = await client.auth.getSession();
+          if (session) {
+            _user = session.user;
+            _lastAuthCheck = Date.now();
+            continue; // retry
+          }
+          // Session truly dead — notify UI
+          window.dispatchEvent(new CustomEvent('scrollycms:auth-expired'));
+          throw err;
+        }
+        if (isNetworkError && attempt < maxRetries) {
+          // Exponential backoff
+          await new Promise(r => setTimeout(r, 1000 * Math.pow(2, attempt)));
+          continue;
+        }
+        throw err; // non-retryable or max retries exceeded
+      }
+    }
   }
 
   async function getProfile() {
@@ -113,91 +161,118 @@
     // ─── Pages CRUD ───
 
     async listPages() {
-      const user = await getUser();
-      const { data, error } = await client
-        .from('pages')
-        .select('id, slug, title, published, version, updated_at')
-        .eq('user_id', user.id)
-        .order('created_at');
-      if (error) throw new Error(error.message);
-      // Return shape: { pages: [...slugs], pageRows: [...full rows] }
-      return { pages: data.map(p => p.slug), pageRows: data };
+      return withRetry(async () => {
+        const user = await getUser();
+        const { data, error } = await client
+          .from('pages')
+          .select('id, slug, title, published, version, updated_at')
+          .eq('user_id', user.id)
+          .order('created_at');
+        if (error) throw new Error(error.message);
+        // Return shape: { pages: [...slugs], pageRows: [...full rows] }
+        return { pages: data.map(p => p.slug), pageRows: data };
+      });
     },
 
     async getPage(slug) {
-      const row = await getPageRow(slug);
-      // Return the content JSONB — same shape as old `GET /admin/api/pages/:id`
-      const doc = row.content || { blocks: [] };
-      doc.version = row.version;
-      doc.id = row.slug;
-      doc.lang = row.lang || doc.lang || 'de';
-      doc.meta = row.meta || doc.meta || {};
-      return doc;
+      return withRetry(async () => {
+        const row = await getPageRow(slug);
+        // Return the content JSONB — same shape as old `GET /admin/api/pages/:id`
+        const doc = row.content || { blocks: [] };
+        doc.version = row.version;
+        doc.id = row.slug;
+        doc.lang = row.lang || doc.lang || 'de';
+        doc.meta = row.meta || doc.meta || {};
+        return doc;
+      });
     },
 
     // Quiet autosave — saves content without publishing or creating history
     async autoSave(slug, doc) {
-      const user = await getUser();
-      const row = await getPageRow(slug);
+      return withRetry(async () => {
+        const user = await getUser();
+        const row = await getPageRow(slug);
 
-      const { error } = await client
-        .from('pages')
-        .update({
-          content: doc,
-          lang: doc.lang || 'en',
-          meta: doc.meta || {},
-          title: doc.meta?.title || doc.title || row.title,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', row.id);
+        // Deep-clone the doc to avoid serialisation of live object references
+        const payload = JSON.parse(JSON.stringify(doc));
 
-      if (error) throw new Error(error.message);
-      return { ok: true, version: doc.version || row.version };
+        const { data, error } = await client
+          .from('pages')
+          .update({
+            content: payload,
+            lang: payload.lang || 'en',
+            meta: payload.meta || {},
+            title: payload.meta?.title || payload.title || row.title,
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', row.id)
+          .select('id, version')
+          .single();
+
+        if (error) throw new Error(error.message);
+        if (!data) throw new Error('Autosave failed — row not updated (RLS?)');
+        console.debug('[autosave]', slug, 'blocks:', payload.blocks?.length);
+        return { ok: true, version: doc.version || row.version };
+      });
     },
 
     // Full publish — snapshots history, bumps version, sets published=true
     async saveDraft(slug, doc) {
-      const user = await getUser();
-      const row = await getPageRow(slug);
+      return withRetry(async () => {
+        const user = await getUser();
+        const row = await getPageRow(slug);
 
-      // Snapshot current version to history
-      await client.from('page_history').insert({
-        page_id: row.id,
-        content: row.content,
-        version: row.version,
+        // Snapshot current version to history (non-blocking — don't let history failure block publish)
+        try {
+          const { error: hErr } = await client.from('page_history').insert({
+            page_id: row.id,
+            content: row.content,
+            version: row.version,
+          });
+          if (hErr) console.warn('[publish] History snapshot failed:', hErr.message);
+        } catch (e) {
+          console.warn('[publish] History snapshot error:', e.message);
+        }
+
+        // Prune history — keep only last 10 snapshots
+        const { data: allHistory } = await client
+          .from('page_history')
+          .select('id, created_at')
+          .eq('page_id', row.id)
+          .order('created_at', { ascending: false });
+        if (allHistory && allHistory.length > 10) {
+          const toDelete = allHistory.slice(10).map(h => h.id);
+          await client.from('page_history').delete().in('id', toDelete);
+        }
+
+        // Bump version and save
+        const newVersion = (row.version || 0) + 1;
+        doc.version = newVersion;
+
+        // Deep-clone to avoid serialising live object references
+        const payload = JSON.parse(JSON.stringify(doc));
+
+        const { data, error } = await client
+          .from('pages')
+          .update({
+            content: payload,
+            version: newVersion,
+            lang: payload.lang || 'en',
+            meta: payload.meta || {},
+            title: payload.meta?.title || payload.title || row.title,
+            published: true,
+            published_at: new Date().toISOString(),
+            updated_at: new Date().toISOString(),
+          })
+          .eq('id', row.id)
+          .select('id, version')
+          .single();
+
+        if (error) throw new Error(error.message);
+        if (!data) throw new Error('Publish failed — row not updated (RLS?)');
+        console.debug('[publish]', slug, 'v' + newVersion, 'blocks:', payload.blocks?.length);
+        return { ok: true, version: newVersion };
       });
-
-      // Prune history — keep only last 10 snapshots
-      const { data: allHistory } = await client
-        .from('page_history')
-        .select('id, created_at')
-        .eq('page_id', row.id)
-        .order('created_at', { ascending: false });
-      if (allHistory && allHistory.length > 10) {
-        const toDelete = allHistory.slice(10).map(h => h.id);
-        await client.from('page_history').delete().in('id', toDelete);
-      }
-
-      // Bump version and save
-      const newVersion = (row.version || 0) + 1;
-      doc.version = newVersion;
-
-      const { error } = await client
-        .from('pages')
-        .update({
-          content: doc,
-          version: newVersion,
-          lang: doc.lang || 'en',
-          meta: doc.meta || {},
-          title: doc.meta?.title || doc.title || row.title,
-          published: true,
-          published_at: new Date().toISOString(),
-          updated_at: new Date().toISOString(),
-        })
-        .eq('id', row.id);
-
-      if (error) throw new Error(error.message);
-      return { ok: true, version: newVersion };
     },
 
     async createPage(slug, title, theme) {
@@ -242,18 +317,24 @@
       const row = await getPageRow(slug);
       const { data, error } = await client
         .from('page_history')
-        .select('id, version, created_at')
+        .select('id, version, created_at, content')
         .eq('page_id', row.id)
         .order('created_at', { ascending: false })
         .limit(10);
       if (error) throw new Error(error.message);
       return {
-        snapshots: data.map(h => ({
-          id: h.id,
-          ts: h.created_at,
-          file: h.id,   // compat: old UI used `s.file` to restore
-          version: h.version,
-        })),
+        snapshots: data.map(h => {
+          const content = h.content || {};
+          const blocks = content.blocks || [];
+          const blockSummary = blocks.map(b => b.type).join(', ') || 'empty';
+          return {
+            id: h.id,
+            ts: h.created_at,
+            version: h.version,
+            blockCount: blocks.length,
+            blockSummary,
+          };
+        }),
       };
     },
 
@@ -295,7 +376,7 @@
 
     // ─── Image Storage ───
 
-    async uploadImage(file) {
+    async uploadFile(file) {
       const user = await getUser();
       // Hash-based filename (same logic as old server)
       const buf = await file.arrayBuffer();
@@ -316,15 +397,26 @@
       return { ok: true, url: publicUrl, size: file.size, mime: file.type };
     },
 
-    async listImages() {
+    // Alias for backward compat
+    async uploadImage(file) { return this.uploadFile(file); },
+
+    async listFiles(filter) {
       const user = await getUser();
       const { data, error } = await client.storage
         .from('page-images')
         .list(user.id, { limit: 200, sortBy: { column: 'created_at', order: 'desc' } });
       if (error) throw new Error(error.message);
 
-      const images = (data || [])
-        .filter(f => /\.(png|jpe?g|webp|gif|svg)$/i.test(f.name))
+      const PATTERNS = {
+        image: /\.(png|jpe?g|webp|gif|svg)$/i,
+        audio: /\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i,
+        video: /\.(mp4|webm|mov|avi)$/i,
+        all:   /\.[a-z0-9]+$/i,
+      };
+      const regex = PATTERNS[filter] || PATTERNS.all;
+
+      const files = (data || [])
+        .filter(f => regex.test(f.name))
         .map(f => {
           const { data: { publicUrl } } = client.storage
             .from('page-images')
@@ -332,40 +424,50 @@
           return { url: publicUrl, size: f.metadata?.size || 0, name: f.name };
         });
 
-      return { images };
+      return { files, images: files };
     },
+
+    // Alias for backward compat
+    async listImages() { return this.listFiles('image'); },
 
     // ─── AI Generation (via Cloudflare Workers AI — no API key needed) ───
 
-    async generate({ type, prompt, images, currentData, mode, pageId, lang }) {
-      const { data: { session } } = await client.auth.getSession();
-      if (!session) throw new Error('Not authenticated');
+    async generate({ type, prompt, images, currentData, mode, pageId, lang, direct }) {
+      return withRetry(async () => {
+        const { data: { session } } = await client.auth.getSession();
+        if (!session) throw new Error('SESSION_EXPIRED');
 
-      const res = await fetch('/api/generate', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-        body: JSON.stringify({ type, prompt, images, currentData, mode, pageId, lang }),
+        const payload = { type, prompt, images, currentData, mode, pageId, lang };
+        if (direct) payload.direct = true;
+
+        const res = await fetch('/api/generate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session.access_token}`,
+          },
+          body: JSON.stringify(payload),
+        });
+
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err.error || `Generation failed (${res.status})`);
+        }
+        return res.json();
       });
-
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
-        throw new Error(err.error || `Generation failed (${res.status})`);
-      }
-      return res.json();
     },
   };
 
   // ── Auth state listener ───────────────────────────────
   client.auth.onAuthStateChange((event, session) => {
-    if (event === 'SIGNED_OUT') {
+    if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
       _user = null;
       _profile = null;
+      window.dispatchEvent(new CustomEvent('scrollycms:auth-expired'));
     }
-    if (event === 'SIGNED_IN' && session?.user) {
+    if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session?.user) {
       _user = session.user;
+      _lastAuthCheck = Date.now();
     }
   });
 })();
