@@ -181,8 +181,8 @@ const COMPONENT_CSS = `
 .scrolly__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s ease}
 .scrolly__img.active{opacity:1}
 .scrolly__steps{padding:30vh 0;display:flex;flex-direction:column}
-.step{min-height:70vh;display:flex;align-items:center;padding:1.5rem 0 1.5rem 3rem}
-.step:first-child{padding-top:10vh}.step:last-child{margin-bottom:20vh}
+.step{min-height:100vh;display:flex;align-items:center;padding:1.5rem 0 1.5rem 3rem}
+.step:first-child{padding-top:15vh}.step:last-child{margin-bottom:30vh}
 .sc{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.6rem 1.8rem;border:none;max-width:420px;box-shadow:var(--shadow-card);opacity:.35;transition:opacity .4s,box-shadow .4s,transform .4s;transform:translateY(8px)}
 .step.is-active .sc{opacity:1;box-shadow:rgba(0,0,0,.15) 0 4px 24px;transform:translateY(0)}
 .step-body{font-family:var(--font-body);font-size:1rem;line-height:1.6;font-weight:400}
@@ -195,14 +195,14 @@ const COMPONENT_CSS = `
 .scrolly--no-images .sc{max-width:100%;opacity:1;transform:none}
 @media(max-width:900px){
   .scrolly{grid-template-columns:1fr;gap:0}
-  .scrolly__sticky{position:relative;height:50vh;margin-bottom:1rem}
-  .step{padding:1rem 1.25rem;min-height:auto}
-  .sc{opacity:1;transform:none;max-width:100%}
+  .scrolly__sticky{position:relative;height:60vh;margin-bottom:0}
+  .step{padding:1rem 1.25rem;min-height:90vh}
+  .sc{max-width:100%}
 }
 @media(max-width:600px){
   .scrolly{padding:0 1rem;margin:2rem auto}
-  .scrolly__sticky{height:40vh}
-  .step{padding:0.8rem 0}
+  .scrolly__sticky{height:50vh}
+  .step{padding:0.8rem 0;min-height:85vh}
   .sc{padding:1.2rem 1.4rem}
   .step-body{font-size:.92rem}
 }
