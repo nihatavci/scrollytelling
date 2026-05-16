@@ -11,7 +11,7 @@
 <!-- Supabase config — replaced at deploy or set in env -->
 <meta name="supabase-url" content="https://dwdwrmdqdqikiryhgqtm.supabase.co">
 <meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZHdybWRxZHFpa2lyeWhncXRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2ODk2ODAsImV4cCI6MjA5NDI2NTY4MH0.28-7FMq74AOo_4cD8EbOxdC6DV3Sg5ZZBjH794rNwOQ">
-<link rel="stylesheet" href="/admin/ui/styles.css">
+<link rel="stylesheet" href="/admin/ui/styles.css?v=20260516b">
 </head>
 <body>
 
@@ -57,6 +57,7 @@
       <label>Page:</label>
       <select id="page-select"></select>
       <button id="btn-new-page" class="small" title="Create a new page">+ New page</button>
+      <button id="btn-rename-page" class="small" title="Rename page">✏️</button>
       <a id="link-view-page" href="#" target="_blank" class="small view-link">View ↗</a>
       <span id="page-status" class="status"></span>
       <span id="save-status" class="save-status"></span>
@@ -64,11 +65,27 @@
     <div class="topbar-actions">
       <button id="btn-preview" title="Open rendered page in a new tab">Preview</button>
       <button id="btn-history" title="Snapshots history">History</button>
-      <button id="btn-publish" class="primary">Save &amp; Publish</button>
+      <button id="btn-publish" class="primary">Publish</button>
       <button id="btn-settings" class="ghost" title="Site settings">⚙</button>
       <button id="btn-logout" class="ghost">Logout</button>
     </div>
+    <button id="btn-overflow" class="topbar-overflow-btn" title="More options" aria-label="More options">⋮</button>
   </header>
+
+  <!-- Bottom sheet — MUST live outside .topbar to avoid backdrop-filter containing block -->
+  <div id="overflow-backdrop" class="overflow-backdrop"></div>
+  <div id="overflow-menu" class="overflow-menu">
+    <div class="overflow-handle"></div>
+    <button data-overflow="new-page">New page</button>
+    <button data-overflow="rename">Rename page</button>
+    <button data-overflow="view">View live page</button>
+    <div class="overflow-divider"></div>
+    <button data-overflow="preview">Preview</button>
+    <button data-overflow="history">Version history</button>
+    <button data-overflow="settings">Page settings</button>
+    <div class="overflow-divider"></div>
+    <button data-overflow="logout" class="danger">Log out</button>
+  </div>
 
   <div class="layout">
     <!-- Blocks list -->
@@ -98,6 +115,9 @@
       </div>
       <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
     </aside>
+
+    <!-- Mobile FAB -->
+    <button id="fab-add" class="fab-add" aria-label="Add block">+</button>
   </div>
 </div>
 
@@ -106,7 +126,9 @@
 
 <!-- ───────── Scripts ───────── -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="/admin/ui/supabase-client.js"></script>
-<script src="/admin/ui/app.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
+<script src="/admin/ui/motion.js?v=20260516b"></script>
+<script src="/admin/ui/supabase-client.js?v=20260516b"></script>
+<script src="/admin/ui/app.js?v=20260516b"></script>
 </body>
 </html>
