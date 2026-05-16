@@ -867,6 +867,16 @@ async function wireMap2D(blockId, d) {
     if (!Number.isNaN(idx)) {
       showStep(idx);
       steps.forEach(s => s.classList.toggle('is-active', Number(s.dataset.mapIdx) === idx));
+      // Animate map step card
+      if (window.Motion) {
+        const activeCard = document.querySelector('.map2d-step[data-map-id="' + blockId + '"].is-active .map2d-step-card');
+        if (activeCard) {
+          window.Motion.animate(activeCard,
+            { opacity: [0.2, 1], transform: ['translateY(12px)', 'translateY(0)'] },
+            { duration: 0.5, easing: [0.16, 1, 0.3, 1] }
+          );
+        }
+      }
     }
   }, { rootMargin: '-35% 0px -55% 0px' });
 
@@ -1691,6 +1701,16 @@ function renderScrolly(d) {
           const idx = entry.target.dataset.stepIdx;
           // Activate step
           allSteps.forEach(s => s.classList.toggle('is-active', s.dataset.stepIdx === idx));
+          // Animate step card entrance with motion.js
+          if (window.Motion) {
+            const activeCard = section.querySelector('.step.is-active .sc');
+            if (activeCard) {
+              window.Motion.animate(activeCard,
+                { opacity: [0.35, 1], transform: ['translateY(8px)', 'translateY(0)'] },
+                { duration: 0.4, easing: [0.16, 1, 0.3, 1] }
+              );
+            }
+          }
           // Switch image
           stepImages.forEach((img, j) => {
             if (img) img.classList.toggle('active', String(j) === idx);
@@ -1855,6 +1875,16 @@ async function wireDataScrolly(blockId, d) {
     if (!Number.isNaN(idx)) {
       showStep(idx);
       steps.forEach(s => s.classList.toggle('is-active', Number(s.dataset.dsIdx) === idx));
+      // Animate active step card
+      if (window.Motion) {
+        const activeCard = sec.querySelector('.ds-step.is-active .ds-step-card');
+        if (activeCard) {
+          window.Motion.animate(activeCard,
+            { opacity: [0.4, 1], transform: ['translateY(6px)', 'translateY(0)'] },
+            { duration: 0.35, easing: [0.16, 1, 0.3, 1] }
+          );
+        }
+      }
     }
   }, { rootMargin: '-40% 0px -55% 0px' });
 
