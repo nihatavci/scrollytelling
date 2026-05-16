@@ -277,7 +277,9 @@
   }
 
   // ── Hover zones between blocks for inline "+" add ───────────────────────────
+  var _zoneUpdateInProgress = false;
   function bindInsertZones() {
+    _zoneUpdateInProgress = true;
     // Remove any existing zones first
     document.querySelectorAll('.ve-insert-zone').forEach(function(z) { z.remove(); });
 
@@ -318,6 +320,8 @@
         });
       })(afterId);
     }
+    // Allow observer to react to real DOM changes again after this frame
+    requestAnimationFrame(function() { _zoneUpdateInProgress = false; });
   }
 
   // Inject CSS for insert zones
@@ -389,7 +393,7 @@
 
   var bindPending = false;
   var observer = new MutationObserver(function () {
-    if (bindPending) return;
+    if (bindPending || _zoneUpdateInProgress) return;
     bindPending = true;
     requestAnimationFrame(function () {
       bindAll();

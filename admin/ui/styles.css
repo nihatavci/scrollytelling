@@ -481,13 +481,17 @@ aside, main {
 #btn-fullscreen-preview { font-size: 14px; padding: 4px 8px; line-height: 1; }
 .fullscreen-back-toolbar {
   position: absolute;
-  top: 12px;
-  left: 12px;
+  top: 52px;
+  left: 16px;
   z-index: 10;
   display: none;
 }
 .layout.preview-fullscreen .fullscreen-back-toolbar {
   display: flex;
+}
+/* In fullscreen, hide the aside-head labels for cleaner look */
+.layout.preview-fullscreen .preview .aside-head span:first-child {
+  display: none;
 }
 .fullscreen-back-toolbar button {
   background: rgba(255,255,255,.92);
