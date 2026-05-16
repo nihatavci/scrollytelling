@@ -45,36 +45,49 @@ function sanitizeHtml(html) {
 // Drives the form generator. Each block type lists its top-level fields.
 // Editorial uses a separate content[] editor for inline items.
 const BLOCK_SCHEMAS = {
+  // ── Opening & Structure ──────────────────────────────────────
   Hero: {
-    name: 'Hero',
-    description: 'Top of page — brand line, big title, animated intro lines',
+    name: 'The Lede',
+    description: 'The opening scene — first thing your reader sees. Sets the emotional register of the entire story.',
     fields: [
       { key: 'brand',          label: 'Brand line (small caps at top)',     kind: 'text', group: 'content' },
-      { key: 'titleHtml',      label: 'Title',                              kind: 'textarea', group: 'content',
-        hint: 'Wrap a word in <code>&lt;span&gt;…&lt;/span&gt;</code> to highlight it in orange. Use <code>&lt;br&gt;</code> for a line break.' },
-      { key: 'subtitle',       label: 'Subtitle',      kind: 'text', group: 'content' },
+      { key: 'titleHtml',      label: 'Headline',                           kind: 'textarea', group: 'content',
+        hint: 'Wrap a word in <code>&lt;span&gt;…&lt;/span&gt;</code> to highlight it. Use <code>&lt;br&gt;</code> for a line break.' },
+      { key: 'subtitle',       label: 'Deck (subtitle)',      kind: 'text', group: 'content' },
       { key: 'scrollCueText',  label: 'Scroll-down cue text',   kind: 'text', group: 'style' },
-      { key: 'lines',          label: 'Intro lines (appear one by one before the title)', kind: 'lines', group: 'data' },
+      { key: 'lines',          label: 'Intro lines (appear one by one before the headline)', kind: 'lines', group: 'data' },
     ],
   },
-  VizPanel: {
-    name: 'Visualization',
-    description: 'Shared interactive chart that scrolly sections drive',
+  ChapterDivider: {
+    name: 'Scene Break',
+    description: 'Signals a new act. Resets the reader\'s attention between major story chapters — like a film cut.',
     fields: [
-      { key: 'initialTitle', label: 'Chart title (initial)',    kind: 'text', group: 'content' },
-      { key: 'initialSub',   label: 'Chart subtitle (initial)', kind: 'text', group: 'content' },
+      { key: 'number',   label: 'Number / label (optional)',     kind: 'text', group: 'content', hint: 'e.g. <code>I</code>, <code>01</code>, <code>Kapitel 2</code>' },
+      { key: 'title',    label: 'Scene title',                    kind: 'text', group: 'content' },
+      { key: 'subtitle', label: 'Subtitle (optional)',            kind: 'textarea', group: 'content' },
     ],
   },
+  ProgressNav: {
+    name: 'Progress',
+    description: 'Shows the reader where they are in the story. Chapter dots + reading progress bar.',
+    fields: [
+      { key: 'mode',           label: 'Mode',           kind: 'text', group: 'content', hint: 'bar (default)' },
+      { key: 'autoGenerate',   label: 'Auto-generate',  kind: 'text', group: 'content', hint: 'true (auto-detect chapters) or false' },
+      { key: 'showPercentage', label: 'Show %',         kind: 'text', group: 'content', hint: 'true or false' },
+    ]
+  },
+
+  // ── The Narrative ────────────────────────────────────────────
   Editorial: {
-    name: 'Editorial',
-    description: 'Long-form text section — paragraphs, quotes, images',
+    name: 'Narrative',
+    description: 'The storytelling voice — prose paragraphs, inline quotes, images, drop caps. The backbone of your story.',
     fields: [
       { key: 'content', label: 'Content', kind: 'editorial_items', group: 'data' },
     ],
   },
   Scrolly: {
-    name: 'Scrolly',
-    description: 'Sticky-chart section with stepped narrative on the side',
+    name: 'Scroll · Reveal',
+    description: 'The signature scrollytelling moment. A sticky image while text cards scroll past — each step reveals a new layer of the story.',
     fields: [
       { key: 'imageSize',   label: 'Image size', kind: 'text', group: 'layout', hint: 'small (35%), medium (50%), large (65%), full, or any CSS value like "40%"' },
       { key: 'imageHeight', label: 'Image height', kind: 'text', group: 'layout', hint: 'CSS height: 100vh, 80vh, 60vh, 400px etc.' },
@@ -83,75 +96,9 @@ const BLOCK_SCHEMAS = {
       { key: 'steps',       label: 'Steps', kind: 'scrolly_steps', group: 'data' },
     ],
   },
-  Outro: {
-    name: 'Outro',
-    description: 'Closing section — paragraphs, final emphasized line, sources',
-    fields: [
-      { key: 'h2',          label: 'Heading',     kind: 'text', group: 'content' },
-      { key: 'paragraphs',  label: 'Paragraphs',  kind: 'string_list', group: 'content' },
-      { key: 'finalLine',   label: 'Final emphasized line',  kind: 'text', group: 'content' },
-      { key: 'sourcesHtml', label: 'Sources',     kind: 'textarea_html', group: 'meta',
-        hint: 'Separate citations with " · ". Use <code>&lt;br&gt;</code> for line breaks.' },
-    ],
-  },
-  StatRow: {
-    name: 'Stat row',
-    description: 'A horizontal row of 2–4 large numbers with labels',
-    fields: [
-      { key: 'title', label: 'Heading (optional)', kind: 'text', group: 'content' },
-      { key: 'stats', label: 'Stats',              kind: 'stat_list', group: 'data' },
-    ],
-  },
-  Timeline: {
-    name: 'Timeline',
-    description: 'Vertical timeline — dated events with title and body',
-    fields: [
-      { key: 'title',  label: 'Heading (optional)', kind: 'text', group: 'content' },
-      { key: 'events', label: 'Events',             kind: 'timeline_events', group: 'data' },
-    ],
-  },
-  Aside: {
-    name: 'Aside',
-    description: 'Full-width highlighted callout box',
-    fields: [
-      { key: 'tone',  label: 'Tone', kind: 'tone_select', group: 'style' },
-      { key: 'title', label: 'Title (optional)', kind: 'text', group: 'content' },
-      { key: 'body',  label: 'Body (separate paragraphs with a blank line)', kind: 'textarea', group: 'content' },
-    ],
-  },
-  ChapterDivider: {
-    name: 'Chapter divider',
-    description: 'Chapter break — number, title, optional subtitle',
-    fields: [
-      { key: 'number',   label: 'Number / label (optional)',     kind: 'text', group: 'content', hint: 'e.g. <code>I</code>, <code>01</code>, <code>Kapitel 2</code>' },
-      { key: 'title',    label: 'Title',                          kind: 'text', group: 'content' },
-      { key: 'subtitle', label: 'Subtitle (optional)',            kind: 'textarea', group: 'content' },
-    ],
-  },
-  Quote: {
-    name: 'Quote',
-    description: 'Featured money quote — large, optional portrait',
-    fields: [
-      { key: 'text',         label: 'Quote (without surrounding quote marks)', kind: 'textarea', group: 'content' },
-      { key: 'attribution',  label: 'Attribution (Name)',                       kind: 'text', group: 'content' },
-      { key: 'role',         label: 'Role / context (optional)',                kind: 'text', group: 'content' },
-      { key: 'portraitSrc',  label: 'Portrait (optional)',                      kind: 'image', group: 'media' },
-      { key: 'sourceUrl',    label: 'Source URL (optional)',                    kind: 'text', group: 'meta' },
-      { key: 'sourceLabel',  label: 'Source link label (optional)',             kind: 'text', group: 'meta' },
-    ],
-  },
-  VideoEmbed: {
-    name: 'Video embed',
-    description: 'YouTube or Vimeo video with caption',
-    fields: [
-      { key: 'url',     label: 'Video URL', kind: 'text', group: 'media', hint: 'Paste a YouTube or Vimeo URL.' },
-      { key: 'caption', label: 'Caption',   kind: 'textarea', group: 'meta' },
-      { key: 'credit',  label: 'Credit (optional)', kind: 'text', group: 'meta', hint: 'e.g. <code>via NYT</code>' },
-    ],
-  },
   DataScrolly: {
-    name: 'Data scrolly',
-    description: 'Sticky chart + stepped narrative — each step updates the chart',
+    name: 'Data · Reveal',
+    description: 'Chart-driven revelation — each scroll step builds the argument. The reader watches data tell the story.',
     fields: [
       { key: 'title',     label: 'Chart title',     kind: 'text', group: 'content' },
       { key: 'subtitle',  label: 'Chart subtitle',  kind: 'text', group: 'content' },
@@ -160,42 +107,11 @@ const BLOCK_SCHEMAS = {
       { key: 'steps',     label: 'Steps',           kind: 'data_scrolly_steps', group: 'data' },
     ],
   },
-  ImageCompare: {
-    name: 'Image Compare',
-    label: 'Image Compare',
-    fields: [
-      { key: 'beforeSrc',       label: 'Before image URL',  kind: 'text', group: 'media' },
-      { key: 'beforeLabel',     label: 'Before label',      kind: 'text', group: 'content' },
-      { key: 'afterSrc',        label: 'After image URL',   kind: 'text', group: 'media' },
-      { key: 'afterLabel',      label: 'After label',       kind: 'text', group: 'content' },
-      { key: 'initialPosition', label: 'Start position %',  kind: 'text', group: 'layout', hint: '0-100, default 50' },
-      { key: 'caption',         label: 'Caption',           kind: 'textarea', group: 'meta', inline: true },
-      { key: 'credit',          label: 'Credit',            kind: 'text', group: 'meta', inline: true },
-    ]
-  },
-  ImageHotspot: {
-    name: 'Image Hotspot',
-    label: 'Image Hotspot',
-    fields: [
-      { key: 'src',     label: 'Image URL',   kind: 'text', group: 'media' },
-      { key: 'alt',     label: 'Alt text',     kind: 'text', group: 'content' },
-      { key: 'caption', label: 'Caption',      kind: 'textarea', group: 'meta', inline: true },
-      { key: 'credit',  label: 'Credit',       kind: 'text', group: 'meta', inline: true },
-      { key: 'hotspots', label: 'Hotspots',    kind: 'textarea_html', group: 'data', hint: 'AI generates these — use Enhance to add/modify hotspots' },
-    ]
-  },
-  AccordionBlock: {
-    name: 'Accordion',
-    label: 'Accordion',
-    fields: [
-      { key: 'title',     label: 'Section title',  kind: 'text', group: 'content' },
-      { key: 'multiOpen', label: 'Allow multi-open', kind: 'text', group: 'content', hint: 'true or false, default false' },
-      { key: 'items',     label: 'Items',           kind: 'textarea_html', group: 'data', hint: 'AI generates these — use Enhance to add/modify' },
-    ]
-  },
+
+  // ── Immersive Moments ────────────────────────────────────────
   FullBleed: {
-    name: 'Full Bleed',
-    label: 'Full Bleed',
+    name: 'Immersive',
+    description: 'Full-viewport cinematic moment — image or video that fills the screen. The Snow Fall signature. Stops the reader cold.',
     fields: [
       { key: 'mediaSrc',         label: 'Image / poster',  kind: 'image', group: 'media' },
       { key: 'mediaType',        label: 'Media type',      kind: 'select', group: 'layout', options: ['image', 'video', 'loop'] },
@@ -209,47 +125,9 @@ const BLOCK_SCHEMAS = {
       { key: 'body',             label: 'Body text',       kind: 'textarea_html', group: 'content' },
     ]
   },
-  ProgressNav: {
-    name: 'Progress Nav',
-    label: 'Progress Nav',
-    fields: [
-      { key: 'mode',           label: 'Mode',           kind: 'text', group: 'content', hint: 'bar (default)' },
-      { key: 'autoGenerate',   label: 'Auto-generate',  kind: 'text', group: 'content', hint: 'true (auto-detect chapters) or false' },
-      { key: 'showPercentage', label: 'Show %',         kind: 'text', group: 'content', hint: 'true or false' },
-    ]
-  },
-  EmbedBlock: {
-    name: 'Embed',
-    label: 'Embed',
-    fields: [
-      { key: 'provider',      label: 'Provider',      kind: 'text', group: 'content', hint: 'datawrapper, flourish, twitter, etc.' },
-      { key: 'url',           label: 'Embed URL',     kind: 'text', group: 'content' },
-      { key: 'embedHtml',     label: 'Raw HTML',      kind: 'textarea_html', group: 'content', hint: 'Paste iframe code here instead of URL' },
-      { key: 'aspectRatio',   label: 'Aspect ratio',  kind: 'text', group: 'content', hint: '16:9, 4:3, 1:1, or auto' },
-      { key: 'maxWidth',      label: 'Max width',     kind: 'text', group: 'content', hint: 'e.g. 720px' },
-      { key: 'caption',       label: 'Caption',       kind: 'textarea', group: 'content' },
-      { key: 'lazyLoad',      label: 'Lazy load',     kind: 'text', group: 'content', hint: 'true (default) or false' },
-      { key: 'fallbackImage', label: 'Fallback image', kind: 'text', group: 'content' },
-    ]
-  },
-  ImageGrid: {
-    name: 'Image Grid',
-    label: 'Image Grid',
-    fields: [
-      { key: 'images',  label: 'Images',  kind: 'array', group: 'media', itemFields: [
-        { key: 'src',     label: 'Image URL', kind: 'text' },
-        { key: 'alt',     label: 'Alt text',  kind: 'text' },
-        { key: 'caption', label: 'Caption',   kind: 'text', hint: 'Shows on hover' },
-      ]},
-      { key: 'layout',  label: 'Layout',  kind: 'text', group: 'layout', hint: 'Auto-detects from count. Or: "wide", "bleed", "editorial", "2 grid", "3 columns", "masonry", "row", "stack"' },
-      { key: 'title',   label: 'Title',   kind: 'text', group: 'layout', hint: 'Optional heading above images' },
-      { key: 'caption', label: 'Overall caption', kind: 'textarea', group: 'meta', inline: true },
-      { key: 'credit',  label: 'Photo credit',    kind: 'text', group: 'meta', inline: true },
-    ]
-  },
   FullscreenImage: {
-    name: 'Fullscreen Image',
-    label: 'Fullscreen Image',
+    name: 'The Scene',
+    description: 'A dramatic photograph that establishes place, mood, or scale. Full viewport with Ken Burns animation and text overlay.',
     fields: [
       { key: 'imageSrc',         label: 'Image',              kind: 'image', group: 'media' },
       { key: 'imageAlt',         label: 'Alt text',           kind: 'text', group: 'media' },
@@ -266,9 +144,18 @@ const BLOCK_SCHEMAS = {
       { key: 'credit',           label: 'Credit',             kind: 'text', group: 'meta', inline: true },
     ]
   },
+  VideoEmbed: {
+    name: 'Footage',
+    description: 'Moving image evidence — interviews, event recordings, scene-setting footage. Embedded from YouTube or Vimeo.',
+    fields: [
+      { key: 'url',     label: 'Video URL', kind: 'text', group: 'media', hint: 'Paste a YouTube or Vimeo URL.' },
+      { key: 'caption', label: 'Caption',   kind: 'textarea', group: 'meta' },
+      { key: 'credit',  label: 'Credit (optional)', kind: 'text', group: 'meta', hint: 'e.g. <code>via NYT</code>' },
+    ],
+  },
   AudioPlayer: {
-    name: 'Audio Player',
-    label: 'Audio Player',
+    name: 'Audio',
+    description: 'Sound brings the story to life — field recordings, interviews, ambient atmosphere. With waveform and transcript.',
     fields: [
       { key: 'audioSrc',       label: 'Audio file',        kind: 'audio', group: 'media' },
       { key: 'title',          label: 'Title',             kind: 'text', group: 'content' },
@@ -283,9 +170,86 @@ const BLOCK_SCHEMAS = {
       { key: 'credit',         label: 'Credit',            kind: 'text', group: 'meta', inline: true },
     ]
   },
+
+  // ── Evidence & Proof ─────────────────────────────────────────
+  ImageCompare: {
+    name: 'Before & After',
+    description: 'Show change over time. The reader drags to reveal the truth — satellite imagery, reconstructions, transformations.',
+    fields: [
+      { key: 'beforeSrc',       label: 'Before image URL',  kind: 'text', group: 'media' },
+      { key: 'beforeLabel',     label: 'Before label',      kind: 'text', group: 'content' },
+      { key: 'afterSrc',        label: 'After image URL',   kind: 'text', group: 'media' },
+      { key: 'afterLabel',      label: 'After label',       kind: 'text', group: 'content' },
+      { key: 'initialPosition', label: 'Start position %',  kind: 'text', group: 'layout', hint: '0-100, default 50' },
+      { key: 'caption',         label: 'Caption',           kind: 'textarea', group: 'meta', inline: true },
+      { key: 'credit',          label: 'Credit',            kind: 'text', group: 'meta', inline: true },
+    ]
+  },
+  ImageHotspot: {
+    name: 'Annotated',
+    description: 'Interactive guided look — numbered markers on an image reveal details on click. Great for evidence and explainers.',
+    fields: [
+      { key: 'src',     label: 'Image URL',   kind: 'text', group: 'media' },
+      { key: 'alt',     label: 'Alt text',     kind: 'text', group: 'content' },
+      { key: 'caption', label: 'Caption',      kind: 'textarea', group: 'meta', inline: true },
+      { key: 'credit',  label: 'Credit',       kind: 'text', group: 'meta', inline: true },
+      { key: 'hotspots', label: 'Hotspots',    kind: 'textarea_html', group: 'data', hint: 'AI generates these — use Enhance to add/modify hotspots' },
+    ]
+  },
+  ImageGrid: {
+    name: 'Evidence',
+    description: 'A collection of photographs — proves the point, shows scale, or documents the scene. Auto-layouts from count.',
+    fields: [
+      { key: 'images',  label: 'Images',  kind: 'array', group: 'media', itemFields: [
+        { key: 'src',     label: 'Image URL', kind: 'text' },
+        { key: 'alt',     label: 'Alt text',  kind: 'text' },
+        { key: 'caption', label: 'Caption',   kind: 'text', hint: 'Shows on hover' },
+      ]},
+      { key: 'layout',  label: 'Layout',  kind: 'text', group: 'layout', hint: 'Auto-detects from count. Or: "wide", "bleed", "editorial", "2 grid", "3 columns", "masonry", "row", "stack"' },
+      { key: 'title',   label: 'Title',   kind: 'text', group: 'layout', hint: 'Optional heading above images' },
+      { key: 'caption', label: 'Overall caption', kind: 'textarea', group: 'meta', inline: true },
+      { key: 'credit',  label: 'Photo credit',    kind: 'text', group: 'meta', inline: true },
+    ]
+  },
+  EmbedBlock: {
+    name: 'Interactive',
+    description: 'Third-party visualization — Datawrapper charts, Flourish graphics, Twitter embeds, or any iframe.',
+    fields: [
+      { key: 'provider',      label: 'Provider',      kind: 'text', group: 'content', hint: 'datawrapper, flourish, twitter, etc.' },
+      { key: 'url',           label: 'Embed URL',     kind: 'text', group: 'content' },
+      { key: 'embedHtml',     label: 'Raw HTML',      kind: 'textarea_html', group: 'content', hint: 'Paste iframe code here instead of URL' },
+      { key: 'aspectRatio',   label: 'Aspect ratio',  kind: 'text', group: 'content', hint: '16:9, 4:3, 1:1, or auto' },
+      { key: 'maxWidth',      label: 'Max width',     kind: 'text', group: 'content', hint: 'e.g. 720px' },
+      { key: 'caption',       label: 'Caption',       kind: 'textarea', group: 'content' },
+      { key: 'lazyLoad',      label: 'Lazy load',     kind: 'text', group: 'content', hint: 'true (default) or false' },
+      { key: 'fallbackImage', label: 'Fallback image', kind: 'text', group: 'content' },
+    ]
+  },
+
+  // ── Voices & Data ────────────────────────────────────────────
+  Quote: {
+    name: 'Witness',
+    description: 'A real voice from the story — testimony that humanizes the data. Large quote with optional portrait.',
+    fields: [
+      { key: 'text',         label: 'Quote (without surrounding quote marks)', kind: 'textarea', group: 'content' },
+      { key: 'attribution',  label: 'Name',                                    kind: 'text', group: 'content' },
+      { key: 'role',         label: 'Role / context (optional)',                kind: 'text', group: 'content' },
+      { key: 'portraitSrc',  label: 'Portrait (optional)',                      kind: 'image', group: 'media' },
+      { key: 'sourceUrl',    label: 'Source URL (optional)',                    kind: 'text', group: 'meta' },
+      { key: 'sourceLabel',  label: 'Source link label (optional)',             kind: 'text', group: 'meta' },
+    ],
+  },
+  StatRow: {
+    name: 'Impact',
+    description: 'The number that lands — 2–4 large statistics that make scale visceral. Place after narrative setup for maximum punch.',
+    fields: [
+      { key: 'title', label: 'Heading (optional)', kind: 'text', group: 'content' },
+      { key: 'stats', label: 'Stats',              kind: 'stat_list', group: 'data' },
+    ],
+  },
   Map2D: {
-    name: 'Map 2D',
-    description: 'Scrollytelling map — fly between locations as the reader scrolls',
+    name: 'The Journey',
+    description: 'Geographic narrative — the map flies between locations as the reader scrolls. Trace routes, reveal markers, show territory.',
     fields: [
       { key: 'title',         label: 'Title (optional)', kind: 'text', group: 'content' },
       { key: 'subtitle',      label: 'Subtitle (optional)', kind: 'text', group: 'content' },
@@ -305,15 +269,62 @@ const BLOCK_SCHEMAS = {
       { key: 'credit',        label: 'Credit', kind: 'text', group: 'meta', inline: true },
     ],
   },
+  Timeline: {
+    name: 'Chronicle',
+    description: 'Events across time — establishes sequence and causality. Vertical timeline with dates, titles, and narrative.',
+    fields: [
+      { key: 'title',  label: 'Heading (optional)', kind: 'text', group: 'content' },
+      { key: 'events', label: 'Events',             kind: 'timeline_events', group: 'data' },
+    ],
+  },
+
+  // ── Supporting ───────────────────────────────────────────────
+  Aside: {
+    name: 'Context',
+    description: 'Background the reader needs without breaking the narrative — methodology note, definition, or supplementary fact.',
+    fields: [
+      { key: 'tone',  label: 'Tone', kind: 'tone_select', group: 'style' },
+      { key: 'title', label: 'Title (optional)', kind: 'text', group: 'content' },
+      { key: 'body',  label: 'Body (separate paragraphs with a blank line)', kind: 'textarea', group: 'content' },
+    ],
+  },
+  AccordionBlock: {
+    name: 'Deep Dive',
+    description: 'Expandable sections — methodology, FAQ, glossary, or detailed evidence the curious reader can open.',
+    fields: [
+      { key: 'title',     label: 'Section title',  kind: 'text', group: 'content' },
+      { key: 'multiOpen', label: 'Allow multi-open', kind: 'text', group: 'content', hint: 'true or false, default false' },
+      { key: 'items',     label: 'Items',           kind: 'textarea_html', group: 'data', hint: 'AI generates these — use Enhance to add/modify' },
+    ]
+  },
+  Outro: {
+    name: 'Epilogue',
+    description: 'The closing reflection — final paragraphs, a lingering thought, and source credits. How you leave the reader.',
+    fields: [
+      { key: 'h2',          label: 'Heading',     kind: 'text', group: 'content' },
+      { key: 'paragraphs',  label: 'Paragraphs',  kind: 'string_list', group: 'content' },
+      { key: 'finalLine',   label: 'Final emphasized line',  kind: 'text', group: 'content' },
+      { key: 'sourcesHtml', label: 'Sources',     kind: 'textarea_html', group: 'meta',
+        hint: 'Separate citations with " · ". Use <code>&lt;br&gt;</code> for line breaks.' },
+    ],
+  },
+  VizPanel: {
+    name: 'Dashboard',
+    description: 'Shared interactive chart container that scroll-reveal sections drive. Advanced — for multi-step data stories.',
+    fields: [
+      { key: 'initialTitle', label: 'Chart title (initial)',    kind: 'text', group: 'content' },
+      { key: 'initialSub',   label: 'Chart subtitle (initial)', kind: 'text', group: 'content' },
+    ],
+  },
 };
 
 const BLOCK_ICONS = {
-  Hero: '\u{1F3E0}', VizPanel: '\u{1F4CA}', Editorial: '\u{1F4DD}', Scrolly: '\u{1F4DC}',
-  Outro: '\u{1F51A}', StatRow: '\u{1F522}', Timeline: '\u{1F4C5}', Aside: '\u{1F4A1}',
-  ChapterDivider: '\u{2550}', Quote: '\u{1F4AC}', VideoEmbed: '\u{1F3AC}',
-  DataScrolly: '\u{1F4C8}', FullBleed: '\u{1F5BC}', ImageCompare: '\u{2696}\u{FE0F}',
-  ImageHotspot: '\u{1F4CC}', AccordionBlock: '\u{1FA97}', ProgressNav: '\u{25B0}',
-  EmbedBlock: '\u{1F9E9}', ImageGrid: '\u{1F3D7}', Map2D: '\u{1F5FA}',
+  Hero: '\u{1F4F0}', VizPanel: '\u{1F4CA}', Editorial: '\u{270F}\u{FE0F}', Scrolly: '\u{1F4DC}',
+  Outro: '\u{1F3AC}', StatRow: '\u{1F4A5}', Timeline: '\u{23F3}', Aside: '\u{1F4A1}',
+  ChapterDivider: '\u{2550}', Quote: '\u{1F5E3}\u{FE0F}', VideoEmbed: '\u{1F39E}\u{FE0F}',
+  DataScrolly: '\u{1F4C8}', FullBleed: '\u{1F3AC}', ImageCompare: '\u{2696}\u{FE0F}',
+  ImageHotspot: '\u{1F4CD}', AccordionBlock: '\u{1F4C2}', ProgressNav: '\u{1F4CD}',
+  EmbedBlock: '\u{1F9E9}', ImageGrid: '\u{1F50D}', Map2D: '\u{1F9ED}',
   FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}',
 };
 
@@ -372,30 +383,43 @@ const EDITORIAL_ITEM_KINDS = [
   { kind: 'whatsappCard',  label: 'WhatsApp card' },
 ];
 
-const PALETTE_BLOCKS = [
-  { type: 'Hero',           desc: 'Title section at the top of a page' },
-  { type: 'ChapterDivider', desc: 'Chapter break — number, title, optional subtitle' },
-  { type: 'Editorial',      desc: 'Long-form text with paragraphs, images, quotes' },
-  { type: 'DataScrolly',    desc: 'Sticky chart + stepped narrative (data-driven)' },
-  { type: 'Scrolly',        desc: 'Legacy scrolly tied to the journalism viz (existing pages)' },
-  { type: 'Quote',          desc: 'Featured money quote — large, optional portrait' },
-  { type: 'VideoEmbed',     desc: 'YouTube or Vimeo video with caption' },
-  { type: 'Timeline',       desc: 'Vertical dated events' },
-  { type: 'StatRow',        desc: 'Row of 2–4 large statistics' },
-  { type: 'Aside',          desc: 'Highlighted callout box' },
-  { type: 'Outro',          desc: 'Closing section with paragraphs and sources' },
-  { type: 'FullBleed',      desc: 'Full-viewport image/video with text overlay — the Snow Fall signature' },
-  { type: 'ImageCompare',   desc: 'Before/after draggable image comparison slider' },
-  { type: 'ImageHotspot',   desc: 'Annotated image with interactive numbered markers' },
-  { type: 'AccordionBlock', desc: 'Collapsible sections — methodology, FAQ, glossary' },
-  { type: 'VizPanel',       desc: 'Advanced — visualization container' },
-  { type: 'ProgressNav',    desc: 'Reading progress bar + chapter navigation dots' },
-  { type: 'EmbedBlock',     desc: 'Datawrapper, Flourish, Twitter, or any iframe embed' },
-  { type: 'ImageGrid',      desc: 'Smart image grid — auto-detects layout from count. Paste URLs or upload.' },
-  { type: 'Map2D',          desc: 'Scrollytelling map — fly between locations, animate routes, reveal markers as reader scrolls' },
-  { type: 'FullscreenImage', desc: 'Full-viewport immersive image with text overlay, Ken Burns zoom, and scroll cue' },
-  { type: 'AudioPlayer',     desc: 'Professional audio player with waveform, progress bar, and optional transcript' },
+// Palette organized by narrative function — what does this moment in your story need?
+const PALETTE_CATEGORIES = [
+  {
+    label: 'Opening & Structure',
+    hint: 'Set the scene, break chapters, guide the reader',
+    types: ['Hero', 'ChapterDivider', 'ProgressNav'],
+  },
+  {
+    label: 'The Narrative',
+    hint: 'The story itself — prose, scroll reveals, data arguments',
+    types: ['Editorial', 'Scrolly', 'DataScrolly'],
+  },
+  {
+    label: 'Immersive Moments',
+    hint: 'Full-viewport scenes that stop the reader',
+    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer'],
+  },
+  {
+    label: 'Evidence & Proof',
+    hint: 'Images, comparisons, and annotations that prove the point',
+    types: ['ImageCompare', 'ImageHotspot', 'ImageGrid', 'EmbedBlock'],
+  },
+  {
+    label: 'Voices & Data',
+    hint: 'Testimony, statistics, geography, and time',
+    types: ['Quote', 'StatRow', 'Map2D', 'Timeline'],
+  },
+  {
+    label: 'Supporting',
+    hint: 'Context, expandable detail, closing credits',
+    types: ['Aside', 'AccordionBlock', 'Outro', 'VizPanel'],
+  },
 ];
+// Flat list for backward compat (used by DIRECT_MODE_DISABLED check etc.)
+const PALETTE_BLOCKS = PALETTE_CATEGORIES.flatMap(c => c.types.map(type => ({
+  type, desc: BLOCK_SCHEMAS[type]?.description || ''
+})));
 
 // Tiny inline mockups shown inside the palette cards and at the top of the
 // Claude-generation modal so the user sees what the component looks like
@@ -404,100 +428,97 @@ const PALETTE_BLOCKS = [
 const BLOCK_PREVIEWS = {
   Hero: `
     <div style="text-align:center;padding:8px 0;">
-      <div style="font:500 5.5px 'DM Sans',sans-serif;letter-spacing:.2em;color:#888;text-transform:uppercase;">BRAND</div>
-      <div style="font:300 20px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:6px;letter-spacing:-.03em;line-height:1.1;">Big Title <span style="color:#6366f1;">Word</span></div>
-      <div style="font:400 8px 'DM Sans',sans-serif;color:#888;margin-top:4px;">A subtitle that explains</div>
+      <div style="font:500 5.5px 'DM Sans',sans-serif;letter-spacing:.2em;color:#888;text-transform:uppercase;">INVESTIGATION</div>
+      <div style="font:300 20px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:6px;letter-spacing:-.03em;line-height:1.1;">The Story That <span style="color:#c06830;">Changed</span> Everything</div>
+      <div style="font:400 8px 'DM Sans',sans-serif;color:#888;margin-top:4px;">How a single discovery rewrote the rules</div>
       <div style="margin-top:8px;display:flex;flex-direction:column;align-items:center;gap:2px;color:#bbb;">
-        <div style="font:400 5.5px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;">SCROLL</div>
+        <div style="font:400 5.5px 'DM Sans',sans-serif;letter-spacing:.08em;text-transform:uppercase;">BEGIN</div>
         <div style="width:6px;height:6px;border-right:1.5px solid #bbb;border-bottom:1.5px solid #bbb;transform:rotate(45deg);"></div>
       </div>
     </div>`,
   ChapterDivider: `
     <div style="text-align:center;padding:10px 0;">
-      <div style="font:500 7px 'DM Sans',sans-serif;letter-spacing:.15em;color:#888;text-transform:uppercase;">CHAPTER I</div>
-      <div style="font:300 17px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:5px;letter-spacing:-.02em;">The Beginning</div>
-      <div style="font:400 7.5px 'DM Sans',sans-serif;color:#888;margin-top:3px;">Optional subtitle line</div>
+      <div style="font:500 7px 'DM Sans',sans-serif;letter-spacing:.15em;color:#888;text-transform:uppercase;">ACT II</div>
+      <div style="font:300 17px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:5px;letter-spacing:-.02em;">The Turning Point</div>
+      <div style="font:400 7.5px 'DM Sans',sans-serif;color:#888;margin-top:3px;">Where the story takes a new direction</div>
       <div style="margin:8px auto 0;width:36px;height:2px;background:linear-gradient(90deg,#c679c4,#fa3d1d,#ffb005,#e1e1fe,#0358f7);border-radius:2px;"></div>
     </div>`,
   Editorial: `
     <div>
-      <div style="font:500 6px 'DM Sans',sans-serif;letter-spacing:.12em;color:#6366f1;text-transform:uppercase;margin-bottom:4px;">KICKER</div>
-      <div style="font:500 13px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;letter-spacing:-.01em;">Section heading</div>
-      <div style="font:400 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.5;margin-top:5px;">Lead paragraph text that introduces the section with larger font.</div>
+      <div style="font:500 6px 'DM Sans',sans-serif;letter-spacing:.12em;color:#c06830;text-transform:uppercase;margin-bottom:4px;">EYEWITNESS</div>
+      <div style="font:500 13px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;letter-spacing:-.01em;">Nobody Saw It Coming</div>
+      <div style="font:400 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.5;margin-top:5px;">The morning began like any other. Then everything changed.</div>
       <div style="margin-top:6px;display:flex;flex-direction:column;gap:3px;">
         <div style="height:4px;background:#e5e5e5;border-radius:2px;"></div>
         <div style="height:4px;background:#e5e5e5;border-radius:2px;width:90%;"></div>
         <div style="height:4px;background:#e5e5e5;border-radius:2px;width:70%;"></div>
       </div>
-      <div style="margin-top:6px;border-left:2px solid linear-gradient(#c679c4,#0358f7);padding-left:8px;border-image:linear-gradient(#c679c4,#0358f7) 1;">
-        <div style="font:300 9px 'DM Sans',sans-serif;color:#1a1a1a;font-style:italic;line-height:1.35;">"Pull quote goes here."</div>
+      <div style="margin-top:6px;border-left:2px solid #c06830;padding-left:8px;">
+        <div style="font:300 9px 'DM Sans',sans-serif;color:#1a1a1a;font-style:italic;line-height:1.35;">"I knew right then that nothing would be the same."</div>
       </div>
     </div>`,
   Scrolly: `
     <div style="display:flex;gap:6px;align-items:stretch;">
-      <div style="flex:1.2;background:linear-gradient(135deg,#f0f0f0 0%,#e8e8e8 100%);border-radius:6px;display:flex;align-items:center;justify-content:center;min-height:72px;position:relative;">
-        <svg viewBox="0 0 40 40" width="24" height="24" style="opacity:.3;"><rect x="4" y="8" width="32" height="24" rx="2" fill="none" stroke="#666" stroke-width="1.5"/><path d="M4 14h32" stroke="#666" stroke-width="1"/><circle cx="15" cy="22" r="4" fill="none" stroke="#666" stroke-width="1"/><path d="M24 19h8M24 23h6" stroke="#666" stroke-width="1" stroke-linecap="round"/></svg>
-        <div style="position:absolute;top:4px;left:6px;font:500 5px 'DM Sans',sans-serif;color:#888;letter-spacing:.06em;">STICKY IMAGE</div>
+      <div style="flex:1.2;background:linear-gradient(135deg,#2c2520 0%,#1a1510 100%);border-radius:6px;display:flex;align-items:center;justify-content:center;min-height:72px;position:relative;overflow:hidden;">
+        <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.5) 100%);"></div>
+        <div style="position:absolute;top:4px;left:6px;font:600 5px 'DM Sans',sans-serif;color:rgba(255,255,255,.5);letter-spacing:.08em;text-transform:uppercase;">STICKY</div>
+        <div style="position:absolute;bottom:5px;left:6px;font:500 6.5px 'DM Sans',sans-serif;color:rgba(255,255,255,.7);line-height:1.2;">The image stays<br>while text scrolls</div>
       </div>
       <div style="flex:0.8;display:flex;flex-direction:column;gap:3px;">
-        <div style="background:#fff;border:1.5px solid #6366f1;border-radius:6px;padding:5px 6px;">
+        <div style="background:#fff;border:1.5px solid #c06830;border-radius:6px;padding:5px 6px;">
           <div style="display:flex;align-items:center;gap:3px;margin-bottom:3px;">
-            <div style="width:4px;height:4px;border-radius:1px;background:#6366f1;"></div>
-            <div style="font:600 5.5px 'DM Sans',sans-serif;color:#6366f1;letter-spacing:.04em;">STEP 1</div>
+            <div style="width:4px;height:4px;border-radius:1px;background:#c06830;"></div>
+            <div style="font:600 5.5px 'DM Sans',sans-serif;color:#c06830;letter-spacing:.04em;">REVEAL</div>
           </div>
-          <div style="height:3px;background:#e5e5e5;border-radius:1px;width:85%;"></div>
-          <div style="height:3px;background:#e5e5e5;border-radius:1px;width:60%;margin-top:2px;"></div>
+          <div style="font:400 5.5px 'DM Sans',sans-serif;color:#555;line-height:1.3;">First, the reader sees this.</div>
         </div>
         <div style="background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:5px 6px;opacity:.45;">
-          <div style="font:500 5.5px 'DM Sans',sans-serif;color:#888;">Step 2</div>
-          <div style="height:3px;background:#e5e5e5;border-radius:1px;width:70%;margin-top:3px;"></div>
+          <div style="font:500 5.5px 'DM Sans',sans-serif;color:#888;">Then this...</div>
         </div>
         <div style="background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:5px 6px;opacity:.3;">
-          <div style="font:500 5.5px 'DM Sans',sans-serif;color:#888;">Step 3</div>
-          <div style="height:3px;background:#e5e5e5;border-radius:1px;width:55%;margin-top:3px;"></div>
+          <div style="font:500 5.5px 'DM Sans',sans-serif;color:#888;">And finally...</div>
         </div>
       </div>
     </div>`,
   DataScrolly: `
     <div style="display:flex;gap:6px;align-items:stretch;">
       <div style="flex:1.3;background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:6px 7px;min-height:72px;">
-        <div style="font:500 7px 'DM Sans',sans-serif;color:#1a1a1a;margin-bottom:2px;">Chart Title</div>
-        <div style="font:400 5.5px 'DM Sans',sans-serif;color:#888;margin-bottom:6px;">Subtitle</div>
+        <div style="font:500 7px 'DM Sans',sans-serif;color:#1a1a1a;margin-bottom:2px;">The numbers tell the story</div>
+        <div style="font:400 5.5px 'DM Sans',sans-serif;color:#888;margin-bottom:6px;">Each step reveals a new layer</div>
         <svg viewBox="0 0 100 35" style="width:100%;height:32px;">
           <line x1="8" y1="30" x2="95" y2="30" stroke="#e5e5e5" stroke-width=".5"/>
           <line x1="8" y1="20" x2="95" y2="20" stroke="#e5e5e5" stroke-width=".3" stroke-dasharray="2,2"/>
           <line x1="8" y1="10" x2="95" y2="10" stroke="#e5e5e5" stroke-width=".3" stroke-dasharray="2,2"/>
-          <polyline points="10,28 22,24 36,18 50,20 64,12 78,8 92,5" stroke="#6366f1" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
-          <circle cx="64" cy="12" r="2.5" fill="#6366f1"/>
+          <polyline points="10,28 22,24 36,18 50,20 64,12 78,8 92,5" stroke="#c06830" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle cx="64" cy="12" r="2.5" fill="#c06830"/>
           <line x1="64" y1="3" x2="64" y2="30" stroke="#f59e0b" stroke-width=".7" stroke-dasharray="1.5,1.5"/>
         </svg>
-        <div style="font:400 5px 'DM Sans',sans-serif;color:#aaa;margin-top:2px;">Source: data</div>
+        <div style="font:400 5px 'DM Sans',sans-serif;color:#aaa;margin-top:2px;">Source: research data</div>
       </div>
       <div style="flex:0.7;display:flex;flex-direction:column;gap:3px;">
-        <div style="background:#fff;border:1.5px solid #6366f1;border-radius:5px;padding:4px 5px;">
-          <div style="font:600 5px 'DM Sans',sans-serif;color:#6366f1;letter-spacing:.04em;margin-bottom:2px;">DATA · STEP 1</div>
-          <div style="height:3px;background:#e5e5e5;border-radius:1px;"></div>
-          <div style="height:3px;background:#e5e5e5;border-radius:1px;width:70%;margin-top:2px;"></div>
+        <div style="background:#fff;border:1.5px solid #c06830;border-radius:5px;padding:4px 5px;">
+          <div style="font:600 5px 'DM Sans',sans-serif;color:#c06830;letter-spacing:.04em;margin-bottom:2px;">FINDING 1</div>
+          <div style="font:400 5px 'DM Sans',sans-serif;color:#555;line-height:1.3;">It started slowly...</div>
         </div>
         <div style="background:#fff;border:1px solid #e5e5e5;border-radius:5px;padding:4px 5px;opacity:.4;">
-          <div style="font:500 5px 'DM Sans',sans-serif;color:#888;">Step 2</div>
+          <div style="font:500 5px 'DM Sans',sans-serif;color:#888;">Finding 2</div>
         </div>
         <div style="background:#fff;border:1px solid #e5e5e5;border-radius:5px;padding:4px 5px;opacity:.25;">
-          <div style="font:500 5px 'DM Sans',sans-serif;color:#888;">Step 3</div>
+          <div style="font:500 5px 'DM Sans',sans-serif;color:#888;">The turning point</div>
         </div>
       </div>
     </div>`,
   Quote: `
     <div style="padding:6px 0;">
       <div style="font:300 12px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.3;letter-spacing:-.02em;padding-left:10px;position:relative;">
-        <span style="position:absolute;left:-2px;top:-6px;font-size:26px;color:#6366f1;opacity:.3;font-family:Georgia,serif;line-height:1;">&ldquo;</span>
-        The most important quote from your story goes here.
+        <span style="position:absolute;left:-2px;top:-6px;font-size:26px;color:#c06830;opacity:.3;font-family:Georgia,serif;line-height:1;">&ldquo;</span>
+        I saw it happen. Nobody believed us at first.
       </div>
       <div style="display:flex;gap:6px;align-items:center;margin-top:8px;padding-left:10px;">
-        <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#e5e5e5,#d0d0d0);flex-shrink:0;"></div>
+        <div style="width:20px;height:20px;border-radius:50%;background:linear-gradient(135deg,#d4c5b0,#a89880);flex-shrink:0;"></div>
         <div>
-          <div style="font:500 7.5px 'DM Sans',sans-serif;color:#1a1a1a;">Speaker Name</div>
-          <div style="font:400 6.5px 'DM Sans',sans-serif;color:#888;">Role · Organization</div>
+          <div style="font:500 7.5px 'DM Sans',sans-serif;color:#1a1a1a;">Maria Kovalenko</div>
+          <div style="font:400 6.5px 'DM Sans',sans-serif;color:#888;">Witness · Kyiv, 2024</div>
         </div>
       </div>
     </div>`,
@@ -506,69 +527,70 @@ const BLOCK_PREVIEWS = {
       <div style="width:28px;height:28px;border-radius:50%;background:rgba(255,255,255,.15);display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);">
         <div style="width:0;height:0;border-left:9px solid #fff;border-top:5.5px solid transparent;border-bottom:5.5px solid transparent;margin-left:2px;"></div>
       </div>
+      <div style="position:absolute;top:5px;left:7px;font:600 5px 'DM Sans',sans-serif;color:rgba(255,255,255,.4);letter-spacing:.06em;text-transform:uppercase;">FOOTAGE</div>
       <div style="position:absolute;bottom:4px;left:6px;right:6px;height:2px;background:rgba(255,255,255,.15);border-radius:1px;">
-        <div style="width:35%;height:100%;background:#f43f5e;border-radius:1px;"></div>
+        <div style="width:35%;height:100%;background:#c06830;border-radius:1px;"></div>
       </div>
     </div>
-    <div style="font:400 7px 'DM Sans',sans-serif;color:#888;margin-top:4px;">Caption · <span style="font-style:italic;color:#aaa;">credit</span></div>`,
+    <div style="font:400 7px 'DM Sans',sans-serif;color:#888;margin-top:4px;">Interview footage · <span style="font-style:italic;color:#aaa;">recorded on location</span></div>`,
   Timeline: `
     <div style="display:flex;flex-direction:column;gap:8px;padding-left:10px;border-left:2px solid #e5e5e5;position:relative;">
       <div style="display:flex;align-items:flex-start;gap:6px;">
-        <div style="width:7px;height:7px;border-radius:50%;background:#6366f1;margin-left:-13.5px;margin-top:1px;flex-shrink:0;box-shadow:0 0 0 2px #f8f8f8;"></div>
+        <div style="width:7px;height:7px;border-radius:50%;background:#c06830;margin-left:-13.5px;margin-top:1px;flex-shrink:0;box-shadow:0 0 0 2px #f8f8f8;"></div>
         <div>
-          <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.06em;color:#6366f1;text-transform:uppercase;">1945</div>
-          <div style="font:500 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;">First event title</div>
+          <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.06em;color:#c06830;text-transform:uppercase;">MARCH 2020</div>
+          <div style="font:500 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;">Everything shuts down</div>
           <div style="height:3px;background:#e5e5e5;border-radius:1px;width:80%;margin-top:3px;"></div>
         </div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:6px;">
         <div style="width:7px;height:7px;border-radius:50%;background:#e5e5e5;margin-left:-13.5px;margin-top:1px;flex-shrink:0;box-shadow:0 0 0 2px #f8f8f8;"></div>
         <div>
-          <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.06em;color:#888;text-transform:uppercase;">1962</div>
-          <div style="font:500 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;">Second event</div>
+          <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.06em;color:#888;text-transform:uppercase;">JUNE 2021</div>
+          <div style="font:500 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;">The first signs of recovery</div>
         </div>
       </div>
       <div style="display:flex;align-items:flex-start;gap:6px;">
         <div style="width:7px;height:7px;border-radius:50%;background:#e5e5e5;margin-left:-13.5px;margin-top:1px;flex-shrink:0;box-shadow:0 0 0 2px #f8f8f8;"></div>
         <div>
-          <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.06em;color:#888;text-transform:uppercase;">1989</div>
-          <div style="font:500 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;">Third event</div>
+          <div style="font:600 6px 'DM Sans',sans-serif;letter-spacing:.06em;color:#888;text-transform:uppercase;">TODAY</div>
+          <div style="font:500 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;">What we learned</div>
         </div>
       </div>
     </div>`,
   StatRow: `
     <div style="display:flex;gap:4px;text-align:center;">
       <div style="flex:1;background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:8px 4px;">
-        <div style="font:600 18px 'DM Sans',sans-serif;color:#f59e0b;line-height:1;letter-spacing:-.02em;">67%</div>
-        <div style="font:500 6px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:3px;">Metric</div>
+        <div style="font:600 18px 'DM Sans',sans-serif;color:#c06830;line-height:1;letter-spacing:-.02em;">67%</div>
+        <div style="font:500 6px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:3px;">affected</div>
       </div>
       <div style="flex:1;background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:8px 4px;">
-        <div style="font:600 18px 'DM Sans',sans-serif;color:#f59e0b;line-height:1;letter-spacing:-.02em;">2.4k</div>
-        <div style="font:500 6px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:3px;">Count</div>
+        <div style="font:600 18px 'DM Sans',sans-serif;color:#c06830;line-height:1;letter-spacing:-.02em;">2.4M</div>
+        <div style="font:500 6px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:3px;">displaced</div>
       </div>
       <div style="flex:1;background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:8px 4px;">
-        <div style="font:600 18px 'DM Sans',sans-serif;color:#f59e0b;line-height:1;letter-spacing:-.02em;">3×</div>
-        <div style="font:500 6px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:3px;">Growth</div>
+        <div style="font:600 18px 'DM Sans',sans-serif;color:#c06830;line-height:1;letter-spacing:-.02em;">3x</div>
+        <div style="font:500 6px 'DM Sans',sans-serif;color:#1a1a1a;margin-top:3px;">the prior record</div>
       </div>
     </div>`,
   Aside: `
-    <div style="border-left:3px solid #6366f1;background:rgba(99,102,241,.04);border-radius:0 6px 6px 0;padding:8px 10px;">
+    <div style="border-left:3px solid #c06830;background:rgba(192,104,48,.04);border-radius:0 6px 6px 0;padding:8px 10px;">
       <div style="display:flex;align-items:center;gap:4px;margin-bottom:4px;">
-        <svg viewBox="0 0 16 16" width="10" height="10"><circle cx="8" cy="8" r="7" fill="none" stroke="#6366f1" stroke-width="1.5"/><path d="M8 5v4M8 11v.5" stroke="#6366f1" stroke-width="1.5" stroke-linecap="round"/></svg>
-        <div style="font:600 8.5px 'DM Sans',sans-serif;color:#1a1a1a;">Aside Title</div>
+        <svg viewBox="0 0 16 16" width="10" height="10"><circle cx="8" cy="8" r="7" fill="none" stroke="#c06830" stroke-width="1.5"/><path d="M8 5v4M8 11v.5" stroke="#c06830" stroke-width="1.5" stroke-linecap="round"/></svg>
+        <div style="font:600 8.5px 'DM Sans',sans-serif;color:#1a1a1a;">Why this matters</div>
       </div>
-      <div style="font:400 7.5px 'DM Sans',sans-serif;color:#555;line-height:1.5;">Highlighted callout with supplementary context for the reader.</div>
+      <div style="font:400 7.5px 'DM Sans',sans-serif;color:#555;line-height:1.5;">Background context the reader needs to understand the significance of what follows.</div>
     </div>`,
   Outro: `
     <div>
-      <div style="font:500 13px 'DM Sans',sans-serif;color:#1a1a1a;letter-spacing:-.01em;">Closing Section</div>
+      <div style="font:500 13px 'DM Sans',sans-serif;color:#1a1a1a;letter-spacing:-.01em;">What Happens Next</div>
       <div style="margin-top:5px;display:flex;flex-direction:column;gap:3px;">
         <div style="height:4px;background:#e5e5e5;border-radius:2px;"></div>
         <div style="height:4px;background:#e5e5e5;border-radius:2px;width:85%;"></div>
         <div style="height:4px;background:#e5e5e5;border-radius:2px;width:60%;"></div>
       </div>
-      <div style="font:300 9.5px 'DM Sans',sans-serif;color:#1a1a1a;font-style:italic;margin-top:8px;line-height:1.3;letter-spacing:-.01em;">A final thought that lingers.</div>
-      <div style="margin-top:6px;padding-top:6px;border-top:1px solid #e5e5e5;font:400 6px 'DM Sans',sans-serif;color:#aaa;">Sources: Author (Year) · Author (Year)</div>
+      <div style="font:300 9.5px 'DM Sans',sans-serif;color:#1a1a1a;font-style:italic;margin-top:8px;line-height:1.3;letter-spacing:-.01em;">The answer, it turns out, was there all along.</div>
+      <div style="margin-top:6px;padding-top:6px;border-top:1px solid #e5e5e5;font:400 6px 'DM Sans',sans-serif;color:#aaa;">Sources · Methodology · Credits</div>
     </div>`,
   FullBleed: `
     <div style="background:linear-gradient(135deg,#1a1a1a 0%,#333 100%);border-radius:6px;height:70px;position:relative;overflow:hidden;">
@@ -577,17 +599,17 @@ const BLOCK_PREVIEWS = {
         <svg viewBox="0 0 16 16" width="10" height="10" style="opacity:.4;"><path d="M2 6V2h4M14 6V2h-4M2 10v4h4M14 10v4h-4" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>
       </div>
       <div style="position:absolute;bottom:8px;left:10px;right:10px;z-index:1;">
-        <div style="font:600 14px 'DM Sans',sans-serif;color:#fff;line-height:1.1;letter-spacing:-.02em;">Full Bleed</div>
-        <div style="font:400 7px 'DM Sans',sans-serif;color:rgba(255,255,255,.7);margin-top:3px;">Immersive full-viewport section with video or image</div>
+        <div style="font:600 14px 'DM Sans',sans-serif;color:#fff;line-height:1.1;letter-spacing:-.02em;">The Moment</div>
+        <div style="font:400 7px 'DM Sans',sans-serif;color:rgba(255,255,255,.7);margin-top:3px;">Full-viewport cinematic image or video — stops the reader</div>
       </div>
     </div>`,
   FullscreenImage: `
     <div style="background:linear-gradient(135deg,#2c1810 0%,#1a1510 100%);border-radius:6px;height:70px;position:relative;overflow:hidden;">
       <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.6) 100%);"></div>
       <div style="position:absolute;bottom:7px;left:10px;z-index:1;">
-        <div style="font:600 5px 'DM Sans',sans-serif;letter-spacing:.15em;color:rgba(255,255,255,.6);text-transform:uppercase;">KICKER</div>
-        <div style="font:500 13px 'DM Sans',sans-serif;color:#fff;line-height:1.1;margin-top:2px;">Title <span style="color:#f59e0b;">Word</span></div>
-        <div style="font:400 6.5px 'DM Sans',sans-serif;color:rgba(255,255,255,.65);margin-top:2px;">subtitle text</div>
+        <div style="font:600 5px 'DM Sans',sans-serif;letter-spacing:.15em;color:rgba(255,255,255,.6);text-transform:uppercase;">INVESTIGATION</div>
+        <div style="font:500 13px 'DM Sans',sans-serif;color:#fff;line-height:1.1;margin-top:2px;">The Place Where It <span style="color:#c06830;">Happened</span></div>
+        <div style="font:400 6.5px 'DM Sans',sans-serif;color:rgba(255,255,255,.65);margin-top:2px;">Ken Burns zoom · slow reveal</div>
       </div>
       <div style="position:absolute;bottom:5px;right:8px;display:flex;flex-direction:column;align-items:center;gap:1px;">
         <div style="width:5px;height:5px;border-right:1px solid rgba(255,255,255,.5);border-bottom:1px solid rgba(255,255,255,.5);transform:rotate(45deg);"></div>
@@ -595,35 +617,35 @@ const BLOCK_PREVIEWS = {
     </div>`,
   ImageCompare: `
     <div style="border-radius:6px;overflow:hidden;height:60px;position:relative;display:flex;">
-      <div style="flex:1;background:linear-gradient(135deg,#d4c5b0 0%,#a89880 100%);display:flex;align-items:center;justify-content:center;">
-        <div style="font:500 7px 'DM Sans',sans-serif;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.08em;">Before</div>
+      <div style="flex:1;background:linear-gradient(135deg,#d4c5b0 0%,#a89880 100%);display:flex;align-items:center;justify-content:center;position:relative;">
+        <div style="font:600 5px 'DM Sans',sans-serif;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.1em;position:absolute;bottom:4px;left:6px;">2019</div>
       </div>
       <div style="width:3px;background:#fff;position:relative;z-index:2;box-shadow:0 0 6px rgba(0,0,0,.3);">
         <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 4px rgba(0,0,0,.25);display:flex;align-items:center;justify-content:center;">
           <div style="font:700 7px 'DM Sans',sans-serif;color:#888;">⇔</div>
         </div>
       </div>
-      <div style="flex:1;background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);display:flex;align-items:center;justify-content:center;">
-        <div style="font:500 7px 'DM Sans',sans-serif;color:rgba(255,255,255,.8);text-transform:uppercase;letter-spacing:.08em;">After</div>
+      <div style="flex:1;background:linear-gradient(135deg,#c06830 0%,#8a4520 100%);display:flex;align-items:center;justify-content:center;position:relative;">
+        <div style="font:600 5px 'DM Sans',sans-serif;color:rgba(255,255,255,.7);text-transform:uppercase;letter-spacing:.1em;position:absolute;bottom:4px;right:6px;">2024</div>
       </div>
     </div>
     <div style="display:flex;justify-content:space-between;margin-top:3px;">
-      <div style="font:400 6px 'DM Sans',sans-serif;color:#888;">← Drag to compare →</div>
+      <div style="font:400 6px 'DM Sans',sans-serif;color:#888;">← Drag to reveal the change →</div>
     </div>`,
   ImageHotspot: `
-    <div style="background:linear-gradient(135deg,#f0f0f0 0%,#e0e0e0 100%);border-radius:6px;height:64px;position:relative;overflow:hidden;">
-      <svg viewBox="0 0 40 40" width="28" height="28" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.15;"><rect x="2" y="6" width="36" height="28" rx="2" fill="none" stroke="#666" stroke-width="1.5"/><circle cx="14" cy="18" r="4" fill="none" stroke="#666" stroke-width="1"/><path d="M2 28l10-8 6 4 8-10 12 8" stroke="#666" stroke-width="1" fill="none"/></svg>
-      <div style="position:absolute;top:12px;left:20px;width:16px;height:16px;border-radius:50%;background:#6366f1;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font:700 7px 'DM Sans',sans-serif;color:#fff;">1</div>
-      <div style="position:absolute;top:32px;right:24px;width:16px;height:16px;border-radius:50%;background:#f59e0b;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font:700 7px 'DM Sans',sans-serif;color:#fff;">2</div>
-      <div style="position:absolute;bottom:10px;left:40px;width:16px;height:16px;border-radius:50%;background:#10b981;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font:700 7px 'DM Sans',sans-serif;color:#fff;">3</div>
+    <div style="background:linear-gradient(135deg,#e8e4df 0%,#d4cdc5 100%);border-radius:6px;height:64px;position:relative;overflow:hidden;">
+      <svg viewBox="0 0 40 40" width="28" height="28" style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);opacity:.12;"><rect x="2" y="6" width="36" height="28" rx="2" fill="none" stroke="#666" stroke-width="1.5"/><circle cx="14" cy="18" r="4" fill="none" stroke="#666" stroke-width="1"/><path d="M2 28l10-8 6 4 8-10 12 8" stroke="#666" stroke-width="1" fill="none"/></svg>
+      <div style="position:absolute;top:12px;left:20px;width:16px;height:16px;border-radius:50%;background:#c06830;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font:700 7px 'DM Sans',sans-serif;color:#fff;">1</div>
+      <div style="position:absolute;top:32px;right:24px;width:16px;height:16px;border-radius:50%;background:#c06830;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font:700 7px 'DM Sans',sans-serif;color:#fff;opacity:.7;">2</div>
+      <div style="position:absolute;bottom:10px;left:40px;width:16px;height:16px;border-radius:50%;background:#c06830;border:2px solid #fff;box-shadow:0 1px 4px rgba(0,0,0,.2);display:flex;align-items:center;justify-content:center;font:700 7px 'DM Sans',sans-serif;color:#fff;opacity:.45;">3</div>
     </div>
-    <div style="font:400 6px 'DM Sans',sans-serif;color:#888;margin-top:3px;">Click markers to reveal info</div>`,
+    <div style="font:400 6px 'DM Sans',sans-serif;color:#888;margin-top:3px;">Tap markers to reveal annotations</div>`,
   AccordionBlock: `
     <div style="display:flex;flex-direction:column;gap:3px;">
       <div style="background:#fff;border:1px solid #e5e5e5;border-radius:5px;padding:6px 8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="font:500 8px 'DM Sans',sans-serif;color:#1a1a1a;">Section heading one</div>
-          <div style="font:400 10px 'DM Sans',sans-serif;color:#6366f1;transform:rotate(180deg);">⌃</div>
+          <div style="font:500 8px 'DM Sans',sans-serif;color:#1a1a1a;">How we investigated</div>
+          <div style="font:400 10px 'DM Sans',sans-serif;color:#c06830;transform:rotate(180deg);">⌃</div>
         </div>
         <div style="margin-top:4px;display:flex;flex-direction:column;gap:2px;">
           <div style="height:3px;background:#e5e5e5;border-radius:1px;"></div>
@@ -633,45 +655,46 @@ const BLOCK_PREVIEWS = {
       </div>
       <div style="background:#fff;border:1px solid #e5e5e5;border-radius:5px;padding:6px 8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="font:500 8px 'DM Sans',sans-serif;color:#1a1a1a;">Section heading two</div>
+          <div style="font:500 8px 'DM Sans',sans-serif;color:#1a1a1a;">Methodology & sources</div>
           <div style="font:400 10px 'DM Sans',sans-serif;color:#888;">⌃</div>
         </div>
       </div>
       <div style="background:#fff;border:1px solid #e5e5e5;border-radius:5px;padding:6px 8px;">
         <div style="display:flex;justify-content:space-between;align-items:center;">
-          <div style="font:500 8px 'DM Sans',sans-serif;color:#1a1a1a;">Section heading three</div>
+          <div style="font:500 8px 'DM Sans',sans-serif;color:#1a1a1a;">Key definitions</div>
           <div style="font:400 10px 'DM Sans',sans-serif;color:#888;">⌃</div>
         </div>
       </div>
     </div>`,
   VizPanel: `
     <div style="background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:8px;min-height:68px;">
-      <div style="font:500 7px 'DM Sans',sans-serif;color:#1a1a1a;margin-bottom:6px;">Visualization Title</div>
+      <div style="font:500 7px 'DM Sans',sans-serif;color:#1a1a1a;margin-bottom:6px;">Shared chart container</div>
       <svg viewBox="0 0 100 40" style="width:100%;height:36px;">
-        <rect x="8" y="28" width="10" height="10" rx="1" fill="#6366f1" opacity=".3"/>
-        <rect x="22" y="18" width="10" height="20" rx="1" fill="#6366f1" opacity=".5"/>
-        <rect x="36" y="8" width="10" height="30" rx="1" fill="#6366f1" opacity=".7"/>
-        <rect x="50" y="14" width="10" height="24" rx="1" fill="#6366f1" opacity=".6"/>
-        <rect x="64" y="4" width="10" height="34" rx="1" fill="#6366f1"/>
-        <rect x="78" y="10" width="10" height="28" rx="1" fill="#6366f1" opacity=".8"/>
+        <rect x="8" y="28" width="10" height="10" rx="1" fill="#c06830" opacity=".3"/>
+        <rect x="22" y="18" width="10" height="20" rx="1" fill="#c06830" opacity=".5"/>
+        <rect x="36" y="8" width="10" height="30" rx="1" fill="#c06830" opacity=".7"/>
+        <rect x="50" y="14" width="10" height="24" rx="1" fill="#c06830" opacity=".6"/>
+        <rect x="64" y="4" width="10" height="34" rx="1" fill="#c06830"/>
+        <rect x="78" y="10" width="10" height="28" rx="1" fill="#c06830" opacity=".8"/>
         <line x1="5" y1="38.5" x2="95" y2="38.5" stroke="#e5e5e5" stroke-width=".5"/>
       </svg>
+      <div style="font:400 5px 'DM Sans',sans-serif;color:#aaa;margin-top:2px;">Scroll · Reveal sections drive this chart</div>
     </div>`,
   ProgressNav: `
     <div>
       <div style="height:3px;background:#e5e5e5;border-radius:2px;position:relative;overflow:hidden;">
-        <div style="position:absolute;left:0;top:0;height:100%;width:40%;background:linear-gradient(90deg,#c679c4,#fa3d1d,#ffb005,#6366f1);border-radius:2px;"></div>
+        <div style="position:absolute;left:0;top:0;height:100%;width:40%;background:linear-gradient(90deg,#c679c4,#c06830,#ffb005);border-radius:2px;"></div>
       </div>
       <div style="display:flex;justify-content:space-between;margin-top:6px;gap:2px;">
         <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-          <div style="width:8px;height:8px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;">
+          <div style="width:8px;height:8px;border-radius:50%;background:#c06830;display:flex;align-items:center;justify-content:center;">
             <div style="width:3px;height:3px;border-radius:50%;background:#fff;"></div>
           </div>
-          <div style="font:500 5px 'DM Sans',sans-serif;color:#6366f1;">I</div>
+          <div style="font:500 5px 'DM Sans',sans-serif;color:#c06830;">I</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
-          <div style="width:8px;height:8px;border-radius:50%;background:#6366f1;"></div>
-          <div style="font:500 5px 'DM Sans',sans-serif;color:#6366f1;">II</div>
+          <div style="width:8px;height:8px;border-radius:50%;background:#c06830;"></div>
+          <div style="font:500 5px 'DM Sans',sans-serif;color:#c06830;">II</div>
         </div>
         <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
           <div style="width:8px;height:8px;border-radius:50%;background:#e5e5e5;"></div>
@@ -682,61 +705,61 @@ const BLOCK_PREVIEWS = {
           <div style="font:500 5px 'DM Sans',sans-serif;color:#aaa;">IV</div>
         </div>
       </div>
-      <div style="font:400 6px 'DM Sans',sans-serif;color:#888;text-align:center;margin-top:4px;">Chapter navigation + reading progress</div>
+      <div style="font:400 6px 'DM Sans',sans-serif;color:#888;text-align:center;margin-top:4px;">Where the reader is in your story</div>
     </div>`,
   EmbedBlock: `
     <div style="border:1.5px dashed #d0d0d0;border-radius:6px;height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;">
       <svg viewBox="0 0 24 24" width="16" height="16" style="opacity:.35;"><path d="M7 8l-4 4 4 4M17 8l4 4-4 4M14 4l-4 16" stroke="#666" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>
-      <div style="font:500 7px 'DM Sans',sans-serif;color:#888;">Embed</div>
-      <div style="font:400 5.5px 'DM Sans',sans-serif;color:#aaa;">Datawrapper · Flourish · iframe</div>
+      <div style="font:500 7px 'DM Sans',sans-serif;color:#888;">Interactive embed</div>
+      <div style="font:400 5.5px 'DM Sans',sans-serif;color:#aaa;">Datawrapper · Flourish · any iframe</div>
     </div>`,
   ImageGrid: `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:3px;">
-      <div style="background:linear-gradient(135deg,#e8e8e8,#d8d8d8);border-radius:4px;height:32px;grid-row:span 2;display:flex;align-items:center;justify-content:center;">
-        <svg viewBox="0 0 24 24" width="12" height="12" style="opacity:.3;"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="#666" stroke-width="1.5"/><circle cx="8" cy="10" r="2" fill="none" stroke="#666" stroke-width="1"/><path d="M2 16l6-4 3 2 5-6 6 4" stroke="#666" stroke-width="1" fill="none"/></svg>
+      <div style="background:linear-gradient(135deg,#d4cdc5,#a89880);border-radius:4px;height:32px;grid-row:span 2;display:flex;align-items:center;justify-content:center;">
+        <svg viewBox="0 0 24 24" width="12" height="12" style="opacity:.4;"><rect x="2" y="4" width="20" height="16" rx="2" fill="none" stroke="#fff" stroke-width="1.5"/><circle cx="8" cy="10" r="2" fill="none" stroke="#fff" stroke-width="1"/><path d="M2 16l6-4 3 2 5-6 6 4" stroke="#fff" stroke-width="1" fill="none"/></svg>
       </div>
-      <div style="background:linear-gradient(135deg,#e8e8e8,#ddd);border-radius:4px;height:14px;"></div>
-      <div style="background:linear-gradient(135deg,#e8e8e8,#ddd);border-radius:4px;height:14px;"></div>
+      <div style="background:linear-gradient(135deg,#e8e4df,#d4cdc5);border-radius:4px;height:14px;"></div>
+      <div style="background:linear-gradient(135deg,#e8e4df,#d4cdc5);border-radius:4px;height:14px;"></div>
     </div>
-    <div style="font:400 6px 'DM Sans',sans-serif;color:#888;margin-top:3px;text-align:center;">Auto-layout grid · 2–6 images</div>`,
+    <div style="font:400 6px 'DM Sans',sans-serif;color:#888;margin-top:3px;text-align:center;">Photo evidence · auto-layout from count</div>`,
   Map2D: `
     <div style="display:flex;gap:6px;align-items:stretch;">
       <div style="flex:1.2;background:linear-gradient(135deg,#e8e4df 0%,#d4cdc5 100%);border-radius:6px;min-height:68px;position:relative;overflow:hidden;">
-        <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.2;">
-          <path d="M10 15 Q20 30 40 28 Q60 26 70 40" stroke="#666" stroke-width="1" fill="none" stroke-dasharray="3,2"/>
-          <path d="M15 45 Q30 35 50 38 Q65 40 80 30" stroke="#666" stroke-width=".7" fill="none" opacity=".5"/>
+        <svg style="position:absolute;inset:0;width:100%;height:100%;opacity:.25;">
+          <path d="M10 15 Q20 30 40 28 Q60 26 70 40" stroke="#c06830" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+          <path d="M15 45 Q30 35 50 38 Q65 40 80 30" stroke="#666" stroke-width=".7" fill="none" opacity=".4"/>
         </svg>
-        <div style="position:absolute;top:10px;left:14px;width:10px;height:10px;border-radius:50%;background:#6366f1;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div>
-        <div style="position:absolute;top:28px;right:16px;width:10px;height:10px;border-radius:50%;background:#f59e0b;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div>
-        <div style="position:absolute;bottom:8px;left:30px;width:10px;height:10px;border-radius:50%;background:#10b981;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div>
+        <div style="position:absolute;top:10px;left:14px;width:10px;height:10px;border-radius:50%;background:#c06830;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);"></div>
+        <div style="position:absolute;top:28px;right:16px;width:10px;height:10px;border-radius:50%;background:#c06830;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);opacity:.6;"></div>
+        <div style="position:absolute;bottom:8px;left:30px;width:10px;height:10px;border-radius:50%;background:#c06830;border:2px solid #fff;box-shadow:0 1px 3px rgba(0,0,0,.3);opacity:.35;"></div>
       </div>
       <div style="flex:0.7;display:flex;flex-direction:column;gap:3px;">
-        <div style="background:rgba(255,255,255,.9);border:1px solid rgba(99,102,241,.3);border-radius:5px;padding:4px 5px;">
-          <div style="font:600 5.5px 'DM Sans',sans-serif;color:#6366f1;margin-bottom:2px;">📍 Location A</div>
-          <div style="height:3px;background:#e5e5e5;border-radius:1px;width:80%;"></div>
+        <div style="background:rgba(255,255,255,.9);border:1px solid rgba(192,104,48,.3);border-radius:5px;padding:4px 5px;">
+          <div style="font:600 5.5px 'DM Sans',sans-serif;color:#c06830;margin-bottom:2px;">Berlin</div>
+          <div style="font:400 5px 'DM Sans',sans-serif;color:#555;">Where it began</div>
         </div>
         <div style="background:rgba(255,255,255,.7);border:1px solid #e5e5e5;border-radius:5px;padding:4px 5px;opacity:.5;">
-          <div style="font:500 5.5px 'DM Sans',sans-serif;color:#888;">📍 Location B</div>
+          <div style="font:500 5.5px 'DM Sans',sans-serif;color:#888;">Istanbul</div>
         </div>
         <div style="background:rgba(255,255,255,.5);border:1px solid #e5e5e5;border-radius:5px;padding:4px 5px;opacity:.3;">
-          <div style="font:500 5.5px 'DM Sans',sans-serif;color:#888;">📍 Location C</div>
+          <div style="font:500 5.5px 'DM Sans',sans-serif;color:#888;">Kyiv</div>
         </div>
       </div>
     </div>`,
   AudioPlayer: `
     <div style="display:flex;gap:8px;background:#fff;border:1px solid #e5e5e5;border-radius:6px;padding:7px;">
-      <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#6366f1 0%,#4f46e5 100%);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
+      <div style="width:32px;height:32px;border-radius:6px;background:linear-gradient(135deg,#c06830 0%,#a05520 100%);flex-shrink:0;display:flex;align-items:center;justify-content:center;">
         <svg viewBox="0 0 16 16" width="12" height="12"><path d="M3 4h2l4-3v14l-4-3H3a1 1 0 01-1-1V5a1 1 0 011-1z" fill="#fff" opacity=".9"/><path d="M11.5 5.5a3.5 3.5 0 010 5" stroke="#fff" stroke-width="1.2" fill="none" stroke-linecap="round" opacity=".7"/></svg>
       </div>
       <div style="flex:1;min-width:0;">
-        <div style="font:600 5px 'DM Sans',sans-serif;letter-spacing:.06em;color:#888;text-transform:uppercase;">PODCAST</div>
-        <div style="font:500 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;">Episode Title</div>
+        <div style="font:600 5px 'DM Sans',sans-serif;letter-spacing:.06em;color:#888;text-transform:uppercase;">FIELD RECORDING</div>
+        <div style="font:500 8.5px 'DM Sans',sans-serif;color:#1a1a1a;line-height:1.2;">"In Her Own Words"</div>
         <div style="display:flex;align-items:center;gap:4px;margin-top:4px;">
-          <div style="width:14px;height:14px;border-radius:50%;background:#6366f1;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <div style="width:14px;height:14px;border-radius:50%;background:#c06830;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
             <div style="width:0;height:0;border-left:5px solid #fff;border-top:3px solid transparent;border-bottom:3px solid transparent;margin-left:1px;"></div>
           </div>
           <div style="flex:1;display:flex;align-items:flex-end;gap:1px;height:14px;">
-            ${Array.from({length:24},(_,i)=>`<div style="flex:1;background:#6366f1;opacity:${i<8?'.6':'.2'};border-radius:.5px;height:${20+Math.abs(Math.sin(i*.45))*80}%;min-width:1px;"></div>`).join('')}
+            ${Array.from({length:24},(_,i)=>`<div style="flex:1;background:#c06830;opacity:${i<8?'.6':'.2'};border-radius:.5px;height:${20+Math.abs(Math.sin(i*.45))*80}%;min-width:1px;"></div>`).join('')}
           </div>
         </div>
       </div>
@@ -760,7 +783,14 @@ function toast(msg, kind = '') {
   t.className = 'toast ' + kind;
   t.textContent = msg;
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2400);
+  if (window.MX) MX.animateToastIn(t);
+  setTimeout(() => {
+    if (window.MX) {
+      MX.animateToastOut(t).then(() => t.remove());
+    } else {
+      t.remove();
+    }
+  }, 2400);
 }
 
 // Show a persistent banner with live URL after publish
@@ -771,7 +801,7 @@ function showPublishedBanner(url) {
 
   const banner = document.createElement('div');
   banner.id = 'published-banner';
-  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#000;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;font-family:var(--font-body);font-size:14px;box-shadow:0 -4px 24px rgba(0,0,0,.15);animation:slideUp .3s ease';
+  banner.style.cssText = 'position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#000;color:#fff;padding:14px 20px;display:flex;align-items:center;gap:12px;font-family:var(--font-body);font-size:14px;box-shadow:0 -4px 24px rgba(0,0,0,.15);';
   banner.innerHTML = `
     <span style="color:#4ade80;font-weight:600;">● Live</span>
     <a href="${url}" target="_blank" rel="noopener" style="color:#fff;text-decoration:underline;text-underline-offset:3px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${url}</a>
@@ -779,14 +809,7 @@ function showPublishedBanner(url) {
     <button style="background:none;border:none;color:#666;cursor:pointer;font-size:18px;padding:4px 8px;" onclick="this.parentElement.remove()">✕</button>
   `;
   document.body.appendChild(banner);
-
-  // Inject slideUp keyframes if not present
-  if (!document.getElementById('__slideup_kf__')) {
-    const style = document.createElement('style');
-    style.id = '__slideup_kf__';
-    style.textContent = '@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}';
-    document.head.appendChild(style);
-  }
+  if (window.MX) MX.animateBannerIn(banner);
 
   banner.querySelector('#copy-url-btn').addEventListener('click', () => {
     navigator.clipboard.writeText(url).then(() => {
@@ -1015,10 +1038,11 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 
 // ─────────────────────────── Pages ───────────────────────────
 async function loadPages(preferId) {
-  const { pages } = await SB.listPages();
+  const { pages, pageRows } = await SB.listPages();
   state.pages = pages;
+  state.pageRows = pageRows;
   const sel = $('#page-select');
-  sel.innerHTML = pages.map(id => `<option value="${id}">${id}</option>`).join('');
+  sel.innerHTML = pageRows.map(r => `<option value="${r.slug}">${r.title || r.slug}</option>`).join('');
   const toLoad = preferId && pages.includes(preferId) ? preferId : (state.currentPageId && pages.includes(state.currentPageId) ? state.currentPageId : pages[0]);
   if (toLoad) {
     sel.value = toLoad;
@@ -1118,6 +1142,56 @@ $('#btn-new-page').addEventListener('click', () => {
   }, '');
 });
 
+// ── Rename page ──
+$('#btn-rename-page').addEventListener('click', () => {
+  if (!state.currentPageId) return;
+  const row = state.pageRows?.find(r => r.slug === state.currentPageId);
+  const currentTitle = row?.title || state.currentPageId;
+  openModal('Rename page', (body) => {
+    body.innerHTML = '';
+    const label = document.createElement('label');
+    label.className = 'field-label';
+    label.textContent = 'Page title';
+    body.appendChild(label);
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = currentTitle;
+    input.placeholder = 'Page title';
+    body.appendChild(input);
+    const err = document.createElement('div');
+    err.className = 'error';
+    err.style.textAlign = 'left';
+    body.appendChild(err);
+    const actions = document.createElement('div');
+    actions.style.cssText = 'margin-top:14px;display:flex;gap:8px;justify-content:flex-end;';
+    const cancel = document.createElement('button');
+    cancel.className = 'ghost';
+    cancel.textContent = 'Cancel';
+    cancel.addEventListener('click', closeModal);
+    const save = document.createElement('button');
+    save.className = 'primary';
+    save.textContent = 'Rename';
+    save.addEventListener('click', async () => {
+      const newTitle = input.value.trim();
+      if (!newTitle) { err.textContent = 'Title cannot be empty.'; return; }
+      save.disabled = true;
+      try {
+        await SB.renamePage(state.currentPageId, newTitle);
+        toast('Page renamed', 'success');
+        closeModal();
+        await loadPages(state.currentPageId);
+      } catch (e) {
+        err.textContent = e.message;
+        save.disabled = false;
+      }
+    });
+    actions.appendChild(cancel);
+    actions.appendChild(save);
+    body.appendChild(actions);
+    setTimeout(() => { input.focus(); input.select(); }, 50);
+  }, '');
+});
+
 // Update "View" link to point at the current page (full production URL)
 async function updateViewLink() {
   const link = $('#link-view-page');
@@ -1159,6 +1233,8 @@ async function loadPage(id) {
   renderBlockList();
   renderEditor();
   updateViewLink();
+  // Animate content swap
+  if (window.MX) MX.animatePageSwap(document.querySelector('.blocks'));
   // Reload the preview iframe to show the new page
   const iframe = $('#preview-frame');
   iframe.src = pageUrl();
@@ -1306,19 +1382,13 @@ function renderBlockList() {
     const schemaName = BLOCK_SCHEMAS[block.type]?.name || block.type;
     const icon = BLOCK_ICONS[block.type] || '';
     li.innerHTML = `
-      <div class="block-item-left">
+      <div class="block-header">
         <span class="drag-handle" title="Drag to reorder">⠿</span>
         <span class="block-icon">${icon}</span>
-      </div>
-      <div class="block-item-center">
         <span class="block-name">${schemaName}</span>
-        <span class="block-summary">${blockSummary(block)}</span>
+        <span class="block-chevron">›</span>
       </div>
-      <span class="block-ctrl">
-        <button data-act="claude" title="Enhance with Claude" class="enhance-btn">✨</button>
-        <button data-act="dup"    title="Duplicate">⧉</button>
-        <button data-act="del"    title="Delete">✕</button>
-      </span>`;
+      <div class="block-body"></div>`;
 
     // Drag & drop handlers
     li.addEventListener('dragstart', (e) => {
@@ -1368,28 +1438,75 @@ function renderBlockList() {
     // Touch drag support
     setupTouchDrag(li, idx, ol, 'block');
 
-    // Click to select
-    li.addEventListener('click', (e) => {
-      if (e.target.closest('.block-ctrl') || e.target.closest('.drag-handle')) return;
-      state.selectedBlockId = block.id;
-      state.selectedItemIdx = null;
-      renderBlockList();
-      renderEditor();
+    // Click header to toggle accordion
+    li.querySelector('.block-header').addEventListener('click', (e) => {
+      if (e.target.closest('.drag-handle')) return;
+      const wasActive = state.selectedBlockId === block.id;
+
+      if (wasActive) {
+        // Closing: animate out, then update state
+        const bodyEl = li.querySelector('.block-body');
+        const chevron = li.querySelector('.block-chevron');
+        if (window.MX) MX.animateChevron(chevron, false);
+        if (window.MX && bodyEl) {
+          MX.animateAccordionClose(bodyEl).then(() => {
+            state.selectedBlockId = null;
+            state.selectedItemIdx = null;
+            li.classList.remove('active');
+          });
+        } else {
+          state.selectedBlockId = null;
+          state.selectedItemIdx = null;
+          renderBlockList();
+        }
+      } else {
+        // Close any previously open accordion
+        const prevActive = document.querySelector('.block-item.active');
+        if (prevActive && prevActive !== li) {
+          const prevBody = prevActive.querySelector('.block-body');
+          const prevChevron = prevActive.querySelector('.block-chevron');
+          if (window.MX) MX.animateChevron(prevChevron, false);
+          if (window.MX && prevBody) {
+            MX.animateAccordionClose(prevBody).then(() => {
+              prevActive.classList.remove('active');
+            });
+          } else {
+            prevActive.classList.remove('active');
+            const pb = prevActive.querySelector('.block-body');
+            if (pb) { pb.style.display = 'none'; pb.style.height = '0'; pb.style.opacity = '0'; }
+          }
+        }
+
+        // Open this one
+        state.selectedBlockId = block.id;
+        state.selectedItemIdx = null;
+        li.classList.add('active');
+        renderEditor();
+
+        const bodyEl = li.querySelector('.block-body');
+        const chevron = li.querySelector('.block-chevron');
+        if (window.MX) {
+          MX.animateChevron(chevron, true);
+          MX.animateAccordionOpen(bodyEl);
+        }
+
+        requestAnimationFrame(() => {
+          li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        });
+      }
+
       // Scroll preview to this block in visual edit mode
-      if (state.visualEditMode) {
+      if (state.visualEditMode && state.selectedBlockId) {
         var iframe = $('#preview-frame');
         if (iframe && iframe.contentWindow) {
           iframe.contentWindow.postMessage({
             type: 'visual-edit-response',
             action: 'scroll-to-block',
-            blockId: block.id,
+            blockId: state.selectedBlockId,
           }, '*');
         }
       }
     });
-    li.querySelector('[data-act="claude"]').addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
-    li.querySelector('[data-act="dup"]').addEventListener('click', (e) => { e.stopPropagation(); duplicateBlock(idx); });
-    li.querySelector('[data-act="del"]').addEventListener('click', (e) => { e.stopPropagation(); deleteBlock(idx); });
     ol.appendChild(li);
   });
 
@@ -1419,6 +1536,12 @@ function renderBlockList() {
     refreshPreview();
   });
   ol.appendChild(endZone);
+
+  // Staggered entrance animation
+  if (window.MX) {
+    const items = ol.querySelectorAll('.block-item');
+    MX.animateBlockListIn(items);
+  }
 }
 
 function blockSummary(block) {
@@ -1594,54 +1717,84 @@ function deleteBlock(idx) {
 
 // Add block palette
 $('#btn-add-block').addEventListener('click', () => {
-  openModal('Add a block', renderPalette, '');
+  openModal('Add to your story', renderPalette, '');
 });
 function renderPalette(body) {
   body.innerHTML = '';
   const intro = document.createElement('p');
   intro.style.cssText = 'margin-bottom:14px;color:#57606a;font-size:12.5px;';
-  intro.textContent = 'Pick the kind of section you want to add. Claude will write the content for you on the next step.';
+  intro.textContent = 'What does this moment in your story need?';
   body.appendChild(intro);
-  const grid = document.createElement('div');
-  grid.className = 'palette-grid';
-  PALETTE_BLOCKS.forEach(({ type, desc }) => {
-    const card = document.createElement('button');
-    card.className = 'palette-card with-preview';
-    card.innerHTML = `
-      <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
-      <span class="name">${type}</span>
-      <span class="desc">${desc}</span>`;
-    card.addEventListener('click', () => {
-      closeModal();
-      openClaudeModal({ mode: 'create', type });
+  PALETTE_CATEGORIES.forEach(cat => {
+    const section = document.createElement('div');
+    section.className = 'palette-section';
+    const head = document.createElement('div');
+    head.className = 'palette-section-head';
+    head.innerHTML = `<div class="palette-section-label">${cat.label}</div><div class="palette-section-hint">${cat.hint}</div>`;
+    section.appendChild(head);
+    const grid = document.createElement('div');
+    grid.className = 'palette-grid';
+    cat.types.forEach(type => {
+      const schema = BLOCK_SCHEMAS[type];
+      if (!schema) return;
+      const card = document.createElement('button');
+      card.className = 'palette-card with-preview';
+      card.innerHTML = `
+        <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
+        <span class="name">${schema.name}</span>
+        <span class="desc">${schema.description || ''}</span>`;
+      card.addEventListener('click', () => {
+        closeModal();
+        openClaudeModal({ mode: 'create', type });
+      });
+      grid.appendChild(card);
     });
-    grid.appendChild(card);
+    section.appendChild(grid);
+    body.appendChild(section);
   });
-  body.appendChild(grid);
+  // Animate cards in
+  requestAnimationFrame(() => {
+    if (window.MX) MX.animatePaletteIn(body.querySelectorAll('.palette-card'));
+  });
 }
 // Palette variant that inserts after a specific block ID
 function renderPaletteWithInsert(body, afterBlockId) {
   body.innerHTML = '';
   const intro = document.createElement('p');
   intro.style.cssText = 'margin-bottom:14px;color:#57606a;font-size:12.5px;';
-  intro.textContent = 'Pick the kind of section to insert here. Claude will write the content for you on the next step.';
+  intro.textContent = 'What does this moment in your story need?';
   body.appendChild(intro);
-  const grid = document.createElement('div');
-  grid.className = 'palette-grid';
-  PALETTE_BLOCKS.forEach(({ type, desc }) => {
-    const card = document.createElement('button');
-    card.className = 'palette-card with-preview';
-    card.innerHTML = `
-      <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
-      <span class="name">${type}</span>
-      <span class="desc">${desc}</span>`;
-    card.addEventListener('click', () => {
-      closeModal();
-      openClaudeModal({ mode: 'create', type, insertAfter: afterBlockId });
+  PALETTE_CATEGORIES.forEach(cat => {
+    const section = document.createElement('div');
+    section.className = 'palette-section';
+    const head = document.createElement('div');
+    head.className = 'palette-section-head';
+    head.innerHTML = `<div class="palette-section-label">${cat.label}</div><div class="palette-section-hint">${cat.hint}</div>`;
+    section.appendChild(head);
+    const grid = document.createElement('div');
+    grid.className = 'palette-grid';
+    cat.types.forEach(type => {
+      const schema = BLOCK_SCHEMAS[type];
+      if (!schema) return;
+      const card = document.createElement('button');
+      card.className = 'palette-card with-preview';
+      card.innerHTML = `
+        <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
+        <span class="name">${schema.name}</span>
+        <span class="desc">${schema.description || ''}</span>`;
+      card.addEventListener('click', () => {
+        closeModal();
+        openClaudeModal({ mode: 'create', type, insertAfter: afterBlockId });
+      });
+      grid.appendChild(card);
     });
-    grid.appendChild(card);
+    section.appendChild(grid);
+    body.appendChild(section);
   });
-  body.appendChild(grid);
+  // Animate cards in
+  requestAnimationFrame(() => {
+    if (window.MX) MX.animatePaletteIn(body.querySelectorAll('.palette-card'));
+  });
 }
 // Legacy name kept for backwards-compat; routes through the Claude flow.
 function addBlock(type) { openClaudeModal({ mode: 'create', type }); }
@@ -1658,7 +1811,8 @@ const DIRECT_MODE_DISABLED = new Set([
 function openClaudeModal(opts) {
   const isImprove = opts.mode === 'improve';
   const type = isImprove ? opts.block.type : opts.type;
-  const title = isImprove ? `✨ Enhance ${type}` : `✨ New ${type} — Describe with Claude`;
+  const schemaDisplayName = BLOCK_SCHEMAS[type]?.name || type;
+  const title = isImprove ? `✨ Enhance ${schemaDisplayName}` : `✨ New ${schemaDisplayName} — Describe with Claude`;
   let uploadedImages = [];
 
   openModal(title, (body) => {
@@ -1669,7 +1823,7 @@ function openClaudeModal(opts) {
       previewBox.className = 'claude-modal-preview';
       const previewLabel = document.createElement('div');
       previewLabel.className = 'claude-modal-preview-label';
-      previewLabel.textContent = `${type} preview`;
+      previewLabel.textContent = schemaDisplayName;
       const previewMock = document.createElement('div');
       previewMock.className = 'claude-modal-preview-mock';
       previewMock.innerHTML = BLOCK_PREVIEWS[type];
@@ -1994,30 +2148,31 @@ function defaultDataFor(type) {
 
 // ─────────────────────────── Editor form ─────────────────────
 function renderEditor() {
-  const empty = $('#editor-empty');
-  const form  = $('#editor-form');
-  if (!state.selectedBlockId) {
-    empty.classList.remove('hidden');
-    form.classList.add('hidden');
-    form.innerHTML = '';
-    return;
-  }
+  if (!state.selectedBlockId) return;
+  // Render into the accordion body of the active block
+  const bodyWrap = document.querySelector('.block-item.active .block-body');
+  if (!bodyWrap) return;
   const block = state.doc.blocks.find(b => b.id === state.selectedBlockId);
-  if (!block) { state.selectedBlockId = null; renderEditor(); return; }
+  if (!block) { state.selectedBlockId = null; return; }
   const schema = BLOCK_SCHEMAS[block.type];
-  empty.classList.add('hidden');
-  form.classList.remove('hidden');
-  form.innerHTML = '';
+  bodyWrap.innerHTML = '';
+  const form = document.createElement('div');
+  form.className = 'block-body-inner';
+  bodyWrap.appendChild(form);
 
-  // Form title — pill shows type, text shows description, ✨ Improve button
-  const title = document.createElement('div');
-  title.className = 'form-title';
-  const desc = schema?.description || '';
-  title.innerHTML = `<span class="type-pill">${block.type}</span>` +
-    (desc ? `<span style="font-weight:400;color:#57606a;font-size:13px;flex:1;">${desc}</span>` : '<span style="flex:1;"></span>') +
-    `<button id="form-claude-btn" style="background:#f3f0ff;color:#6639ba;border-color:#d4c5ff;font-weight:600;">✨ Enhance with Claude</button>`;
-  form.appendChild(title);
-  title.querySelector('#form-claude-btn').addEventListener('click', () => openClaudeModal({ mode: 'improve', block }));
+  // Action toolbar — Enhance, Duplicate, Delete
+  const idx = state.doc.blocks.indexOf(block);
+  const toolbar = document.createElement('div');
+  toolbar.className = 'block-actions';
+  toolbar.innerHTML = `
+    <button data-act="claude" class="enhance-btn" title="Enhance with Claude">✨ Enhance</button>
+    <span class="block-actions-spacer"></span>
+    <button data-act="dup" title="Duplicate block">Duplicate</button>
+    <button data-act="del" class="danger" title="Delete block">Delete</button>`;
+  toolbar.querySelector('[data-act="claude"]').addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
+  toolbar.querySelector('[data-act="dup"]').addEventListener('click', (e) => { e.stopPropagation(); duplicateBlock(idx); });
+  toolbar.querySelector('[data-act="del"]').addEventListener('click', (e) => { e.stopPropagation(); deleteBlock(idx); });
+  form.appendChild(toolbar);
 
   if (!schema) {
     const p = document.createElement('p');
@@ -3536,10 +3691,23 @@ function openModal(title, renderBody, footerBtn) {
   const body = backdrop.querySelector('.modal-body');
   const res = renderBody(body);
   if (res instanceof Promise) res.catch(e => { body.textContent = 'Error: ' + e.message; });
+  // Animate in
+  if (window.MX) MX.animateModalIn(backdrop, backdrop.querySelector('.modal'));
   backdrop.addEventListener('click', e => { if (e.target === backdrop) closeModal(); });
   backdrop.querySelectorAll('.close-x').forEach(b => b.addEventListener('click', closeModal));
 }
-function closeModal() { $('#modal-root').innerHTML = ''; }
+function closeModal() {
+  const root = $('#modal-root');
+  const backdrop = root.querySelector('.modal-backdrop');
+  if (!backdrop) { root.innerHTML = ''; return; }
+  if (window.MX) {
+    MX.animateModalOut(backdrop, backdrop.querySelector('.modal')).then(() => {
+      root.innerHTML = '';
+    });
+  } else {
+    root.innerHTML = '';
+  }
+}
 
 // ─────────────────────────── Helpers ──────────────────────────
 function escapeText(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
@@ -3602,6 +3770,69 @@ window.addEventListener('scrollycms:auth-expired', () => {
 
 // Start autosave once authenticated
 startAutosave();
+
+// ── Mobile overflow menu (bottom sheet) ───────────────────────────────────────
+(function initOverflowMenu() {
+  var trigger = document.getElementById('btn-overflow');
+  var menu = document.getElementById('overflow-menu');
+  var backdrop = document.getElementById('overflow-backdrop');
+  if (!trigger || !menu) return;
+
+  function openMenu() {
+    if (backdrop) { backdrop.classList.add('open'); backdrop.style.visibility = 'visible'; }
+    menu.classList.add('open');
+    menu.style.visibility = 'visible';
+    trigger.classList.add('active');
+    if (window.MX) MX.animateSheetOpen(menu, backdrop);
+  }
+  function closeMenu() {
+    trigger.classList.remove('active');
+    if (window.MX) {
+      MX.animateSheetClose(menu, backdrop).then(() => {
+        menu.classList.remove('open');
+        menu.style.visibility = 'hidden';
+        if (backdrop) { backdrop.classList.remove('open'); backdrop.style.visibility = 'hidden'; }
+      });
+    } else {
+      if (backdrop) backdrop.classList.remove('open');
+      menu.classList.remove('open');
+    }
+  }
+
+  trigger.addEventListener('click', function(e) {
+    e.stopPropagation();
+    menu.classList.contains('open') ? closeMenu() : openMenu();
+  });
+
+  if (backdrop) backdrop.addEventListener('click', closeMenu);
+  menu.addEventListener('click', function(e) { e.stopPropagation(); });
+
+  // Delegate actions to original buttons
+  menu.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-overflow]');
+    if (!btn) return;
+    closeMenu();
+    var map = {
+      'new-page': 'btn-new-page',
+      'rename':   'btn-rename-page',
+      'view':     'link-view-page',
+      'preview':  'btn-preview',
+      'history':  'btn-history',
+      'settings': 'btn-settings',
+      'logout':   'btn-logout',
+    };
+    var target = document.getElementById(map[btn.getAttribute('data-overflow')]);
+    if (target) target.click();
+  });
+})();
+
+// ── Mobile FAB (floating add button) ─────────────────────────────────────────
+(function initFab() {
+  var fab = document.getElementById('fab-add');
+  var addBtn = document.getElementById('btn-add-block');
+  if (!fab || !addBtn) return;
+  fab.addEventListener('click', function() { addBtn.click(); });
+})();
 
 // Kickoff
 checkSession();
