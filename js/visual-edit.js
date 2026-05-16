@@ -276,8 +276,115 @@
     });
   }
 
+  // ── Hover zones between blocks for inline "+" add ───────────────────────────
+  function bindInsertZones() {
+    // Remove any existing zones first
+    document.querySelectorAll('.ve-insert-zone').forEach(function(z) { z.remove(); });
+
+    var blockEls = Array.from(document.querySelectorAll('[data-block-id]'));
+    if (blockEls.length < 1) return;
+
+    for (var i = 0; i < blockEls.length; i++) {
+      var afterBlock = blockEls[i];
+      var afterId = afterBlock.getAttribute('data-block-id');
+
+      var zone = document.createElement('div');
+      zone.className = 've-insert-zone';
+      zone.setAttribute('data-ve-insert-after', afterId);
+
+      var plusBtn = document.createElement('button');
+      plusBtn.className = 've-insert-btn';
+      plusBtn.textContent = '+';
+      plusBtn.setAttribute('data-ve-insert-after', afterId);
+      zone.appendChild(plusBtn);
+
+      // Insert the zone after the block element
+      if (afterBlock.nextSibling) {
+        afterBlock.parentNode.insertBefore(zone, afterBlock.nextSibling);
+      } else {
+        afterBlock.parentNode.appendChild(zone);
+      }
+
+      // Bind click on the plus button
+      (function(aid) {
+        plusBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          e.stopPropagation();
+          window.parent.postMessage({
+            type: 'visual-edit',
+            action: 'insert-block',
+            afterBlockId: aid,
+          }, '*');
+        });
+      })(afterId);
+    }
+  }
+
+  // Inject CSS for insert zones
+  var insertStyle = document.createElement('style');
+  insertStyle.textContent = [
+    '.ve-insert-zone {',
+    '  position: relative;',
+    '  height: 20px;',
+    '  cursor: pointer;',
+    '  display: flex;',
+    '  align-items: center;',
+    '  justify-content: center;',
+    '  transition: height .2s;',
+    '  z-index: 100;',
+    '}',
+    '.ve-insert-zone::before {',
+    '  content: "";',
+    '  position: absolute;',
+    '  left: 10%;',
+    '  right: 10%;',
+    '  top: 50%;',
+    '  height: 2px;',
+    '  background: transparent;',
+    '  border-radius: 1px;',
+    '  transition: background .2s;',
+    '}',
+    '.ve-insert-zone:hover {',
+    '  height: 32px;',
+    '}',
+    '.ve-insert-zone:hover::before {',
+    '  background: #6366f1;',
+    '}',
+    '.ve-insert-btn {',
+    '  width: 28px;',
+    '  height: 28px;',
+    '  border-radius: 50%;',
+    '  border: 2px solid #6366f1;',
+    '  background: #fff;',
+    '  color: #6366f1;',
+    '  font-size: 18px;',
+    '  font-weight: 600;',
+    '  line-height: 1;',
+    '  display: flex;',
+    '  align-items: center;',
+    '  justify-content: center;',
+    '  cursor: pointer;',
+    '  opacity: 0;',
+    '  transform: scale(0.6);',
+    '  transition: opacity .2s, transform .2s, background .15s, color .15s;',
+    '  position: relative;',
+    '  z-index: 2;',
+    '  padding: 0;',
+    '  box-shadow: 0 2px 6px rgba(99,102,241,.25);',
+    '}',
+    '.ve-insert-zone:hover .ve-insert-btn {',
+    '  opacity: 1;',
+    '  transform: scale(1);',
+    '}',
+    '.ve-insert-btn:hover {',
+    '  background: #6366f1;',
+    '  color: #fff;',
+    '}',
+  ].join('\n');
+  document.head.appendChild(insertStyle);
+
   // ── Initial bind + re-bind on DOM mutations (debounced) ─────────────────────
-  function bindAll() { bindEditables(); bindBlockClicks(); }
+  function bindAll() { bindEditables(); bindBlockClicks(); bindInsertZones(); }
   bindAll();
 
   var bindPending = false;

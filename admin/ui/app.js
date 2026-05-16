@@ -1410,6 +1410,30 @@ function renderPalette(body) {
   });
   body.appendChild(grid);
 }
+// Palette variant that inserts after a specific block ID
+function renderPaletteWithInsert(body, afterBlockId) {
+  body.innerHTML = '';
+  const intro = document.createElement('p');
+  intro.style.cssText = 'margin-bottom:14px;color:#57606a;font-size:12.5px;';
+  intro.textContent = 'Pick the kind of section to insert here. Claude will write the content for you on the next step.';
+  body.appendChild(intro);
+  const grid = document.createElement('div');
+  grid.className = 'palette-grid';
+  PALETTE_BLOCKS.forEach(({ type, desc }) => {
+    const card = document.createElement('button');
+    card.className = 'palette-card with-preview';
+    card.innerHTML = `
+      <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
+      <span class="name">${type}</span>
+      <span class="desc">${desc}</span>`;
+    card.addEventListener('click', () => {
+      closeModal();
+      openClaudeModal({ mode: 'create', type, insertAfter: afterBlockId });
+    });
+    grid.appendChild(card);
+  });
+  body.appendChild(grid);
+}
 // Legacy name kept for backwards-compat; routes through the Claude flow.
 function addBlock(type) { openClaudeModal({ mode: 'create', type }); }
 
@@ -1674,7 +1698,16 @@ function openClaudeModal(opts) {
             await loadPages(created.id);
           }
           const newBlock = { id: uid('b'), type, data: r.data };
-          state.doc.blocks.push(newBlock);
+          if (opts.insertAfter) {
+            const insertIdx = state.doc.blocks.findIndex(b => b.id === opts.insertAfter);
+            if (insertIdx !== -1) {
+              state.doc.blocks.splice(insertIdx + 1, 0, newBlock);
+            } else {
+              state.doc.blocks.push(newBlock);
+            }
+          } else {
+            state.doc.blocks.push(newBlock);
+          }
           state.selectedBlockId = newBlock.id;
           setDirty(true);
           renderBlockList();
@@ -2924,6 +2957,39 @@ $('#btn-visual-edit').addEventListener('click', () => {
   refreshPreview();
 });
 
+// ── Fullscreen preview toggle ──
+(function initFullscreenPreview() {
+  const layout = document.querySelector('.layout');
+  const previewAside = layout.querySelector('.preview');
+  const btn = $('#btn-fullscreen-preview');
+
+  // Create floating back toolbar inside the preview aside
+  const backToolbar = document.createElement('div');
+  backToolbar.className = 'fullscreen-back-toolbar';
+  const backBtn = document.createElement('button');
+  backBtn.textContent = '← Back';
+  backBtn.title = 'Exit fullscreen preview';
+  backToolbar.appendChild(backBtn);
+  previewAside.style.position = 'relative';
+  previewAside.appendChild(backToolbar);
+
+  function toggleFullscreen() {
+    const isFS = layout.classList.toggle('preview-fullscreen');
+    btn.textContent = isFS ? '✖' : '⛶';
+    btn.title = isFS ? 'Exit fullscreen preview' : 'Expand preview to full width';
+  }
+
+  btn.addEventListener('click', toggleFullscreen);
+  backBtn.addEventListener('click', toggleFullscreen);
+
+  // ESC exits fullscreen
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && layout.classList.contains('preview-fullscreen')) {
+      toggleFullscreen();
+    }
+  });
+})();
+
 // Visual edit postMessage handler (receives events from visual-edit.js inside the preview iframe)
 window.addEventListener('message', async (evt) => {
   if (!evt.data || evt.data.type !== 'visual-edit') return;
@@ -3014,6 +3080,14 @@ window.addEventListener('message', async (evt) => {
       renderBlockList();
       renderEditor();
     }
+  }
+
+  // Insert block at position (from visual-edit hover zones)
+  if (action === 'insert-block') {
+    const afterId = evt.data.afterBlockId;
+    openModal('Add a block', (body) => {
+      renderPaletteWithInsert(body, afterId);
+    }, '');
   }
 });
 
