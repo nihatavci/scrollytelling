@@ -133,6 +133,7 @@ export async function onRequest(context) {
 ${themeLink}
 <script src="/vendor/d3.min.js"></script>
 <script>window.d3||document.write('<script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"><\\/script>')</script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
 <script>window.__PAGE_DATA__ = ${JSON.stringify(content).replace(/<\//g, '<\\/')};</script>
 </head>
 <body>
@@ -148,6 +149,7 @@ render().then(() => {
   });
 }).catch(e => console.error('Render error:', e));
 </script>
+<script src="/js/motion-fx.js"></script>
 <footer style="max-width:720px;margin:3rem auto;padding:2rem;text-align:center;font-size:12px;color:var(--graphite);">
   Published by ${escapeHtml(authorName)} &middot; Powered by <a href="/admin/" style="color:var(--signal-blue);text-decoration:none;">ScrollyCMS</a>
 </footer>
