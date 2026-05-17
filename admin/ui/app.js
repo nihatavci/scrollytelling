@@ -3661,7 +3661,8 @@ $('#btn-history').addEventListener('click', async () => {
 
 // ─────────────────────────── Modal ────────────────────────────
 function openModal(title, renderBody, footerBtn) {
-  closeModal();
+  // Instant clear — no animation when transitioning between modals
+  $('#modal-root').innerHTML = '';
   const root = $('#modal-root');
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
@@ -3685,8 +3686,9 @@ function closeModal() {
   const backdrop = root.querySelector('.modal-backdrop');
   if (!backdrop) { root.innerHTML = ''; return; }
   if (window.MX) {
+    // Animate out, then remove only this specific backdrop (not innerHTML reset)
     MX.animateModalOut(backdrop, backdrop.querySelector('.modal')).then(() => {
-      root.innerHTML = '';
+      backdrop.remove();
     });
   } else {
     root.innerHTML = '';
