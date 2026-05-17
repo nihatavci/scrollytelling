@@ -766,6 +766,455 @@ const BLOCK_PREVIEWS = {
     </div>`,
 };
 
+// ─────────────────────────── Creation card definitions ──────
+// Purpose-built creation forms per block type. Each card defines
+// the fields shown when creating a NEW block of that type.
+// Post-creation editing uses the full BLOCK_SCHEMAS via renderEditor().
+const BLOCK_CREATION_CARDS = {
+
+  // ── Opening & Structure ──────────────────────────────────────
+
+  Hero: {
+    headline: 'The Lede',
+    hint: 'The opening scene — first thing your reader sees',
+    fields: [
+      { key: 'titleHtml', label: 'Headline', kind: 'text', required: true, placeholder: 'Your headline...' },
+      { key: 'subtitle', label: 'Subtitle', kind: 'text', placeholder: 'A supporting line' },
+      { key: 'brand', label: 'Brand line (small caps at top)', kind: 'text', placeholder: 'BRAND' },
+      { key: 'lines', label: 'Intro lines (appear one by one before headline)', kind: 'repeater',
+        itemFields: [{ key: 'value', label: 'Line', kind: 'text' }],
+        flatten: true,
+      },
+      { key: 'scrollCueText', label: 'Scroll cue text', kind: 'text', placeholder: 'Scroll', defaultValue: 'Scroll' },
+    ],
+  },
+
+  ChapterDivider: {
+    headline: 'Chapter Break',
+    hint: 'Mark the start of a new section',
+    fields: [
+      { key: 'number', label: 'Chapter #', kind: 'text', placeholder: '01', inline: true },
+      { key: 'title', label: 'Title', kind: 'text', required: true, placeholder: 'Chapter title', inline: true },
+      { key: 'subtitle', label: 'Subtitle', kind: 'text', placeholder: 'Optional subtitle' },
+    ],
+  },
+
+  ProgressNav: {
+    headline: 'Progress Navigation',
+    hint: 'Section labels shown as progress dots',
+    fields: [
+      { key: 'sections', label: 'Section labels', kind: 'repeater', min: 2, max: 10,
+        itemFields: [{ key: 'label', label: 'Section name', kind: 'text' }],
+        defaults: [{ label: 'Introduction' }, { label: 'Evidence' }, { label: 'Conclusion' }],
+      },
+    ],
+  },
+
+  // ── The Narrative ────────────────────────────────────────────
+
+  Editorial: {
+    headline: 'Editorial Section',
+    hint: 'Prose, headings, and images that tell your story',
+    fields: [
+      { key: '_kicker', label: 'Kicker (small caps above title)', kind: 'text', placeholder: 'THE EVIDENCE' },
+      { key: '_heading', label: 'Section heading', kind: 'text', placeholder: 'Your heading...' },
+      { key: '_body', label: 'Paste or write your text', kind: 'textarea', rows: 8,
+        hint: 'Each blank line starts a new paragraph.' },
+    ],
+    postProcess(data) {
+      const content = [];
+      if (data._kicker) content.push({ kind: 'kicker', text: data._kicker });
+      if (data._heading) content.push({ kind: 'h2', text: data._heading });
+      const body = (data._body || '').trim();
+      if (body) {
+        body.split(/\n\s*\n/).forEach(p => {
+          const trimmed = p.trim();
+          if (trimmed) content.push({ kind: 'p', html: trimmed });
+        });
+      }
+      if (content.length === 0) content.push({ kind: 'h2', text: 'New section' }, { kind: 'p', html: 'New paragraph.' });
+      return { content };
+    },
+  },
+
+  Scrolly: {
+    headline: 'Scroll Story',
+    hint: 'Images that change as the reader scrolls through your narrative',
+    fields: [
+      { key: 'imageSize', label: 'Image size', kind: 'select', options: ['small', 'medium', 'large'], defaultValue: 'medium', inline: true },
+      { key: 'imageHeight', label: 'Image height', kind: 'text', defaultValue: '80vh', inline: true },
+      { key: 'steps', label: 'Scroll steps', kind: 'repeater', min: 1, max: 10,
+        itemFields: [
+          { key: 'badgeKind', label: 'Badge', kind: 'select', options: ['pyramid', 'data', 'explain', 'future', 'voice'] },
+          { key: 'imageSrc', label: 'Step image', kind: 'image_upload' },
+          { key: 'body', label: 'Step text', kind: 'textarea', rows: 3 },
+        ],
+        defaults: [
+          { stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Step 1', imageSrc: '', body: '' },
+          { stepIndex: 1, badgeKind: 'data',    badgeLabel: 'Step 2', imageSrc: '', body: '' },
+        ],
+      },
+    ],
+    postProcess(data) {
+      const id = 'scrolly-' + Math.random().toString(36).slice(2, 7);
+      const steps = (data.steps || []).map((s, i) => ({
+        stepIndex: i,
+        badgeKind: s.badgeKind || 'pyramid',
+        badgeLabel: s.badgeLabel || `Step ${i + 1}`,
+        imageSrc: s.imageSrc || '',
+        body: s.body || '',
+      }));
+      return {
+        scrollyId: id,
+        stepsId: 'steps-' + id.slice(8),
+        imageSize: data.imageSize || 'medium',
+        imageHeight: data.imageHeight || '80vh',
+        imageRadius: '12px',
+        maxWidth: '1400px',
+        steps,
+      };
+    },
+  },
+
+  DataScrolly: {
+    headline: 'Data Story',
+    hint: 'A chart that transforms as readers scroll through your argument',
+    fields: [
+      { key: 'title', label: 'Chart title', kind: 'text', required: true, placeholder: 'What does this chart show?' },
+      { key: 'source', label: 'Data source', kind: 'text', placeholder: 'e.g., World Bank 2024' },
+      { key: '_chartKind', label: 'Chart type', kind: 'button_group', options: [
+        { value: 'bar', label: 'Bar' }, { value: 'line', label: 'Line' }, { value: 'area', label: 'Area' },
+      ], defaultValue: 'bar' },
+      { key: '_csvData', label: 'Data (one entry per line: Label, Value)', kind: 'textarea', rows: 5,
+        placeholder: 'Germany, 83\nFrance, 67\nSpain, 47' },
+      { key: 'steps', label: 'Story steps', kind: 'repeater', min: 1,
+        itemFields: [
+          { key: 'body', label: 'Step narration', kind: 'textarea', rows: 2 },
+        ],
+        defaults: [{ badgeKind: 'data', badgeLabel: 'Step 1', body: '', vizState: {} }],
+      },
+    ],
+    postProcess(data) {
+      const lines = (data._csvData || '').trim().split('\n').filter(l => l.trim());
+      const chartData = lines.map(line => {
+        const parts = line.split(',').map(s => s.trim());
+        const label = parts[0] || '';
+        const val = parseFloat(parts[1]) || 0;
+        return { label, value: val };
+      });
+      if (chartData.length === 0) chartData.push({ label: 'A', value: 10 }, { label: 'B', value: 20 });
+      const steps = (data.steps || []).map((s, i) => ({
+        badgeKind: s.badgeKind || 'data',
+        badgeLabel: s.badgeLabel || `Step ${i + 1}`,
+        body: s.body || '',
+        vizState: s.vizState || {},
+      }));
+      return {
+        title: data.title || 'Chart',
+        subtitle: data.subtitle || '',
+        source: data.source || '',
+        chartSpec: {
+          kind: data._chartKind || 'bar',
+          data: chartData,
+          xField: 'label',
+          yField: 'value',
+          xLabel: '',
+          yLabel: '',
+        },
+        steps,
+      };
+    },
+  },
+
+  // ── Immersive Moments ────────────────────────────────────────
+
+  FullBleed: {
+    headline: 'Full Bleed Scene',
+    hint: 'Edge-to-edge image or video with text overlay',
+    fields: [
+      { key: 'mediaSrc', label: 'Background image (or video)', kind: 'image_upload', required: true, accept: 'image/*,video/*' },
+      { key: 'kicker', label: 'Kicker', kind: 'text', placeholder: 'CHAPTER BREAK' },
+      { key: 'title', label: 'Title overlay', kind: 'text', placeholder: 'A powerful statement' },
+      { key: 'textPosition', label: 'Text position', kind: 'select',
+        options: ['top-left', 'center', 'bottom-left', 'bottom-right'], defaultValue: 'center' },
+      { key: 'overlayOpacity', label: 'Darken overlay', kind: 'range', min: 0, max: 100, defaultValue: 60, unit: '%' },
+    ],
+    postProcess(data) {
+      return {
+        mediaSrc: data.mediaSrc || '', kicker: data.kicker || '', title: data.title || '',
+        textPosition: data.textPosition || 'center', overlayOpacity: (data.overlayOpacity ?? 60) / 100,
+      };
+    },
+  },
+
+  FullscreenImage: {
+    headline: 'Fullscreen Image',
+    hint: 'A single powerful image that fills the viewport',
+    fields: [
+      { key: 'imageSrc', label: 'Hero image', kind: 'image_upload', required: true },
+      { key: 'kicker', label: 'Kicker', kind: 'text' },
+      { key: 'title', label: 'Title', kind: 'text', required: true },
+      { key: 'caption', label: 'Caption', kind: 'text' },
+      { key: 'credit', label: 'Photo credit', kind: 'text' },
+      { key: 'overlayPosition', label: 'Text position', kind: 'select',
+        options: ['bottom-left', 'bottom-center', 'bottom-right', 'center'], defaultValue: 'bottom-left' },
+    ],
+  },
+
+  VideoEmbed: {
+    headline: 'Video',
+    hint: 'Embed a YouTube, Vimeo, or other video',
+    fields: [
+      { key: 'url', label: 'Video URL', kind: 'text', required: true, placeholder: 'https://youtube.com/watch?v=...' },
+      { key: 'caption', label: 'Caption', kind: 'text' },
+      { key: 'credit', label: 'Credit', kind: 'text' },
+    ],
+  },
+
+  AudioPlayer: {
+    headline: 'Audio Player',
+    hint: 'Podcast episode, interview clip, or ambient sound',
+    fields: [
+      { key: 'audioSrc', label: 'Audio file', kind: 'audio_upload', required: true, hint: 'MP3, WAV, OGG, M4A' },
+      { key: 'title', label: 'Show / Episode title', kind: 'text', placeholder: 'Episode title' },
+      { key: 'description', label: 'Description', kind: 'textarea', rows: 3 },
+      { key: 'coverSrc', label: 'Cover art', kind: 'image_upload' },
+      { key: 'subtitle', label: 'Speaker name', kind: 'text' },
+    ],
+  },
+
+  // ── Evidence & Proof ─────────────────────────────────────────
+
+  ImageCompare: {
+    headline: 'Before & After',
+    hint: 'Two images with a slider to compare',
+    layout: 'side-by-side-uploads',
+    fields: [
+      { key: 'beforeSrc', label: 'Before image', kind: 'image_upload', required: true },
+      { key: 'afterSrc', label: 'After image', kind: 'image_upload', required: true },
+      { key: 'beforeLabel', label: 'Before label', kind: 'text', placeholder: 'e.g., 2019', inline: true },
+      { key: 'afterLabel', label: 'After label', kind: 'text', placeholder: 'e.g., 2024', inline: true },
+      { key: 'caption', label: 'Caption', kind: 'text' },
+    ],
+  },
+
+  ImageHotspot: {
+    headline: 'Annotated Image',
+    hint: 'An image with clickable pins that reveal details',
+    fields: [
+      { key: 'imageSrc', label: 'Image to annotate', kind: 'image_upload', required: true },
+      { key: 'hotspots', label: 'Hotspot pins', kind: 'repeater',
+        hint: 'Fine-tune pin positions after creation by editing the block',
+        itemFields: [
+          { key: 'label', label: 'Pin label', kind: 'text', inline: true },
+          { key: 'description', label: 'Detail text', kind: 'textarea', rows: 2 },
+          { key: 'x', label: 'X %', kind: 'number', min: 0, max: 100, defaultValue: 50, inline: true },
+          { key: 'y', label: 'Y %', kind: 'number', min: 0, max: 100, defaultValue: 50, inline: true },
+        ],
+        defaults: [{ label: '', description: '', x: 50, y: 50 }],
+      },
+    ],
+  },
+
+  ImageGrid: {
+    headline: 'Image Grid',
+    hint: 'Multiple images in a grid layout',
+    fields: [
+      { key: '_layout', label: 'Layout', kind: 'button_group', options: [
+        { value: '2', label: '2 side-by-side' }, { value: '4', label: '2×2 grid' }, { value: '3', label: '3 across' },
+      ], defaultValue: '2' },
+      { key: 'cells', label: 'Images', kind: 'repeater', min: 2, max: 6, dynamicCount: '_layout',
+        itemFields: [
+          { key: 'src', label: 'Image', kind: 'image_upload' },
+          { key: 'caption', label: 'Caption', kind: 'text' },
+        ],
+        defaults: [{ src: '', caption: '' }, { src: '', caption: '' }],
+      },
+      { key: 'caption', label: 'Grid caption', kind: 'text' },
+    ],
+    postProcess(data) {
+      const count = parseInt(data._layout) || 2;
+      const cells = (data.cells || []).slice(0, count).map(c => ({
+        src: c.src || '', alt: c.caption || '', caption: c.caption || '',
+      }));
+      while (cells.length < count) cells.push({ src: '', alt: '', caption: '' });
+      return { columns: count <= 2 ? 2 : count, cells, caption: data.caption || '' };
+    },
+  },
+
+  EmbedBlock: {
+    headline: 'Embed',
+    hint: 'Datawrapper, Flourish, social posts, or any iframe',
+    fields: [
+      { key: 'embedCode', label: 'Paste URL or embed code', kind: 'textarea', rows: 3, required: true,
+        placeholder: 'https://... or <iframe>...</iframe>',
+        hint: 'Supports Datawrapper, Flourish, Twitter/X, Instagram, Spotify' },
+      { key: 'caption', label: 'Caption', kind: 'text' },
+    ],
+  },
+
+  // ── Voices & Data ────────────────────────────────────────────
+
+  Quote: {
+    headline: 'Quote',
+    hint: 'A voice in your story — testimony, expert opinion, or reaction',
+    fields: [
+      { key: 'text', label: 'Quote text', kind: 'textarea', rows: 4, required: true, placeholder: '"Type the quote here..."' },
+      { key: 'attribution', label: 'Name', kind: 'text', required: true, placeholder: 'Who said this?', inline: true },
+      { key: 'role', label: 'Role / title', kind: 'text', placeholder: 'e.g., Editor-in-chief', inline: true },
+      { key: 'portraitSrc', label: 'Portrait photo', kind: 'image_upload' },
+      { key: 'sourceUrl', label: 'Source URL', kind: 'text', inline: true },
+      { key: 'sourceLabel', label: 'Source name', kind: 'text', inline: true },
+    ],
+  },
+
+  StatRow: {
+    headline: 'Key Numbers',
+    hint: '2–5 statistics that anchor your argument',
+    layout: 'stat-cards',
+    fields: [
+      { key: 'title', label: 'Section title', kind: 'text', placeholder: 'By the numbers' },
+      { key: 'stats', label: 'Statistics', kind: 'repeater', min: 2, max: 5,
+        itemFields: [
+          { key: 'value', label: 'Value', kind: 'text', placeholder: '83M', inline: true },
+          { key: 'label', label: 'Label', kind: 'text', placeholder: 'People', inline: true },
+          { key: 'context', label: 'Context', kind: 'text', placeholder: 'since 2020' },
+        ],
+        defaults: [
+          { value: '', label: '', context: '' },
+          { value: '', label: '', context: '' },
+          { value: '', label: '', context: '' },
+        ],
+      },
+    ],
+  },
+
+  Map2D: {
+    headline: 'Interactive Map',
+    hint: 'A map that flies between locations as readers scroll',
+    fields: [
+      { key: 'title', label: 'Map title', kind: 'text' },
+      { key: '_centerLat', label: 'Center latitude', kind: 'number', defaultValue: 52.52, inline: true },
+      { key: '_centerLng', label: 'Center longitude', kind: 'number', defaultValue: 13.405, inline: true },
+      { key: 'initialZoom', label: 'Zoom', kind: 'range', min: 1, max: 18, defaultValue: 6 },
+      { key: 'tileStyle', label: 'Map style', kind: 'select',
+        options: ['default', 'satellite', 'light', 'dark', 'watercolor'], defaultValue: 'default' },
+      { key: 'markers', label: 'Markers', kind: 'repeater', min: 0,
+        itemFields: [
+          { key: 'name', label: 'Place name', kind: 'text', inline: true },
+          { key: 'lat', label: 'Lat', kind: 'number', inline: true },
+          { key: 'lng', label: 'Lng', kind: 'number', inline: true },
+        ],
+        defaults: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', name: 'Berlin', popupHtml: '<strong>Berlin</strong>', color: '#c06830' }],
+      },
+      { key: 'steps', label: 'Story steps (scroll-driven)', kind: 'repeater', min: 1,
+        itemFields: [
+          { key: 'body', label: 'Step text', kind: 'textarea', rows: 2 },
+        ],
+        defaults: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }],
+      },
+    ],
+    postProcess(data) {
+      const lat = parseFloat(data._centerLat) || 52.52;
+      const lng = parseFloat(data._centerLng) || 13.405;
+      const markers = (data.markers || []).map((m, i) => ({
+        id: m.id || `marker-${i + 1}`, lat: parseFloat(m.lat) || lat, lng: parseFloat(m.lng) || lng,
+        label: m.label || String(i + 1), name: m.name || '', popupHtml: `<strong>${m.name || ''}</strong>`,
+        color: m.color || '#c06830',
+      }));
+      const steps = (data.steps || []).map((s, i) => ({
+        badgeKind: s.badgeKind || 'data', badgeLabel: s.badgeLabel || `Step ${i + 1}`,
+        body: s.body || '',
+        mapState: s.mapState || { center: [lat, lng], zoom: data.initialZoom || 6, showMarkers: markers.map(m => m.id), showAreas: [], animateRoute: null },
+      }));
+      return {
+        title: data.title || '', subtitle: '', source: '', layout: 'behind',
+        tileStyle: data.tileStyle || 'default', height: '100vh', maxWidth: '100%',
+        initialCenter: [lat, lng], initialZoom: data.initialZoom || 6,
+        flyDuration: 2, scrollZoom: false, markers, routes: [], areas: [], steps,
+        caption: '', credit: 'OpenStreetMap',
+      };
+    },
+  },
+
+  Timeline: {
+    headline: 'Timeline',
+    hint: 'Key moments arranged chronologically',
+    fields: [
+      { key: 'title', label: 'Timeline title', kind: 'text', placeholder: 'Key moments' },
+      { key: 'events', label: 'Events', kind: 'repeater', min: 2,
+        itemFields: [
+          { key: 'when', label: 'When', kind: 'text', placeholder: '1440', inline: true },
+          { key: 'title', label: 'What happened', kind: 'text', inline: true },
+          { key: 'body', label: 'Detail', kind: 'textarea', rows: 2 },
+        ],
+        defaults: [
+          { when: '', title: '', body: '' },
+          { when: '', title: '', body: '' },
+          { when: '', title: '', body: '' },
+        ],
+      },
+    ],
+  },
+
+  // ── Supporting ───────────────────────────────────────────────
+
+  Aside: {
+    headline: 'Context Box',
+    hint: 'Background info, methodology notes, or warnings',
+    fields: [
+      { key: 'tone', label: 'Tone', kind: 'button_group', options: [
+        { value: 'info', label: 'ℹ️ Info' }, { value: 'note', label: '✏️ Note' }, { value: 'warning', label: '⚠️ Warning' },
+      ], defaultValue: 'info' },
+      { key: 'title', label: 'Title', kind: 'text', required: true, placeholder: 'Context' },
+      { key: 'body', label: 'Body text', kind: 'textarea', rows: 4, required: true },
+    ],
+  },
+
+  AccordionBlock: {
+    headline: 'Expandable Sections',
+    hint: 'Collapsible Q&A or detail sections',
+    fields: [
+      { key: 'heading', label: 'Section heading', kind: 'text', placeholder: 'FAQ' },
+      { key: 'items', label: 'Sections', kind: 'repeater', min: 1,
+        itemFields: [
+          { key: 'title', label: 'Title / Question', kind: 'text', required: true },
+          { key: 'body', label: 'Body / Answer', kind: 'textarea', rows: 3, required: true },
+        ],
+        defaults: [
+          { title: '', body: '' },
+          { title: '', body: '' },
+        ],
+      },
+    ],
+  },
+
+  Outro: {
+    headline: 'Closing',
+    hint: 'The final words, credits, and sources',
+    fields: [
+      { key: 'h2', label: 'Closing heading', kind: 'text', placeholder: 'Conclusion' },
+      { key: '_body', label: 'Final paragraph(s)', kind: 'textarea', rows: 4, hint: 'Separate paragraphs with blank lines' },
+      { key: 'finalLine', label: 'Final line (italic accent)', kind: 'text', placeholder: 'A closing thought...' },
+      { key: 'sourcesHtml', label: 'Sources (HTML)', kind: 'textarea', rows: 3, hint: 'Use <a href> tags for links' },
+    ],
+    postProcess(data) {
+      const paragraphs = (data._body || '').trim().split(/\n\s*\n/).map(p => p.trim()).filter(Boolean);
+      if (paragraphs.length === 0) paragraphs.push('Final paragraph.');
+      return { h2: data.h2 || 'Outro', paragraphs, finalLine: data.finalLine || '', sourcesHtml: data.sourcesHtml || '' };
+    },
+  },
+
+  VizPanel: {
+    headline: 'Visualization Panel',
+    hint: 'Container for D3 data visualization',
+    fields: [
+      { key: 'initialTitle', label: 'Title', kind: 'text', placeholder: 'Chart title' },
+      { key: 'initialSub', label: 'Subtitle', kind: 'text', placeholder: 'Supporting context' },
+    ],
+  },
+};
+
 // ─────────────────────────── DOM refs ────────────────────────
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
