@@ -1088,6 +1088,7 @@ $('#btn-new-page').addEventListener('click', () => {
     const themeSel = document.createElement('select');
     themeSel.innerHTML = `
       <option value="dia">Dia — Warm editorial (default)</option>
+      <option value="scrolli">Scrolli — Modern indigo</option>
       <option value="claude">Claude — Clean modern</option>
       <option value="miranda">Miranda — Vintage newsprint (dark)</option>
     `;
@@ -3452,6 +3453,7 @@ $('#btn-settings').addEventListener('click', () => {
     const themeSel = document.createElement('select');
     themeSel.innerHTML = `
       <option value="dia" ${state.doc.theme === 'dia' || !state.doc.theme ? 'selected' : ''}>Dia — Warm editorial (default)</option>
+      <option value="scrolli" ${state.doc.theme === 'scrolli' ? 'selected' : ''}>Scrolli — Modern indigo</option>
       <option value="claude" ${state.doc.theme === 'claude' ? 'selected' : ''}>Claude — Clean modern</option>
       <option value="miranda" ${state.doc.theme === 'miranda' ? 'selected' : ''}>Miranda — Vintage newsprint (dark)</option>
     `;

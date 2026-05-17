@@ -1,0 +1,394 @@
+/*
+ * scrolli.css — Modern editorial theme inspired by next.scrolli.co
+ *
+ * Canvas: clean white (#ffffff)
+ * Text: near-black (#0a0a0a)
+ * Accent: indigo-periwinkle (#8080FF)
+ * Fonts: Instrument Sans (body) / Newsreader (display)
+ * Sharp corners, bold type, high contrast
+ */
+
+@import url('https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Newsreader:opsz,wght@6..72,400;6..72,500;6..72,600;6..72,700&display=swap');
+
+:root {
+  /* ── Core palette ── */
+  --canvas: #ffffff;
+  --snow: #ffffff;
+  --fog: #f1f5f9;
+  --pebble: #cbd5e1;
+  --steel: #9ca3af;
+  --ash: #6b7280;
+  --graphite: #4b5563;
+  --ink-black: #0a0a0a;
+
+  /* ── Chromatic accents ── */
+  --spectrum-red: #8080FF;
+  --signal-blue: #5A5ACD;
+
+  /* ── Spectrum gradient ── */
+  --spectrum-gradient: linear-gradient(135deg, #8080FF, #5A5ACD);
+
+  /* ── Factcheck verdict colors ── */
+  --marigold: #ffb005;
+  --rose-quartz: #c679c4;
+
+  /* ── Legacy aliases ── */
+  --bg: var(--canvas);
+  --text: var(--ink-black);
+  --muted: var(--ash);
+  --accent: var(--spectrum-red);
+  --card: rgba(255, 255, 255, 0.85);
+
+  /* ── Typography ── */
+  --font-body: 'Instrument Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+
+  /* ── Radii ── */
+  --radius-card: 12px;
+  --radius-image: 8px;
+  --radius-button: 8px;
+  --radius-pill: 9999px;
+
+  /* ── Elevation ── */
+  --shadow-card: 0 1px 3px rgba(0, 0, 0, 0.06), 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* ── Progress bar ── */
+.progress {
+  background: var(--spectrum-gradient);
+  height: 2px;
+}
+
+/* ── Language switcher ── */
+.lang-sw {
+  border: 1.5px solid rgba(10, 10, 10, 0.1);
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.06);
+}
+.lang-sw button {
+  color: var(--muted);
+  font-weight: 500;
+}
+.lang-sw button.active {
+  background: var(--accent);
+  color: #fff;
+  border-radius: 6px;
+}
+.lang-sw button:hover {
+  color: var(--ink-black);
+}
+
+/* ── Cinematic intro ── */
+.cin-line {
+  font-family: var(--font-display);
+}
+.cin-l1, .cin-l2 {
+  color: var(--ash);
+  font-weight: 400;
+}
+.cin-l3 {
+  color: var(--ink-black);
+  font-weight: 600;
+}
+.cin-l4 {
+  color: var(--ash);
+  font-weight: 400;
+}
+.cin-l5 {
+  color: var(--ink-black);
+  font-weight: 600;
+}
+.cin-l6 {
+  color: var(--accent);
+  font-weight: 700;
+}
+
+.cin-main-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+}
+.cin-main-title span {
+  color: var(--accent);
+}
+.cin-sub-title {
+  font-family: var(--font-body);
+  color: var(--ash);
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+.cin-scroll-cue .arr {
+  border-color: var(--accent);
+}
+
+/* ── Editorial ── */
+.editorial {
+  background: var(--bg);
+}
+.editorial h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+}
+.editorial p {
+  font-family: var(--font-body);
+  font-weight: 400;
+  line-height: 1.7;
+  color: var(--graphite);
+}
+.editorial .lead {
+  font-family: var(--font-display);
+  font-size: 1.25em;
+  color: var(--ink-black);
+}
+.editorial .kicker {
+  font-family: var(--font-body);
+  color: var(--accent);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.75em;
+}
+
+/* ── Quote block ── */
+.quote-block {
+  border-left: 3px solid var(--accent);
+}
+.quote-block .quote-text {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-style: italic;
+  line-height: 1.5;
+}
+.quote-block .quote-cite {
+  font-family: var(--font-body);
+  color: var(--ash);
+  font-weight: 500;
+}
+
+/* ── Pullquote (legacy) ── */
+.pullquote {
+  font-family: var(--font-display);
+  font-weight: 500;
+  font-style: italic;
+  border-left: 3px solid var(--accent);
+}
+.pullquote::before {
+  display: none;
+}
+.pullquote cite {
+  font-family: var(--font-body);
+  color: var(--ash);
+}
+
+/* ── Separator ── */
+.editorial .separator {
+  background: var(--pebble);
+  height: 1px;
+}
+
+/* ── Visualization ── */
+.viz-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* ── Step cards ── */
+.sc {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+}
+.step.is-active .sc {
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  border-color: rgba(128, 128, 255, 0.2);
+}
+.sc h3, .sc .step-body {
+  font-family: var(--font-body);
+  color: var(--ink-black);
+}
+.scrolly__sticky {
+  background: var(--fog);
+  border-radius: var(--radius-card);
+}
+.scrolly__img {
+  border-radius: var(--radius-image);
+}
+.sc .step-heading {
+  font-family: var(--font-body);
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--ink-black);
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.01em;
+}
+
+/* ── Badge colors ── */
+.b-pyramid { background: #E3E5FF; color: #4A4AB3; }
+.b-data    { background: #dbeafe; color: #2563eb; }
+.b-explain { background: #f3e8ff; color: #7c3aed; }
+.b-future  { background: #dcfce7; color: #16a34a; }
+.b-voice   { background: #fce7f3; color: #db2777; }
+
+/* ── Outro ── */
+.outro {
+  font-family: var(--font-body);
+  background: var(--bg);
+}
+.outro h2 {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+.outro .final-line {
+  color: var(--accent);
+  font-style: italic;
+  font-family: var(--font-display);
+}
+.outro .source-block {
+  border-top-color: var(--pebble);
+  font-family: var(--font-body);
+  color: var(--ash);
+}
+
+/* ── StatRow ── */
+.statrow-cell .v {
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--ink-black);
+  letter-spacing: -0.02em;
+}
+.statrow-cell .l {
+  font-family: var(--font-body);
+  font-weight: 500;
+  color: var(--ash);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 0.7em;
+}
+
+/* ── Chapter divider ── */
+.chapter-divider, .chapter-hero {
+  font-family: var(--font-display);
+}
+.chapter-divider .chapter-number {
+  color: var(--accent);
+  font-weight: 700;
+}
+.chapter-divider .chapter-title {
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* ── Timeline ── */
+.timeline-dot {
+  background: var(--accent);
+}
+.timeline-line {
+  background: var(--pebble);
+}
+.timeline-year {
+  font-family: var(--font-body);
+  font-weight: 700;
+  color: var(--ink-black);
+}
+.timeline-text {
+  font-family: var(--font-body);
+  color: var(--graphite);
+}
+
+/* ── Aside / context block ── */
+.aside-block {
+  background: var(--fog);
+  border-radius: var(--radius-card);
+  border-left: 3px solid var(--accent);
+}
+.aside-block .aside-title {
+  font-family: var(--font-body);
+  font-weight: 600;
+  color: var(--ink-black);
+}
+
+/* ── Fullscreen image overlay ── */
+.fsimg-overlay .fsimg-kicker {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 0.7em;
+}
+.fsimg-overlay .fsimg-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* ── Audio player ── */
+.audio-player {
+  border-radius: var(--radius-card);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+}
+
+/* ── Data scrolly ── */
+.ds-step-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-card);
+}
+.ds-step.is-active .ds-step-card {
+  border-color: rgba(128, 128, 255, 0.25);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+}
+
+/* ── Map step cards ── */
+.map2d-step-card {
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  border-radius: var(--radius-card);
+}
+.map2d-step.is-active .map2d-step-card {
+  border-color: rgba(128, 128, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+}
+
+/* ── Full bleed ── */
+.fullbleed .fb-kicker {
+  font-family: var(--font-body);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.fullbleed .fb-title {
+  font-family: var(--font-display);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* ── Accordion ── */
+.accordion-header {
+  font-family: var(--font-body);
+  font-weight: 600;
+}
+.accordion-body {
+  font-family: var(--font-body);
+  color: var(--graphite);
+}
+
+/* ── Image grid ── */
+.ig-cell {
+  border-radius: var(--radius-image);
+  overflow: hidden;
+}
