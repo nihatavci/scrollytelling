@@ -1230,6 +1230,7 @@ async function loadPage(id) {
   state.selectedBlockId = null;
   state.selectedItemIdx = null;
   setDirty(false);
+  _animateNextBlockList = true; // entrance animation on page switch
   renderBlockList();
   renderEditor();
   updateViewLink();
@@ -1242,6 +1243,7 @@ async function loadPage(id) {
 
 // ─────────────────────────── Blocks list (with drag & drop) ──
 let _dragIdx = null;
+let _animateNextBlockList = false; // set true before renderBlockList to trigger entrance animation
 
 // ─── Touch drag polyfill ───
 // Touch devices don't support HTML5 drag & drop natively. This adds
@@ -1469,20 +1471,11 @@ function renderBlockList() {
       state.selectedItemIdx = null;
       renderBlockList();
       renderEditor();
-      // Animate the newly active block open
+      // Scroll expanded block into view
       if (state.selectedBlockId) {
         requestAnimationFrame(() => {
           const active = document.querySelector('.block-item.active');
-          if (active) {
-            active.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-            const bodyEl = active.querySelector('.block-body');
-            if (window.MX && bodyEl) {
-              MX.animate(bodyEl,
-                { opacity: [0, 1], transform: ['translateY(-6px)', 'translateY(0)'] },
-                { duration: 0.25, easing: MX.EASE_OUT_EXPO }
-              );
-            }
-          }
+          if (active) active.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
         });
       }
       // Scroll preview to this block in visual edit mode
@@ -1527,8 +1520,9 @@ function renderBlockList() {
   });
   ol.appendChild(endZone);
 
-  // Staggered entrance animation
-  if (window.MX) {
+  // Staggered entrance animation — only on page load, not accordion toggles
+  if (window.MX && _animateNextBlockList) {
+    _animateNextBlockList = false;
     const items = ol.querySelectorAll('.block-item');
     MX.animateBlockListIn(items);
   }
