@@ -27,8 +27,72 @@ const MIME = {
   '.ico':  'image/x-icon',
 };
 
+const https = require('https');
+
 const server = http.createServer((req, res) => {
   let urlPath = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+
+  // Proxy /p/* to deployed CF Pages function (public page renderer)
+  if (urlPath.startsWith('/p/')) {
+    const cfUrl = 'https://scrollycms.pages.dev' + urlPath;
+    const parsed = new URL(cfUrl);
+    const options = { hostname: parsed.hostname, path: parsed.pathname, method: 'GET' };
+    const proxy = https.request(options, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+    });
+    proxy.on('error', (e) => {
+      res.writeHead(502);
+      res.end('Proxy error: ' + e.message);
+    });
+    proxy.end();
+    return;
+  }
+
+  // Proxy /api/* POST requests to deployed CF Pages functions
+  if (urlPath.startsWith('/api/') && req.method === 'POST') {
+    let body = '';
+    req.on('data', chunk => { body += chunk; });
+    req.on('end', () => {
+      const cfUrl = 'https://scrollycms.pages.dev' + urlPath;
+      const parsed = new URL(cfUrl);
+      const options = {
+        hostname: parsed.hostname,
+        path: parsed.pathname,
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': req.headers['authorization'] || '',
+          'Content-Length': Buffer.byteLength(body),
+        },
+      };
+      const proxy = https.request(options, (proxyRes) => {
+        res.writeHead(proxyRes.statusCode, {
+          'Content-Type': 'application/json',
+          'Access-Control-Allow-Origin': '*',
+        });
+        proxyRes.pipe(res);
+      });
+      proxy.on('error', (e) => {
+        res.writeHead(502, { 'Content-Type': 'application/json' });
+        res.end(JSON.stringify({ error: 'Proxy error: ' + e.message }));
+      });
+      proxy.write(body);
+      proxy.end();
+    });
+    return;
+  }
+
+  // CORS preflight for /api/*
+  if (req.method === 'OPTIONS' && urlPath.startsWith('/api/')) {
+    res.writeHead(204, {
+      'Access-Control-Allow-Origin': '*',
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+    });
+    res.end();
+    return;
+  }
 
   // Route /admin/ → admin/ui/index.html
   if (urlPath === '/admin' || urlPath === '/admin/') {

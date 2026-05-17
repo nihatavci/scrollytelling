@@ -106,7 +106,9 @@ function resetState() {
 // ── Modal Shell ──
 
 function openModal() {
-  closeModal();
+  // Remove any existing backdrop DOM without nulling builderState
+  const existing = document.querySelector('.ab-backdrop');
+  if (existing) existing.remove();
   const backdrop = el('div', { className: 'ab-backdrop' });
   const modal = el('div', { className: 'ab-modal' });
 
