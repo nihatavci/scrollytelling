@@ -665,7 +665,7 @@ function validateBlockData(type, data) {
     Scrolly: ['steps'],
     DataScrolly: ['steps'],
     Map2D: ['steps'],
-    AudioPlayer: ['src'],
+    AudioPlayer: ['audioSrc'],
     StatRow: ['stats'],
     Timeline: ['events'],
     ImageCompare: ['beforeSrc', 'afterSrc'],
@@ -772,7 +772,10 @@ export async function onRequest(context) {
     userMessage = `Current block data:\n${JSON.stringify(currentData, null, 2)}\n\nRequested change: ${prompt}`;
   }
   if (images && images.length > 0) {
-    userMessage += `\n\nThe user uploaded ${images.length} image(s). Reference them using these URLs:\n${images.map((u, i) => `Image ${i + 1}: ${u}`).join('\n')}`;
+    const isAudio = type === 'AudioPlayer';
+    const fileLabel = isAudio ? 'audio file' : 'image';
+    const fieldHint = isAudio ? ' Use the first audio URL as the audioSrc field value.' : '';
+    userMessage += `\n\nThe user uploaded ${images.length} ${fileLabel}(s). Reference them using these exact URLs:\n${images.map((u, i) => `${isAudio ? 'Audio' : 'Image'} ${i + 1}: ${u}`).join('\n')}${fieldHint}`;
   }
 
   try {
