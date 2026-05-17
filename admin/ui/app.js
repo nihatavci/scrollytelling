@@ -1381,14 +1381,33 @@ function renderBlockList() {
     li.dataset.idx = idx;
     const schemaName = BLOCK_SCHEMAS[block.type]?.name || block.type;
     const icon = BLOCK_ICONS[block.type] || '';
+    const label = block.data?._label || '';
     li.innerHTML = `
       <div class="block-header">
         <span class="drag-handle" title="Drag to reorder">⠿</span>
         <span class="block-icon">${icon}</span>
-        <span class="block-name">${schemaName}</span>
+        <span class="block-name">${escapeText(label || schemaName)}</span>
+        ${label ? `<span class="block-type-badge">${escapeText(schemaName)}</span>` : ''}
+        <button class="block-label-edit" title="Rename this block">✎</button>
         <span class="block-chevron">›</span>
       </div>
       <div class="block-body"></div>`;
+
+    // Inline rename handler
+    li.querySelector('.block-label-edit').addEventListener('click', (e) => {
+      e.stopPropagation();
+      const current = block.data?._label || '';
+      const newLabel = prompt('Block label (leave empty for default):', current);
+      if (newLabel === null) return; // cancelled
+      if (!block.data) block.data = {};
+      if (newLabel.trim()) {
+        block.data._label = newLabel.trim();
+      } else {
+        delete block.data._label;
+      }
+      setDirty(true);
+      renderBlockList();
+    });
 
     // Drag & drop handlers
     li.addEventListener('dragstart', (e) => {
@@ -1440,61 +1459,32 @@ function renderBlockList() {
 
     // Click header to toggle accordion
     li.querySelector('.block-header').addEventListener('click', (e) => {
-      if (e.target.closest('.drag-handle')) return;
-      const wasActive = state.selectedBlockId === block.id;
-
-      if (wasActive) {
-        // Closing: animate out, then update state
-        const bodyEl = li.querySelector('.block-body');
-        const chevron = li.querySelector('.block-chevron');
-        if (window.MX) MX.animateChevron(chevron, false);
-        if (window.MX && bodyEl) {
-          MX.animateAccordionClose(bodyEl).then(() => {
-            state.selectedBlockId = null;
-            state.selectedItemIdx = null;
-            li.classList.remove('active');
-          });
-        } else {
-          state.selectedBlockId = null;
-          state.selectedItemIdx = null;
-          renderBlockList();
-        }
+      if (e.target.closest('.drag-handle') || e.target.closest('.block-label-edit')) return;
+      // Toggle: collapse if already active, expand otherwise
+      if (state.selectedBlockId === block.id) {
+        state.selectedBlockId = null;
       } else {
-        // Close any previously open accordion
-        const prevActive = document.querySelector('.block-item.active');
-        if (prevActive && prevActive !== li) {
-          const prevBody = prevActive.querySelector('.block-body');
-          const prevChevron = prevActive.querySelector('.block-chevron');
-          if (window.MX) MX.animateChevron(prevChevron, false);
-          if (window.MX && prevBody) {
-            MX.animateAccordionClose(prevBody).then(() => {
-              prevActive.classList.remove('active');
-            });
-          } else {
-            prevActive.classList.remove('active');
-            const pb = prevActive.querySelector('.block-body');
-            if (pb) { pb.style.display = 'none'; pb.style.height = '0'; pb.style.opacity = '0'; }
-          }
-        }
-
-        // Open this one
         state.selectedBlockId = block.id;
-        state.selectedItemIdx = null;
-        li.classList.add('active');
-        renderEditor();
-
-        const bodyEl = li.querySelector('.block-body');
-        const chevron = li.querySelector('.block-chevron');
-        if (window.MX) {
-          MX.animateChevron(chevron, true);
-          MX.animateAccordionOpen(bodyEl);
-        }
-
+      }
+      state.selectedItemIdx = null;
+      renderBlockList();
+      renderEditor();
+      // Animate the newly active block open
+      if (state.selectedBlockId) {
         requestAnimationFrame(() => {
-          li.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+          const active = document.querySelector('.block-item.active');
+          if (active) {
+            active.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+            const bodyEl = active.querySelector('.block-body');
+            if (window.MX && bodyEl) {
+              MX.animate(bodyEl,
+                { opacity: [0, 1], transform: ['translateY(-6px)', 'translateY(0)'] },
+                { duration: 0.25, easing: MX.EASE_OUT_EXPO }
+              );
+            }
+          }
         });
       }
-
       // Scroll preview to this block in visual edit mode
       if (state.visualEditMode && state.selectedBlockId) {
         var iframe = $('#preview-frame');
