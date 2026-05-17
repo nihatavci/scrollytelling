@@ -1727,7 +1727,7 @@ function renderPalette(body) {
       card.innerHTML = `
         <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
         <span class="name">${schema.name}</span>
-        <span class="desc">${schema.description || ''}</span>`;
+`;
       card.addEventListener('click', () => {
         closeModal();
         openClaudeModal({ mode: 'create', type });
@@ -1766,7 +1766,7 @@ function renderPaletteWithInsert(body, afterBlockId) {
       card.innerHTML = `
         <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
         <span class="name">${schema.name}</span>
-        <span class="desc">${schema.description || ''}</span>`;
+`;
       card.addEventListener('click', () => {
         closeModal();
         openClaudeModal({ mode: 'create', type, insertAfter: afterBlockId });
