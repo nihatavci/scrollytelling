@@ -1215,6 +1215,381 @@ const BLOCK_CREATION_CARDS = {
   },
 };
 
+// ─────────────────────────── Creation card field renderer ────
+// Renders a single form field for the creation card.
+// Returns a DOM element. Calls onChange(key, value) on user input.
+function renderCreationField(fieldDef, data, onChange) {
+  const wrap = document.createElement('div');
+  wrap.className = 'cc-field' + (fieldDef.inline ? ' cc-field-inline' : '');
+
+  const { key, label, kind, hint, placeholder, required, options,
+          min, max, defaultValue, unit, rows, accept,
+          itemFields, defaults, flatten, dynamicCount } = fieldDef;
+
+  // Initialize data with defaultValue if not set
+  if (data[key] === undefined && defaultValue !== undefined) {
+    data[key] = defaultValue;
+  }
+
+  // Label
+  if (label && kind !== 'repeater') {
+    const lbl = document.createElement('label');
+    lbl.className = 'cc-label';
+    lbl.textContent = label;
+    if (required) { const star = document.createElement('span'); star.className = 'cc-req'; star.textContent = ' *'; lbl.appendChild(star); }
+    wrap.appendChild(lbl);
+  }
+
+  switch (kind) {
+
+    // ── Text input ──
+    case 'text': {
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.className = 'cc-input';
+      inp.placeholder = placeholder || '';
+      inp.value = data[key] ?? '';
+      inp.addEventListener('input', () => { data[key] = inp.value; onChange(key, inp.value); });
+      wrap.appendChild(inp);
+      break;
+    }
+
+    // ── Number input ──
+    case 'number': {
+      const inp = document.createElement('input');
+      inp.type = 'number';
+      inp.className = 'cc-input cc-input-number';
+      inp.placeholder = placeholder || '';
+      if (min !== undefined) inp.min = min;
+      if (max !== undefined) inp.max = max;
+      inp.value = data[key] ?? defaultValue ?? '';
+      inp.addEventListener('input', () => { data[key] = parseFloat(inp.value) || 0; onChange(key, data[key]); });
+      wrap.appendChild(inp);
+      break;
+    }
+
+    // ── Textarea ──
+    case 'textarea': {
+      const ta = document.createElement('textarea');
+      ta.className = 'cc-textarea';
+      ta.placeholder = placeholder || '';
+      ta.rows = rows || 4;
+      ta.value = data[key] ?? '';
+      ta.addEventListener('input', () => { data[key] = ta.value; onChange(key, ta.value); });
+      wrap.appendChild(ta);
+      break;
+    }
+
+    // ── Select dropdown ──
+    case 'select': {
+      const sel = document.createElement('select');
+      sel.className = 'cc-select';
+      (options || []).forEach(opt => {
+        const o = document.createElement('option');
+        if (typeof opt === 'string') { o.value = opt; o.textContent = opt; }
+        else { o.value = opt.value; o.textContent = opt.label; }
+        sel.appendChild(o);
+      });
+      sel.value = data[key] ?? defaultValue ?? '';
+      sel.addEventListener('change', () => { data[key] = sel.value; onChange(key, sel.value); });
+      wrap.appendChild(sel);
+      break;
+    }
+
+    // ── Button group (horizontal toggle buttons) ──
+    case 'button_group': {
+      const group = document.createElement('div');
+      group.className = 'cc-btn-group';
+      const current = data[key] ?? defaultValue ?? '';
+      (options || []).forEach(opt => {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        const val = typeof opt === 'string' ? opt : opt.value;
+        const lbl = typeof opt === 'string' ? opt : opt.label;
+        btn.className = 'cc-btn-opt' + (val === current ? ' active' : '');
+        btn.textContent = lbl;
+        btn.addEventListener('click', () => {
+          data[key] = val;
+          group.querySelectorAll('.cc-btn-opt').forEach(b => b.classList.toggle('active', b === btn));
+          onChange(key, val);
+        });
+        group.appendChild(btn);
+      });
+      if (!data[key] && options.length) data[key] = typeof options[0] === 'string' ? options[0] : options[0].value;
+      wrap.appendChild(group);
+      break;
+    }
+
+    // ── Range slider ──
+    case 'range': {
+      const row = document.createElement('div');
+      row.className = 'cc-range-row';
+      const inp = document.createElement('input');
+      inp.type = 'range';
+      inp.className = 'cc-range';
+      inp.min = min ?? 0;
+      inp.max = max ?? 100;
+      inp.value = data[key] ?? defaultValue ?? 50;
+      const valDisplay = document.createElement('span');
+      valDisplay.className = 'cc-range-val';
+      valDisplay.textContent = inp.value + (unit || '');
+      inp.addEventListener('input', () => {
+        data[key] = parseFloat(inp.value);
+        valDisplay.textContent = inp.value + (unit || '');
+        onChange(key, data[key]);
+      });
+      if (data[key] === undefined) data[key] = parseFloat(inp.value);
+      row.appendChild(inp);
+      row.appendChild(valDisplay);
+      wrap.appendChild(row);
+      break;
+    }
+
+    // ── Toggle (on/off) ──
+    case 'toggle': {
+      const tog = document.createElement('label');
+      tog.className = 'cc-toggle';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = !!data[key];
+      const slider = document.createElement('span');
+      slider.className = 'cc-toggle-slider';
+      cb.addEventListener('change', () => { data[key] = cb.checked; onChange(key, cb.checked); });
+      tog.appendChild(cb);
+      tog.appendChild(slider);
+      wrap.appendChild(tog);
+      break;
+    }
+
+    // ── Image upload ──
+    case 'image_upload': {
+      const zone = document.createElement('div');
+      zone.className = 'cc-upload-zone';
+      zone.innerHTML = `<div class="cc-upload-icon">📷</div><div class="cc-upload-text">Drop image or click</div>`;
+      const preview = document.createElement('div');
+      preview.className = 'cc-upload-preview';
+      if (data[key]) {
+        preview.style.backgroundImage = `url('${data[key]}')`;
+        zone.classList.add('has-file');
+      }
+      const fileInp = document.createElement('input');
+      fileInp.type = 'file';
+      fileInp.accept = accept || 'image/*';
+      fileInp.style.display = 'none';
+
+      async function handleFile(file) {
+        if (!file) return;
+        zone.classList.add('uploading');
+        zone.querySelector('.cc-upload-text').textContent = 'Uploading...';
+        try {
+          const r = await SB.uploadFile(file);
+          data[key] = r.url;
+          preview.style.backgroundImage = `url('${r.url}')`;
+          zone.classList.add('has-file');
+          zone.classList.remove('uploading');
+          zone.querySelector('.cc-upload-text').textContent = 'Replace';
+          onChange(key, r.url);
+        } catch (e) {
+          zone.classList.remove('uploading');
+          zone.querySelector('.cc-upload-text').textContent = 'Failed — try again';
+          toast('Upload failed: ' + e.message, 'error');
+        }
+      }
+
+      fileInp.addEventListener('change', () => { handleFile(fileInp.files[0]); fileInp.value = ''; });
+      zone.addEventListener('click', (e) => { if (e.target !== fileInp) fileInp.click(); });
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('drag-over'); handleFile(e.dataTransfer.files[0]); });
+      zone.appendChild(fileInp);
+      zone.appendChild(preview);
+      wrap.appendChild(zone);
+      break;
+    }
+
+    // ── Audio upload ──
+    case 'audio_upload': {
+      const zone = document.createElement('div');
+      zone.className = 'cc-upload-zone cc-upload-audio';
+      zone.innerHTML = `<div class="cc-upload-icon">🎧</div><div class="cc-upload-text">Drop audio file or click</div>`;
+      if (fieldDef.hint) {
+        const h = document.createElement('div');
+        h.className = 'cc-upload-hint';
+        h.textContent = fieldDef.hint;
+        zone.appendChild(h);
+      }
+      const fileInp = document.createElement('input');
+      fileInp.type = 'file';
+      fileInp.accept = 'audio/*';
+      fileInp.style.display = 'none';
+
+      async function handleAudio(file) {
+        if (!file) return;
+        zone.classList.add('uploading');
+        zone.querySelector('.cc-upload-text').textContent = 'Uploading...';
+        try {
+          const r = await SB.uploadFile(file);
+          data[key] = r.url;
+          zone.classList.add('has-file');
+          zone.classList.remove('uploading');
+          zone.querySelector('.cc-upload-text').textContent = '✅ ' + file.name;
+          onChange(key, r.url);
+        } catch (e) {
+          zone.classList.remove('uploading');
+          zone.querySelector('.cc-upload-text').textContent = 'Failed — try again';
+          toast('Upload failed: ' + e.message, 'error');
+        }
+      }
+
+      fileInp.addEventListener('change', () => { handleAudio(fileInp.files[0]); fileInp.value = ''; });
+      zone.addEventListener('click', (e) => { if (e.target !== fileInp) fileInp.click(); });
+      zone.addEventListener('dragover', (e) => { e.preventDefault(); zone.classList.add('drag-over'); });
+      zone.addEventListener('dragleave', () => zone.classList.remove('drag-over'));
+      zone.addEventListener('drop', (e) => { e.preventDefault(); zone.classList.remove('drag-over'); handleAudio(e.dataTransfer.files[0]); });
+      zone.appendChild(fileInp);
+      wrap.appendChild(zone);
+      break;
+    }
+
+    // ── Repeater (add/remove items) ──
+    case 'repeater': {
+      const section = document.createElement('div');
+      section.className = 'cc-repeater';
+
+      // Header with label
+      const header = document.createElement('div');
+      header.className = 'cc-repeater-header';
+      const headerLabel = document.createElement('span');
+      headerLabel.className = 'cc-label';
+      headerLabel.textContent = label || key;
+      header.appendChild(headerLabel);
+      section.appendChild(header);
+
+      if (fieldDef.hint) {
+        const h = document.createElement('div');
+        h.className = 'cc-hint';
+        h.textContent = fieldDef.hint;
+        section.appendChild(h);
+      }
+
+      // Initialize array in data if missing
+      if (!Array.isArray(data[key])) {
+        data[key] = clone(defaults || [{}]);
+      }
+
+      const listEl = document.createElement('div');
+      listEl.className = 'cc-repeater-list';
+
+      function renderItems() {
+        listEl.innerHTML = '';
+        const items = data[key];
+        items.forEach((item, idx) => {
+          const card = document.createElement('div');
+          card.className = 'cc-repeater-item';
+
+          // Item header with index and delete
+          const itemHead = document.createElement('div');
+          itemHead.className = 'cc-repeater-item-head';
+          itemHead.innerHTML = `<span class="cc-repeater-idx">${idx + 1}</span>`;
+          const delBtn = document.createElement('button');
+          delBtn.type = 'button';
+          delBtn.className = 'cc-repeater-del';
+          delBtn.textContent = '×';
+          delBtn.title = 'Remove';
+          const minCount = fieldDef.min ?? 0;
+          if (items.length <= minCount) delBtn.style.display = 'none';
+          delBtn.addEventListener('click', () => {
+            items.splice(idx, 1);
+            renderItems();
+            onChange(key, items);
+          });
+          itemHead.appendChild(delBtn);
+          card.appendChild(itemHead);
+
+          // Item fields
+          const fieldsWrap = document.createElement('div');
+          fieldsWrap.className = 'cc-repeater-fields';
+
+          if (flatten) {
+            // For flat arrays (e.g., Hero lines): single text input per item
+            const inp = document.createElement('input');
+            inp.type = 'text';
+            inp.className = 'cc-input';
+            inp.value = typeof item === 'string' ? item : (item.value ?? '');
+            inp.placeholder = (itemFields && itemFields[0]?.label) || '';
+            inp.addEventListener('input', () => {
+              items[idx] = inp.value;
+              onChange(key, items);
+            });
+            fieldsWrap.appendChild(inp);
+          } else {
+            // Render sub-fields
+            let fi = 0;
+            while (fi < (itemFields || []).length) {
+              const sf = itemFields[fi];
+              if (sf.inline && fi + 1 < itemFields.length && itemFields[fi + 1].inline) {
+                const row = document.createElement('div');
+                row.className = 'cc-field-row';
+                row.appendChild(renderCreationField(sf, item, (k, v) => { item[k] = v; onChange(key, items); }));
+                row.appendChild(renderCreationField(itemFields[fi + 1], item, (k, v) => { item[k] = v; onChange(key, items); }));
+                fieldsWrap.appendChild(row);
+                fi += 2;
+              } else {
+                fieldsWrap.appendChild(renderCreationField(sf, item, (k, v) => { item[k] = v; onChange(key, items); }));
+                fi++;
+              }
+            }
+          }
+
+          card.appendChild(fieldsWrap);
+          listEl.appendChild(card);
+        });
+      }
+
+      renderItems();
+      section.appendChild(listEl);
+
+      // Add button
+      const maxCount = fieldDef.max ?? 20;
+      const addBtn = document.createElement('button');
+      addBtn.type = 'button';
+      addBtn.className = 'cc-repeater-add';
+      addBtn.textContent = '+ Add';
+      addBtn.addEventListener('click', () => {
+        if (data[key].length >= maxCount) { toast(`Maximum ${maxCount} items`, 'error'); return; }
+        const template = defaults && defaults[0] ? clone(defaults[0]) : {};
+        if (!Object.keys(template).length && itemFields) {
+          itemFields.forEach(f => { template[f.key] = f.defaultValue ?? ''; });
+        }
+        if (flatten) {
+          data[key].push('');
+        } else {
+          data[key].push(template);
+        }
+        renderItems();
+        onChange(key, data[key]);
+      });
+      section.appendChild(addBtn);
+
+      wrap.appendChild(section);
+      break;
+    }
+
+    default:
+      wrap.textContent = `Unknown field kind: ${kind}`;
+  }
+
+  // Hint text below field
+  if (hint && kind !== 'repeater' && kind !== 'audio_upload') {
+    const h = document.createElement('div');
+    h.className = 'cc-hint';
+    h.innerHTML = hint;
+    wrap.appendChild(h);
+  }
+
+  return wrap;
+}
+
 // ─────────────────────────── DOM refs ────────────────────────
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
