@@ -2406,12 +2406,17 @@ function renderBlockList() {
     const schemaName = BLOCK_SCHEMAS[block.type]?.name || block.type;
     const icon = BLOCK_ICONS[block.type] || '';
     const label = block.data?._label || '';
+    const conf = block.data?._confidence;
+    const confBadge = conf === 'low' ? '<span class="conf-badge conf-low" title="Low confidence — AI filled gaps">🔴</span>'
+      : conf === 'medium' ? '<span class="conf-badge conf-medium" title="Medium confidence — AI performed synthesis">🟡</span>'
+      : '';
     li.innerHTML = `
       <div class="block-header">
         <span class="drag-handle" title="Drag to reorder">⠿</span>
         <span class="block-icon">${icon}</span>
         <span class="block-name">${escapeText(label || schemaName)}</span>
         ${label ? `<span class="block-type-badge">${escapeText(schemaName)}</span>` : ''}
+        ${confBadge}
         <button class="block-label-edit" title="Rename this block">✎</button>
         <span class="block-chevron">›</span>
       </div>
@@ -2719,6 +2724,14 @@ function deleteBlock(idx) {
   setDirty(true);
   renderBlockList();
   renderEditor();
+}
+
+// Full Article builder button
+const btnArticleBuilder = document.getElementById('btn-article-builder');
+if (btnArticleBuilder) {
+  btnArticleBuilder.addEventListener('click', () => {
+    if (window.openArticleBuilder) window.openArticleBuilder();
+  });
 }
 
 // Add block palette
@@ -4842,6 +4855,21 @@ startAutosave();
   if (!fab || !addBtn) return;
   fab.addEventListener('click', function() { addBtn.click(); });
 })();
+
+// ─────────────────────────── Article Builder bridge ──────────────
+// Exposed on window so article-builder.js (separate file) can insert generated blocks
+window._insertBlocks = function(blocks) {
+  if (!state.doc) return;
+  if (!Array.isArray(blocks) || blocks.length === 0) return;
+  blocks.forEach(b => {
+    state.doc.blocks.push(b);
+  });
+  setDirty(true);
+  renderBlockList();
+  renderEditor();
+  // Auto-save draft
+  saveDraft();
+};
 
 // Kickoff
 checkSession();
