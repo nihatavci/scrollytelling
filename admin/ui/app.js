@@ -2751,7 +2751,7 @@ function renderPalette(body) {
 `;
       card.addEventListener('click', () => {
         closeModal();
-        openClaudeModal({ mode: 'create', type });
+        openCreationCard(type);
       });
       grid.appendChild(card);
     });
@@ -2790,7 +2790,7 @@ function renderPaletteWithInsert(body, afterBlockId) {
 `;
       card.addEventListener('click', () => {
         closeModal();
-        openClaudeModal({ mode: 'create', type, insertAfter: afterBlockId });
+        openCreationCard(type, { insertAfter: afterBlockId });
       });
       grid.appendChild(card);
     });
@@ -2803,7 +2803,7 @@ function renderPaletteWithInsert(body, afterBlockId) {
   });
 }
 // Legacy name kept for backwards-compat; routes through the Claude flow.
-function addBlock(type) { openClaudeModal({ mode: 'create', type }); }
+function addBlock(type) { openCreationCard(type); }
 
 // Block types where Direct mode doesn't make sense (need AI to generate structured data)
 const DIRECT_MODE_DISABLED = new Set([
