@@ -1590,6 +1590,203 @@ function renderCreationField(fieldDef, data, onChange) {
   return wrap;
 }
 
+// ─────────────────────────── Creation card modal ────────────
+// Opens a purpose-built creation form for the given block type.
+// opts.insertAfter — block ID to insert after (optional)
+function openCreationCard(type, opts = {}) {
+  const card = BLOCK_CREATION_CARDS[type];
+  if (!card) {
+    // Fallback for types without a creation card — use Claude modal
+    openClaudeModal({ mode: 'create', type, ...opts });
+    return;
+  }
+
+  const schemaName = BLOCK_SCHEMAS[type]?.name || type;
+  const title = card.headline || schemaName;
+  const formData = {};
+
+  openModal(title, (body) => {
+    body.innerHTML = '';
+    body.className = 'modal-body cc-modal-body';
+
+    // Hint
+    if (card.hint) {
+      const hint = document.createElement('p');
+      hint.className = 'cc-modal-hint';
+      hint.textContent = card.hint;
+      body.appendChild(hint);
+    }
+
+    // Fields container
+    const fieldsContainer = document.createElement('div');
+    fieldsContainer.className = 'cc-fields' + (card.layout === 'side-by-side-uploads' ? ' cc-layout-side-by-side' : '')
+                                             + (card.layout === 'stat-cards' ? ' cc-layout-stat-cards' : '');
+
+    const onFieldChange = (k, v) => { /* live update — data is mutated in place */ };
+
+    // Render fields — handle inline pairs
+    let i = 0;
+    const fields = card.fields || [];
+    while (i < fields.length) {
+      const f = fields[i];
+      if (f.inline && i + 1 < fields.length && fields[i + 1].inline) {
+        const row = document.createElement('div');
+        row.className = 'cc-field-row';
+        row.appendChild(renderCreationField(f, formData, onFieldChange));
+        row.appendChild(renderCreationField(fields[i + 1], formData, onFieldChange));
+        fieldsContainer.appendChild(row);
+        i += 2;
+      } else {
+        fieldsContainer.appendChild(renderCreationField(f, formData, onFieldChange));
+        i++;
+      }
+    }
+    body.appendChild(fieldsContainer);
+
+    // ── AI toggle section ──
+    const aiSection = document.createElement('div');
+    aiSection.className = 'cc-ai-section';
+    const aiToggle = document.createElement('button');
+    aiToggle.type = 'button';
+    aiToggle.className = 'cc-ai-toggle';
+    aiToggle.innerHTML = '✨ Let Claude help';
+
+    const aiExpanded = document.createElement('div');
+    aiExpanded.className = 'cc-ai-expanded';
+    aiExpanded.style.display = 'none';
+    aiExpanded.innerHTML = `
+      <textarea class="cc-ai-textarea" rows="3" placeholder="Describe what you want…"></textarea>
+      <button type="button" class="cc-ai-generate primary">🤖 Generate</button>
+    `;
+
+    let aiOpen = false;
+    aiToggle.addEventListener('click', () => {
+      aiOpen = !aiOpen;
+      aiExpanded.style.display = aiOpen ? 'block' : 'none';
+      aiToggle.classList.toggle('active', aiOpen);
+    });
+    aiSection.appendChild(aiToggle);
+    aiSection.appendChild(aiExpanded);
+    body.appendChild(aiSection);
+
+    // AI generate handler
+    aiExpanded.querySelector('.cc-ai-generate').addEventListener('click', async () => {
+      const prompt = aiExpanded.querySelector('.cc-ai-textarea').value.trim();
+      if (!prompt) return;
+      const genBtn = aiExpanded.querySelector('.cc-ai-generate');
+      const origText = genBtn.textContent;
+      genBtn.disabled = true;
+      genBtn.textContent = '⏳ Generating…';
+      try {
+        const r = await SB.generate({
+          type, prompt, images: [],
+          currentData: null, mode: 'create',
+          pageId: state.currentPageId,
+          lang: state.doc?.lang || undefined,
+        });
+        // Populate form fields from AI response
+        if (r && r.data) {
+          Object.assign(formData, r.data);
+          // Re-render fields to show AI-filled values
+          fieldsContainer.innerHTML = '';
+          let fi = 0;
+          while (fi < fields.length) {
+            const f = fields[fi];
+            if (f.inline && fi + 1 < fields.length && fields[fi + 1].inline) {
+              const row = document.createElement('div');
+              row.className = 'cc-field-row';
+              row.appendChild(renderCreationField(f, formData, onFieldChange));
+              row.appendChild(renderCreationField(fields[fi + 1], formData, onFieldChange));
+              fieldsContainer.appendChild(row);
+              fi += 2;
+            } else {
+              fieldsContainer.appendChild(renderCreationField(f, formData, onFieldChange));
+              fi++;
+            }
+          }
+          toast('Claude filled in the form — review and edit before creating', 'success');
+        }
+      } catch (e) {
+        toast('AI generation failed: ' + e.message, 'error');
+      }
+      genBtn.disabled = false;
+      genBtn.textContent = origText;
+    });
+
+    // ── Action buttons ──
+    const actions = document.createElement('div');
+    actions.className = 'cc-actions';
+
+    const skipBtn = document.createElement('button');
+    skipBtn.type = 'button';
+    skipBtn.className = 'ghost';
+    skipBtn.textContent = 'Skip — add empty block';
+    skipBtn.addEventListener('click', () => {
+      closeModal();
+      if (!state.doc) { toast('Please create or select a page first', 'error'); return; }
+      const block = { id: uid('b'), type, data: defaultDataFor(type) };
+      if (opts.insertAfter) {
+        const idx = state.doc.blocks.findIndex(b => b.id === opts.insertAfter);
+        if (idx !== -1) state.doc.blocks.splice(idx + 1, 0, block);
+        else state.doc.blocks.push(block);
+      } else {
+        state.doc.blocks.push(block);
+      }
+      state.selectedBlockId = block.id;
+      setDirty(true);
+      renderBlockList();
+      renderEditor();
+    });
+
+    const createBtn = document.createElement('button');
+    createBtn.type = 'button';
+    createBtn.className = 'primary';
+    createBtn.textContent = 'Create';
+    createBtn.addEventListener('click', () => {
+      // Validate required fields
+      const missing = fields.filter(f => f.required && !formData[f.key]);
+      if (missing.length) {
+        toast(`Fill in: ${missing.map(f => f.label).join(', ')}`, 'error');
+        return;
+      }
+
+      if (!state.doc) { toast('Please create or select a page first', 'error'); return; }
+
+      // Post-process if the card defines a postProcess function
+      const blockData = card.postProcess ? card.postProcess(formData) : { ...formData };
+
+      // Clean out underscore-prefixed temp keys from blockData (used by postProcess)
+      for (const k of Object.keys(blockData)) {
+        if (k.startsWith('_')) delete blockData[k];
+      }
+
+      // Merge with defaults to fill any schema fields not in the creation card
+      const defaults = defaultDataFor(type);
+      const merged = { ...defaults, ...blockData };
+
+      const newBlock = { id: uid('b'), type, data: merged };
+      if (opts.insertAfter) {
+        const idx = state.doc.blocks.findIndex(b => b.id === opts.insertAfter);
+        if (idx !== -1) state.doc.blocks.splice(idx + 1, 0, newBlock);
+        else state.doc.blocks.push(newBlock);
+      } else {
+        state.doc.blocks.push(newBlock);
+      }
+      state.selectedBlockId = newBlock.id;
+      setDirty(true);
+      closeModal();
+      renderBlockList();
+      renderEditor();
+      refreshPreview();
+      toast(`${schemaName} created`, 'success');
+    });
+
+    actions.appendChild(skipBtn);
+    actions.appendChild(createBtn);
+    body.appendChild(actions);
+  }, '');
+}
+
 // ─────────────────────────── DOM refs ────────────────────────
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
