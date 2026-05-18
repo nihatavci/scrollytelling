@@ -186,30 +186,108 @@ ${facts.map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n')}` },
   return response?.response ?? response;
 }
 
-// ── JSON Parsing (same repair logic as generate.js) ──
+// ── JSON Parsing (robust repair for LLM output) ──
 
 function parseAIResponse(raw) {
-  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) return raw;
+  if (typeof raw === ‘object’ && raw !== null && !Array.isArray(raw)) return raw;
 
-  let text = typeof raw === 'string' ? raw : JSON.stringify(raw);
+  let text = typeof raw === ‘string’ ? raw : JSON.stringify(raw);
   let jsonStr = text.trim();
 
-  if (jsonStr.startsWith('```')) {
-    jsonStr = jsonStr.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '');
+  // Strip markdown fences
+  if (jsonStr.startsWith(‘```’)) {
+    jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, ‘’).replace(/\n?\s*```\s*$/, ‘’);
   }
-  const objMatch = jsonStr.match(/\{[\s\S]*\}/);
-  if (objMatch) jsonStr = objMatch[0];
 
-  try {
-    return JSON.parse(jsonStr);
-  } catch {
-    const fixed = jsonStr
-      .replace(/(?<=:\s*"[^"]*)\n/g, '\\n')
-      .replace(/,\s*([}\]])/g, '$1')
-      .replace(/‘|’/g, "'")
-      .replace(/“|”/g, '"');
-    return JSON.parse(fixed);
+  // Strip any text before the first { or after the last }
+  const firstBrace = jsonStr.indexOf(‘{‘);
+  const lastBrace = jsonStr.lastIndexOf(‘}’);
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
   }
+
+  // Attempt 1: parse as-is
+  try { return JSON.parse(jsonStr); } catch {}
+
+  // Attempt 2: basic fixes
+  let fixed = jsonStr
+    .replace(/\t/g, ‘  ‘)                        // tabs → spaces
+    .replace(/,\s*([}\]])/g, ‘$1’)               // trailing commas
+    .replace(/([}\]])\s*([{\[])/g, ‘$1,$2’)      // missing commas between structures
+    .replace(/‘|’/g, “’”)              // smart single quotes
+    .replace(/“|”/g, ‘”’);             // smart double quotes
+  try { return JSON.parse(fixed); } catch {}
+
+  // Attempt 3: fix unescaped newlines/tabs inside string values
+  // Walk char-by-char to properly handle strings
+  fixed = repairJsonStrings(fixed);
+  try { return JSON.parse(fixed); } catch {}
+
+  // Attempt 4: try to fix truncated JSON (close open brackets/braces)
+  let repaired = fixed;
+  let openBraces = 0, openBrackets = 0;
+  let inString = false, escaped = false;
+  for (const ch of repaired) {
+    if (escaped) { escaped = false; continue; }
+    if (ch === ‘\\’) { escaped = true; continue; }
+    if (ch === ‘”’) { inString = !inString; continue; }
+    if (inString) continue;
+    if (ch === ‘{‘) openBraces++;
+    if (ch === ‘}’) openBraces--;
+    if (ch === ‘[‘) openBrackets++;
+    if (ch === ‘]’) openBrackets--;
+  }
+  // Remove trailing comma before closing
+  repaired = repaired.replace(/,\s*$/, ‘’);
+  while (openBrackets > 0) { repaired += ‘]’; openBrackets--; }
+  while (openBraces > 0) { repaired += ‘}’; openBraces--; }
+  try { return JSON.parse(repaired); } catch {}
+
+  // Attempt 5: nuclear — strip control chars, re-escape strings
+  const nuclear = repaired
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ‘ ‘)   // strip control chars
+    .replace(/\n/g, ‘\\n’)                              // escape all newlines
+    .replace(/\r/g, ‘\\r’)
+    .replace(/\\n\\n/g, ‘\\n’);                          // collapse double
+  try { return JSON.parse(nuclear); } catch (e) {
+    throw new Error(e.message);
+  }
+}
+
+// Walk JSON string and properly escape unescaped chars inside “...” values
+function repairJsonStrings(json) {
+  const result = [];
+  let i = 0;
+  while (i < json.length) {
+    if (json[i] === ‘”’) {
+      // Start of a string — find the real end
+      result.push(‘”’);
+      i++;
+      while (i < json.length) {
+        const ch = json[i];
+        if (ch === ‘\\’ && i + 1 < json.length) {
+          result.push(ch, json[i + 1]);
+          i += 2;
+          continue;
+        }
+        if (ch === ‘”’) {
+          result.push(‘”’);
+          i++;
+          break;
+        }
+        // Escape control characters inside strings
+        if (ch === ‘\n’) { result.push(‘\\n’); i++; continue; }
+        if (ch === ‘\r’) { result.push(‘\\r’); i++; continue; }
+        if (ch === ‘\t’) { result.push(‘\\t’); i++; continue; }
+        result.push(ch);
+        i++;
+      }
+    } else {
+      result.push(json[i]);
+      i++;
+    }
+  }
+  return result.join(‘’);
 }
 
 // ── Main Handler ──
@@ -297,17 +375,43 @@ async function handleAnalyze(env, body) {
   const summaries = [];
 
   for (let i = 0; i < chunks.length; i++) {
-    const raw = await summarizeChunk(env, chunks[i], i, lang);
-    const parsed = parseAIResponse(raw);
-    if (parsed.facts) allFacts.push(...parsed.facts);
-    if (parsed.summary) summaries.push(parsed.summary);
+    try {
+      const raw = await summarizeChunk(env, chunks[i], i, lang);
+      const parsed = parseAIResponse(raw);
+      if (parsed.facts) allFacts.push(...parsed.facts);
+      if (parsed.summary) summaries.push(parsed.summary);
+    } catch (chunkErr) {
+      console.error(`Chunk ${i} parse failed:`, chunkErr.message);
+      // Extract what we can from the raw text as a fallback
+      summaries.push(`Section ${i + 1} (parse error — facts may be incomplete)`);
+    }
+  }
+
+  if (allFacts.length === 0 && summaries.every(s => s.includes('parse error'))) {
+    return new Response(JSON.stringify({ error: 'AI failed to parse all source chunks. Try shorter or simpler text.' }), {
+      status: 422, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    });
   }
 
   const factSummaryText = summaries.map((s, i) => `Section ${i + 1}: ${s}`).join('\n') +
     '\n\nKey facts:\n' + allFacts.slice(0, 50).map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n');
 
-  const planRaw = await proposePlan(env, factSummaryText, lang, tone);
-  const planParsed = parseAIResponse(planRaw);
+  let planParsed;
+  try {
+    const planRaw = await proposePlan(env, factSummaryText, lang, tone);
+    planParsed = parseAIResponse(planRaw);
+  } catch (planErr) {
+    console.error('Plan parse failed:', planErr.message);
+    // Fallback: generate a basic plan from the facts we have
+    planParsed = {
+      plan: [
+        { type: 'Hero', headline: 'Article', rationale: 'Auto-generated opening' },
+        { type: 'Editorial', headline: 'Main Content', rationale: 'Auto-generated from sources' },
+        { type: 'Outro', headline: 'Conclusion', rationale: 'Auto-generated closing' },
+      ],
+      warnings: ['AI plan generation failed — using basic structure. You can edit the plan before generating.'],
+    };
+  }
 
   const warnings = planParsed.warnings || [];
   const totalWords = allText.split(/\s+/).length;
