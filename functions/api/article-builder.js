@@ -189,19 +189,19 @@ ${facts.map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n')}` },
 // ── JSON Parsing (robust repair for LLM output) ──
 
 function parseAIResponse(raw) {
-  if (typeof raw === ‘object’ && raw !== null && !Array.isArray(raw)) return raw;
+  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) return raw;
 
-  let text = typeof raw === ‘string’ ? raw : JSON.stringify(raw);
+  let text = typeof raw === 'string' ? raw : JSON.stringify(raw);
   let jsonStr = text.trim();
 
   // Strip markdown fences
-  if (jsonStr.startsWith(‘```’)) {
-    jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, ‘’).replace(/\n?\s*```\s*$/, ‘’);
+  if (jsonStr.startsWith('```')) {
+    jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
   }
 
   // Strip any text before the first { or after the last }
-  const firstBrace = jsonStr.indexOf(‘{‘);
-  const lastBrace = jsonStr.lastIndexOf(‘}’);
+  const firstBrace = jsonStr.indexOf('{');
+  const lastBrace = jsonStr.lastIndexOf('}');
   if (firstBrace !== -1 && lastBrace > firstBrace) {
     jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
   }
@@ -211,11 +211,11 @@ function parseAIResponse(raw) {
 
   // Attempt 2: basic fixes
   let fixed = jsonStr
-    .replace(/\t/g, ‘  ‘)                        // tabs → spaces
-    .replace(/,\s*([}\]])/g, ‘$1’)               // trailing commas
-    .replace(/([}\]])\s*([{\[])/g, ‘$1,$2’)      // missing commas between structures
-    .replace(/‘|’/g, “’”)              // smart single quotes
-    .replace(/“|”/g, ‘”’);             // smart double quotes
+    .replace(/\t/g, '  ')                        // tabs → spaces
+    .replace(/,\s*([}\]])/g, '$1')               // trailing commas
+    .replace(/([}\]])\s*([{\[])/g, '$1,$2')      // missing commas between structures
+    .replace(/['']/g, "'")              // smart single quotes
+    .replace(/[""]/g, '"');             // smart double quotes
   try { return JSON.parse(fixed); } catch {}
 
   // Attempt 3: fix unescaped newlines/tabs inside string values
@@ -229,56 +229,56 @@ function parseAIResponse(raw) {
   let inString = false, escaped = false;
   for (const ch of repaired) {
     if (escaped) { escaped = false; continue; }
-    if (ch === ‘\\’) { escaped = true; continue; }
-    if (ch === ‘”’) { inString = !inString; continue; }
+    if (ch === '\\') { escaped = true; continue; }
+    if (ch === '"') { inString = !inString; continue; }
     if (inString) continue;
-    if (ch === ‘{‘) openBraces++;
-    if (ch === ‘}’) openBraces--;
-    if (ch === ‘[‘) openBrackets++;
-    if (ch === ‘]’) openBrackets--;
+    if (ch === '{') openBraces++;
+    if (ch === '}') openBraces--;
+    if (ch === '[') openBrackets++;
+    if (ch === ']') openBrackets--;
   }
   // Remove trailing comma before closing
-  repaired = repaired.replace(/,\s*$/, ‘’);
-  while (openBrackets > 0) { repaired += ‘]’; openBrackets--; }
-  while (openBraces > 0) { repaired += ‘}’; openBraces--; }
+  repaired = repaired.replace(/,\s*$/, '');
+  while (openBrackets > 0) { repaired += ']'; openBrackets--; }
+  while (openBraces > 0) { repaired += '}'; openBraces--; }
   try { return JSON.parse(repaired); } catch {}
 
   // Attempt 5: nuclear — strip control chars, re-escape strings
   const nuclear = repaired
-    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ‘ ‘)   // strip control chars
-    .replace(/\n/g, ‘\\n’)                              // escape all newlines
-    .replace(/\r/g, ‘\\r’)
-    .replace(/\\n\\n/g, ‘\\n’);                          // collapse double
+    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ' ')   // strip control chars
+    .replace(/\n/g, '\\n')                              // escape all newlines
+    .replace(/\r/g, '\\r')
+    .replace(/\\n\\n/g, '\\n');                          // collapse double
   try { return JSON.parse(nuclear); } catch (e) {
     throw new Error(e.message);
   }
 }
 
-// Walk JSON string and properly escape unescaped chars inside “...” values
+// Walk JSON string and properly escape unescaped chars inside "..." values
 function repairJsonStrings(json) {
   const result = [];
   let i = 0;
   while (i < json.length) {
-    if (json[i] === ‘”’) {
+    if (json[i] === '"') {
       // Start of a string — find the real end
-      result.push(‘”’);
+      result.push('"');
       i++;
       while (i < json.length) {
         const ch = json[i];
-        if (ch === ‘\\’ && i + 1 < json.length) {
+        if (ch === '\\' && i + 1 < json.length) {
           result.push(ch, json[i + 1]);
           i += 2;
           continue;
         }
-        if (ch === ‘”’) {
-          result.push(‘”’);
+        if (ch === '"') {
+          result.push('"');
           i++;
           break;
         }
         // Escape control characters inside strings
-        if (ch === ‘\n’) { result.push(‘\\n’); i++; continue; }
-        if (ch === ‘\r’) { result.push(‘\\r’); i++; continue; }
-        if (ch === ‘\t’) { result.push(‘\\t’); i++; continue; }
+        if (ch === '\n') { result.push('\\n'); i++; continue; }
+        if (ch === '\r') { result.push('\\r'); i++; continue; }
+        if (ch === '\t') { result.push('\\t'); i++; continue; }
         result.push(ch);
         i++;
       }
@@ -287,7 +287,7 @@ function repairJsonStrings(json) {
       i++;
     }
   }
-  return result.join(‘’);
+  return result.join('');
 }
 
 // ── Main Handler ──
