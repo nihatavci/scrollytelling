@@ -30,7 +30,7 @@
   --card: rgba(255,255,255,.9);
   --font-display: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
   --font-body: 'DM Sans', ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  --radius-card: 30px;
+  --radius-card: 10px;
   --radius-image: 10px;
   --radius-button: 30px;
   --radius-pill: 9999px;

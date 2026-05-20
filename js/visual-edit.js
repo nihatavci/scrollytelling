@@ -359,14 +359,36 @@
       const blockEl = document.querySelector('[data-block-id="' + msg.blockId + '"]');
       if (!blockEl) return;
 
-      // Find the matching image by selector + index
+      // Find the matching image by selector + step index
+      // IMPORTANT: msg.index is the STEP index (from data-step-idx etc),
+      // not the array position. We must match by step index attribute,
+      // not by position in the querySelectorAll results.
       Object.keys(EDITABLE_MAP).forEach(function (selector) {
         const spec = EDITABLE_MAP[selector];
         if (spec.type !== 'image') return;
         if (spec.field !== msg.field) return;
 
-        const matches = Array.from(blockEl.querySelectorAll(selector));
-        const el = msg.index !== null ? matches[msg.index] : matches[0];
+        var el = null;
+        if (msg.index !== null) {
+          var matches = Array.from(blockEl.querySelectorAll(selector));
+          // Try to find element by step index attribute on itself or parent
+          el = matches.find(function(m) {
+            // Check the element itself for data-step-idx
+            if (m.dataset.stepIdx !== undefined) return parseInt(m.dataset.stepIdx, 10) === msg.index;
+            if (m.dataset.dsIdx !== undefined) return parseInt(m.dataset.dsIdx, 10) === msg.index;
+            if (m.dataset.mapIdx !== undefined) return parseInt(m.dataset.mapIdx, 10) === msg.index;
+            // Check parent step container
+            var parent = m.closest('[data-step-idx], [data-ds-idx], [data-map-idx]');
+            if (parent) {
+              var pIdx = parent.dataset.stepIdx ?? parent.dataset.dsIdx ?? parent.dataset.mapIdx;
+              return pIdx !== undefined && parseInt(pIdx, 10) === msg.index;
+            }
+            // Fall back to array position
+            return matches.indexOf(m) === msg.index;
+          }) || null;
+        } else {
+          el = blockEl.querySelector(selector);
+        }
         if (!el) return;
 
         if (el.tagName === 'IMG') {

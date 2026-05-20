@@ -66,7 +66,7 @@ const COMPONENT_CSS = `
 .editorial p.has-dropcap::first-letter{float:left;font-family:var(--font-display);font-size:4.5rem;line-height:.95;padding:.3rem .6rem .1rem 0;color:var(--ink-black);font-weight:300;letter-spacing:-.04em}
 
 /* ── Inline Callout (inside Editorial) ── */
-.callout{border-left:3px solid var(--ink-black);background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:0 16px 16px 0;padding:1rem 1.25rem;margin:1.8rem 0;font-family:var(--font-body);color:var(--ink-black);font-size:.95rem;line-height:1.55;box-shadow:var(--shadow-card)}
+.callout{border-left:3px solid var(--ink-black);background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:0 10px 10px 0;padding:1rem 1.25rem;margin:1.8rem 0;font-family:var(--font-body);color:var(--ink-black);font-size:.95rem;line-height:1.55;box-shadow:var(--shadow-card)}
 .callout-note{border-left-color:var(--signal-blue)}
 .callout-warning{border-left-color:var(--spectrum-red)}
 .callout-title{font-weight:500;margin-bottom:.3rem;font-size:.95rem;color:var(--ink-black);letter-spacing:-.005em}
@@ -229,7 +229,7 @@ const COMPONENT_CSS = `
   .step{padding:0 1rem;min-height:90vh;display:flex;align-items:flex-end;padding-bottom:2.5rem}
   .step:first-child{min-height:100vh;padding-top:55vh}
   .step:last-child{margin-bottom:15vh}
-  .sc{max-width:100%;pointer-events:auto;border-radius:16px;padding:1.2rem 1.4rem}
+  .sc{max-width:100%;pointer-events:auto;border-radius:10px;padding:1.2rem 1.4rem}
 }
 @media(max-width:600px){
   .scrolly__sticky{height:100vh}
