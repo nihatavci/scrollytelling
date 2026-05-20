@@ -94,41 +94,27 @@
       outline-offset: 2px;
       transition: outline-color .15s;
       cursor: pointer;
-      position: relative;
     }
     [data-ve-img]:hover {
       outline-color: #6366f1;
     }
-    [data-ve-img-wrap] {
-      position: relative;
-      display: inline-block;
-    }
-    [data-ve-img-wrap].ve-wrap-abs {
-      position: absolute;
-      inset: 0;
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-    [data-ve-img-wrap]::after {
-      content: '📷 Click to replace';
+    .ve-img-overlay {
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      background: rgba(0,0,0,.65);
+      background: rgba(0,0,0,.7);
       color: #fff;
       font-size: 13px;
-      padding: 6px 12px;
+      padding: 6px 14px;
       border-radius: 6px;
       pointer-events: none;
-      opacity: 0;
-      transition: opacity .15s;
       white-space: nowrap;
+      z-index: 99;
+      opacity: 0;
+      transition: opacity .2s;
     }
-    [data-ve-img-wrap]:hover::after {
-      opacity: 1;
-    }
+    .ve-img-overlay.visible { opacity: 1; }
     #ve-badge {
       position: fixed;
       bottom: 16px;
@@ -144,6 +130,11 @@
       box-shadow: 0 2px 8px rgba(99,102,241,.4);
     }
   `;
+  // ── Force pointer-events on in edit mode (override mobile CSS that disables them) ──
+  style.textContent += `
+    .scrolly__steps, .ds-steps, .map2d-steps { pointer-events: auto !important; }
+    .step, .sc, .ds-step, .ds-step-card, .map2d-step, .map2d-step-card { pointer-events: auto !important; }
+  `;
   document.head.appendChild(style);
 
   // ── Badge ───────────────────────────────────────────────────────────────────
@@ -151,6 +142,8 @@
   badge.id = 've-badge';
   badge.textContent = '✏️ Visual edit mode';
   document.body.appendChild(badge);
+
+  console.log('[VE] visual-edit.js loaded');
 
   // ── Helper: get block id from ancestor ──────────────────────────────────────
   function getBlockId(el) {
@@ -175,7 +168,9 @@
   // ── Walk blocks and bind editables ─────────────────────────────────────────
   function bindEditables() {
     const blockEls = document.querySelectorAll('[data-block-id]');
+    console.log('[VE] bindEditables: found', blockEls.length, 'blocks');
 
+    var totalBound = 0;
     blockEls.forEach(function (blockEl) {
       const blockId = blockEl.getAttribute('data-block-id');
 
@@ -186,6 +181,7 @@
         matches.forEach(function (el) {
           if (spec.type === 'text' || spec.type === 'html') {
             if (el.getAttribute('data-ve')) return; // already bound
+            totalBound++;
             el.setAttribute('contenteditable', 'true');
             el.setAttribute('data-ve', selector);
 
@@ -218,17 +214,22 @@
 
           } else if (spec.type === 'image') {
             if (el.getAttribute('data-ve-img')) return; // already bound
+            totalBound++;
             el.setAttribute('data-ve-img', selector);
 
-            // Wrap in tooltip container (only if not already wrapped)
-            if (!el.parentElement.hasAttribute('data-ve-img-wrap')) {
-              var computed = window.getComputedStyle(el);
-              var isAbs = computed.position === 'absolute' || computed.position === 'fixed';
-              const wrapper = document.createElement('span');
-              wrapper.setAttribute('data-ve-img-wrap', '');
-              if (isAbs) wrapper.classList.add('ve-wrap-abs');
-              el.parentNode.insertBefore(wrapper, el);
-              wrapper.appendChild(el);
+            // Add hover tooltip without wrapping (wrapping breaks absolute images)
+            if (!el._veOverlay) {
+              var overlay = document.createElement('div');
+              overlay.className = 've-img-overlay';
+              overlay.textContent = '📷 Click to replace';
+              // Attach overlay to nearest positioned ancestor
+              var parent = el.parentNode;
+              var pStyle = window.getComputedStyle(parent);
+              if (pStyle.position === 'static') parent.style.position = 'relative';
+              parent.appendChild(overlay);
+              el._veOverlay = overlay;
+              el.addEventListener('mouseenter', function() { overlay.classList.add('visible'); });
+              el.addEventListener('mouseleave', function() { overlay.classList.remove('visible'); });
             }
 
             el.addEventListener('click', function (e) {
@@ -250,6 +251,7 @@
         });
       });
     });
+    if (totalBound > 0) console.log('[VE] bound', totalBound, 'editable elements');
   }
 
   // ── Listen for messages from parent ────────────────────────────────────────
@@ -427,7 +429,24 @@
 
   // ── Initial bind + re-bind on DOM mutations (debounced) ─────────────────────
   function bindAll() { bindEditables(); bindBlockClicks(); bindInsertZones(); }
+
+  // Initial bind — run immediately AND with retries to handle async rendering
   bindAll();
+  // Retry a few times in case render() hasn't completed yet
+  var retryCount = 0;
+  var retryTimer = setInterval(function () {
+    retryCount++;
+    var blocks = document.querySelectorAll('[data-block-id]');
+    var unbound = document.querySelectorAll('[data-block-id] :not([data-ve]):not([data-ve-img])');
+    if (blocks.length > 0) {
+      bindAll();
+      console.log('[VE] retry', retryCount, '— blocks:', blocks.length);
+    }
+    if (retryCount >= 10) {
+      clearInterval(retryTimer);
+      console.log('[VE] retries done — blocks:', blocks.length);
+    }
+  }, 300);
 
   var bindPending = false;
   var observer = new MutationObserver(function () {

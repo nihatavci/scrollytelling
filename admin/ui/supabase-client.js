@@ -304,6 +304,18 @@
       return { ok: true, id: data.slug, version: 1 };
     },
 
+    async renamePage(slug, newTitle) {
+      return withRetry(async () => {
+        const row = await getPageRow(slug);
+        const { error } = await client
+          .from('pages')
+          .update({ title: newTitle, updated_at: new Date().toISOString() })
+          .eq('id', row.id);
+        if (error) throw new Error(error.message);
+        return { ok: true };
+      });
+    },
+
     async deletePage(slug) {
       const row = await getPageRow(slug);
       const { error } = await client.from('pages').delete().eq('id', row.id);
