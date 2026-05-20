@@ -4418,6 +4418,19 @@ window.addEventListener('message', async (evt) => {
         return;
       }
       try {
+        // Show local preview immediately via data URL while upload proceeds
+        const previewFrame = $('#preview-frame');
+        const dataUrl = await new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.readAsDataURL(file);
+        });
+        if (previewFrame && previewFrame.contentWindow) {
+          previewFrame.contentWindow.postMessage(
+            { type: 'visual-edit-response', action: 'image-replaced', blockId, field, index, newSrc: dataUrl },
+            '*'
+          );
+        }
         toast('Uploading image…', 'info');
         const r = await SB.uploadFile(file);
         const newSrc = r.url;
@@ -4439,7 +4452,7 @@ window.addEventListener('message', async (evt) => {
         setDirty(true);
         if (block.id === state.selectedBlockId) renderEditor();
         updateBlockSummary();
-        const previewFrame = $('#preview-frame');
+        // Update iframe with the permanent remote URL
         if (previewFrame && previewFrame.contentWindow) {
           previewFrame.contentWindow.postMessage(
             { type: 'visual-edit-response', action: 'image-replaced', blockId, field, index, newSrc },
@@ -4464,6 +4477,11 @@ window.addEventListener('message', async (evt) => {
       renderBlockList();
       renderEditor();
     }
+  }
+
+  // URL field changed — refresh preview to re-render the block
+  if (action === 'request-refresh') {
+    refreshPreview();
   }
 
   // Insert block at position (from visual-edit hover zones)

@@ -402,11 +402,31 @@
         .upload(path, file, { upsert: true, contentType: file.type });
       if (error) throw new Error(error.message);
 
+      // Try public URL first — works when the bucket is set to public
       const { data: { publicUrl } } = client.storage
         .from('page-images')
         .getPublicUrl(path);
 
-      return { ok: true, url: publicUrl, size: file.size, mime: file.type };
+      // Verify the public URL is reachable (HEAD request).
+      // If the bucket isn't public, getPublicUrl() still returns a URL but it 400s/403s.
+      let url = publicUrl;
+      try {
+        const check = await fetch(publicUrl, { method: 'HEAD', mode: 'cors' });
+        if (!check.ok) throw new Error('not public');
+      } catch (_) {
+        // Bucket is not public — fall back to a signed URL (valid 1 year)
+        const { data: signedData, error: signedErr } = await client.storage
+          .from('page-images')
+          .createSignedUrl(path, 60 * 60 * 24 * 365);
+        if (!signedErr && signedData?.signedUrl) {
+          url = signedData.signedUrl;
+          console.warn('[upload] Bucket not public — using signed URL. Set page-images bucket to public for permanent URLs.');
+        }
+        // If signed URL also fails, fall back to the public URL anyway —
+        // it may work in the rendered page context even if HEAD fails from admin
+      }
+
+      return { ok: true, url, path, size: file.size, mime: file.type };
     },
 
     // Alias for backward compat

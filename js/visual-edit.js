@@ -17,15 +17,18 @@
     '.fullbleed-title':                         { field: 'title',     type: 'html' },
     '.fullbleed-sub':                           { field: 'subtitle',  type: 'text' },
     '.fullbleed-body':                          { field: 'body',      type: 'html' },
+    'img.fullbleed-media':                      { field: 'mediaSrc',  type: 'image' },
     // FullscreenImage
     '.fsimg-kicker':                            { field: 'kicker',    type: 'text' },
     '.fsimg-title':                             { field: 'title',     type: 'html' },
     '.fsimg-subtitle':                          { field: 'subtitle',  type: 'text' },
     '.fsimg-body':                              { field: 'body',      type: 'html' },
     '.fsimg-image':                             { field: 'imageSrc',  type: 'image' },
+    '.fsimg-caption':                           { field: 'caption',   type: 'text' },
+    '.fsimg-credit':                            { field: 'credit',    type: 'text' },
     // Quote
-    '.quote-text':                              { field: 'text',         type: 'text' },
-    '.quote-name':                              { field: 'attribution',  type: 'text' },
+    '.quote-body':                              { field: 'text',         type: 'html' },
+    '.quote-attr':                              { field: 'attribution',  type: 'text' },
     '.quote-role':                              { field: 'role',         type: 'text' },
     '.quote-portrait':                          { field: 'portraitSrc',  type: 'image' },
     // Aside
@@ -56,6 +59,8 @@
     '.audioplayer-subtitle':                    { field: 'subtitle',     type: 'text' },
     '.audioplayer-desc':                        { field: 'description',  type: 'text' },
     '.audioplayer-cover':                       { field: 'coverSrc',     type: 'image' },
+    '.audioplayer-caption':                     { field: 'caption',      type: 'text' },
+    '.audioplayer-credit':                      { field: 'credit',       type: 'text' },
     // StatRow
     '.statrow-block > h3':                      { field: 'title', type: 'text' },
     '.statrow-cell .v':                         { field: 'stats', type: 'text', indexed: true, subfield: 'value' },
@@ -65,6 +70,40 @@
     '.timeline-when':                           { field: 'events', type: 'text', indexed: true, subfield: 'when' },
     '.timeline-title':                          { field: 'events', type: 'text', indexed: true, subfield: 'title' },
     '.timeline-body':                           { field: 'events', type: 'html', indexed: true, subfield: 'body' },
+    // VideoEmbed
+    '.video-caption':                           { field: 'caption',  type: 'text' },
+    '.video-credit':                            { field: 'credit',   type: 'text' },
+    '.video-iframe':                            { field: 'url',      type: 'url', urlLabel: 'Video URL (YouTube/Vimeo)' },
+    '.video-placeholder':                       { field: 'url',      type: 'url', urlLabel: 'Video URL (YouTube/Vimeo)' },
+    // EmbedBlock
+    '.embed-cap':                               { field: 'caption',  type: 'text' },
+    '.embed-container iframe':                  { field: 'url',      type: 'url', urlLabel: 'Embed URL' },
+    // ImageCompare
+    '.imgcompare-before':                       { field: 'beforeSrc',   type: 'image' },
+    '.imgcompare-after':                        { field: 'afterSrc',    type: 'image' },
+    '.imgcompare .label-before':                { field: 'beforeLabel', type: 'text' },
+    '.imgcompare .label-after':                 { field: 'afterLabel',  type: 'text' },
+    '.imgcompare-cap':                          { field: 'caption',     type: 'text' },
+    '.imgcompare-credit':                       { field: 'credit',      type: 'text' },
+    // ImageHotspot
+    '.imghotspot-wrap > img':                   { field: 'src',      type: 'image' },
+    '.imghotspot-cap':                          { field: 'caption',  type: 'text' },
+    '.imghotspot-credit':                       { field: 'credit',   type: 'text' },
+    '.imghotspot-tooltip-title':                { field: 'hotspots', type: 'text', indexed: true, subfield: 'title' },
+    '.imghotspot-tooltip-body':                 { field: 'hotspots', type: 'html', indexed: true, subfield: 'body' },
+    // AccordionBlock
+    '.accordion-block > h3':                    { field: 'title', type: 'text' },
+    '.accordion-trigger':                       { field: 'items', type: 'text', indexed: true, subfield: 'heading' },
+    '.accordion-panel-inner':                   { field: 'items', type: 'html', indexed: true, subfield: 'body' },
+    // ImageGrid
+    '.ig-title':                                { field: 'title',   type: 'text' },
+    '.ig-caption':                              { field: 'caption', type: 'text' },
+    '.ig-credit':                               { field: 'credit',  type: 'text' },
+    '.ig-cell img':                             { field: 'images',  type: 'image', indexed: true, subfield: 'src' },
+    '.ig-cell-cap':                             { field: 'images',  type: 'text',  indexed: true, subfield: 'caption' },
+    // VizPanel
+    '.viz-title':                               { field: 'initialTitle', type: 'text' },
+    '.viz-sub':                                 { field: 'initialSub',   type: 'text' },
     // Images
     '.editorial figure img':                    { field: 'content', type: 'image', indexed: true, subfield: 'src' },
     '.scrolly__img':                            { field: 'steps',   type: 'image', indexed: true, subfield: 'imageSrc' },
@@ -98,7 +137,16 @@
     [data-ve-img]:hover {
       outline-color: #6366f1;
     }
-    .ve-img-overlay {
+    [data-ve-url] {
+      outline: 2px solid transparent;
+      outline-offset: 2px;
+      transition: outline-color .15s;
+      cursor: pointer;
+    }
+    [data-ve-url]:hover {
+      outline-color: #f59e0b;
+    }
+    .ve-img-overlay, .ve-url-overlay {
       position: absolute;
       top: 50%;
       left: 50%;
@@ -114,7 +162,8 @@
       opacity: 0;
       transition: opacity .2s;
     }
-    .ve-img-overlay.visible { opacity: 1; }
+    .ve-img-overlay.visible, .ve-url-overlay.visible { opacity: 1; }
+    .ve-url-overlay { background: rgba(180, 100, 0, .8); }
     #ve-badge {
       position: fixed;
       bottom: 16px;
@@ -140,7 +189,7 @@
   // ── Badge ───────────────────────────────────────────────────────────────────
   const badge = document.createElement('div');
   badge.id = 've-badge';
-  badge.textContent = '✏️ Visual edit mode';
+  badge.textContent = 'Visual edit mode';
   document.body.appendChild(badge);
 
   console.log('[VE] visual-edit.js loaded');
@@ -221,7 +270,7 @@
             if (!el._veOverlay) {
               var overlay = document.createElement('div');
               overlay.className = 've-img-overlay';
-              overlay.textContent = '📷 Click to replace';
+              overlay.textContent = 'Click to replace';
               // Attach overlay to nearest positioned ancestor
               var parent = el.parentNode;
               var pStyle = window.getComputedStyle(parent);
@@ -246,6 +295,52 @@
                 index: index !== undefined ? index : null,
                 currentSrc: currentSrc,
               }, '*');
+            });
+
+          } else if (spec.type === 'url') {
+            if (el.getAttribute('data-ve-url')) return; // already bound
+            totalBound++;
+            el.setAttribute('data-ve-url', selector);
+
+            // Add hover tooltip
+            if (!el._veUrlOverlay) {
+              var overlay = document.createElement('div');
+              overlay.className = 've-url-overlay';
+              overlay.textContent = spec.urlLabel || 'Click to edit URL';
+              var parent = el.parentNode;
+              var pStyle = window.getComputedStyle(parent);
+              if (pStyle.position === 'static') parent.style.position = 'relative';
+              parent.appendChild(overlay);
+              el._veUrlOverlay = overlay;
+              el.addEventListener('mouseenter', function() { overlay.classList.add('visible'); });
+              el.addEventListener('mouseleave', function() { overlay.classList.remove('visible'); });
+            }
+
+            el.addEventListener('click', function (e) {
+              e.preventDefault();
+              e.stopPropagation();
+              // Extract current URL from src attribute or iframe src
+              var currentUrl = el.getAttribute('src') || el.getAttribute('href') || '';
+              var newUrl = prompt(spec.urlLabel || 'Enter URL:', currentUrl);
+              if (newUrl !== null && newUrl !== currentUrl) {
+                const index = spec.indexed ? getSiblingIndex(el, selector, blockEl) : undefined;
+                window.parent.postMessage({
+                  type: 'visual-edit',
+                  action: 'text-change',
+                  blockId: blockId,
+                  field: spec.field,
+                  subfield: spec.subfield || null,
+                  index: index !== undefined ? index : null,
+                  value: newUrl,
+                  valueType: 'text',
+                }, '*');
+                // Notify parent to refresh preview (URL changes need full re-render)
+                window.parent.postMessage({
+                  type: 'visual-edit',
+                  action: 'request-refresh',
+                  blockId: blockId,
+                }, '*');
+              }
             });
           }
         });
@@ -296,8 +391,8 @@
       if (blockEl.hasAttribute('data-ve-block-click')) return; // already bound
       blockEl.setAttribute('data-ve-block-click', '');
       blockEl.addEventListener('click', function(e) {
-        // Don't fire if clicking an editable or image (those have their own handlers)
-        if (e.target.closest('[data-ve]') || e.target.closest('[data-ve-img]')) return;
+        // Don't fire if clicking an editable, image, or URL (those have their own handlers)
+        if (e.target.closest('[data-ve]') || e.target.closest('[data-ve-img]') || e.target.closest('[data-ve-url]')) return;
         window.parent.postMessage({
           type: 'visual-edit',
           action: 'select-block',
