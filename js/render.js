@@ -367,66 +367,75 @@ const COMPONENT_CSS = `
 @media(max-width:900px){.embed-block{margin:3rem auto;padding:0 1.25rem}}
 @media(max-width:600px){.embed-block{margin:2rem auto;padding:0 1rem}.embed-container.ar-auto iframe{min-height:300px}}
 
-/* ── ImageGrid (smart auto-layout) ── */
-.ig{position:relative;z-index:3;margin:4.5rem auto;padding:0}
-.ig.ig-editorial{max-width:720px;padding:0 2rem}
-.ig.ig-wide{max-width:1100px;padding:0 2rem}
-.ig.ig-full{max-width:100%;padding:0}
-.ig.ig-bleed{max-width:100vw;width:100vw;margin-left:calc(-50vw + 50%);padding:0}
+/* ── ImageGrid (named layout presets) ── */
+.ig{position:relative;z-index:3;margin:4.5rem auto;max-width:1100px;padding:0 2rem}
 .ig-title{font-family:var(--font-display);font-size:clamp(1.3rem,2.5vw,1.8rem);font-weight:300;color:var(--ink-black);letter-spacing:-.03em;margin-bottom:1.2rem;text-align:center}
-.ig-grid{display:grid;gap:6px}
-/* Auto layouts by image count */
-.ig-grid.ig-1{grid-template-columns:1fr}
-.ig-grid.ig-2{grid-template-columns:1fr 1fr}
-.ig-grid.ig-3{grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr}
-.ig-grid.ig-3 .ig-cell:first-child{grid-row:1/3}
-.ig-grid.ig-4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
-.ig-grid.ig-5{grid-template-columns:3fr 2fr 2fr;grid-template-rows:1fr 1fr}
-.ig-grid.ig-5 .ig-cell:first-child{grid-row:1/3}
-.ig-grid.ig-5 .ig-cell:nth-child(4){grid-column:2/3}
-.ig-grid.ig-5 .ig-cell:nth-child(5){grid-column:3/4}
-.ig-grid.ig-6{grid-template-columns:1fr 1fr 1fr;grid-template-rows:1fr 1fr}
-.ig-grid.ig-many{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
-/* Explicit layout overrides */
-.ig-grid.ig-row{grid-template-columns:repeat(var(--ig-cols),1fr);grid-template-rows:auto}
-.ig-grid.ig-row .ig-cell:first-child{grid-row:auto}
-.ig-grid.ig-masonry{columns:3;column-gap:6px;display:block}
-.ig-grid.ig-masonry .ig-cell{break-inside:avoid;margin-bottom:6px}
-/* Cell */
-.ig-cell{position:relative;overflow:hidden;border-radius:2px;background:var(--fog);min-height:0}
-.ig-cell img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .3s}
-.ig-cell:hover img{transform:scale(1.02)}
-.ig-cell.ig-span-2{grid-column:span 2}
-.ig-cell.ig-span-row{grid-row:span 2}
-/* Aspect ratios for auto layout */
-.ig-grid:not(.ig-row):not(.ig-masonry):not(.ig-1) .ig-cell{aspect-ratio:4/3}
-.ig-grid.ig-1 .ig-cell{aspect-ratio:16/9}
-.ig-grid.ig-3 .ig-cell:first-child{aspect-ratio:auto}
-/* Caption */
-.ig-caption{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;line-height:1.5;font-weight:400;text-align:center;padding:0 2rem}
-.ig-cell-cap{position:absolute;bottom:0;left:0;right:0;padding:.5rem .7rem;background:linear-gradient(transparent,rgba(0,0,0,.55));color:#fff;font-family:var(--font-body);font-size:.75rem;line-height:1.35;opacity:0;transition:opacity .3s}
-.ig-cell:hover .ig-cell-cap{opacity:1}
-.ig-credit{font-family:var(--font-body);font-size:.72rem;color:var(--ash);margin-top:.35rem;text-align:center;letter-spacing:.02em}
+.ig-grid{display:grid;gap:8px}
+/* ── Named layout presets ── */
+.ig-grid.ig-side-by-side{grid-template-columns:1fr 1fr}
+.ig-grid.ig-feature-left{grid-template-columns:3fr 2fr;grid-template-rows:1fr 1fr}
+.ig-grid.ig-feature-left .ig-cell:first-child{grid-row:1/3}
+.ig-grid.ig-feature-right{grid-template-columns:2fr 3fr;grid-template-rows:1fr 1fr}
+.ig-grid.ig-feature-right .ig-cell:nth-child(1){grid-column:1;grid-row:1}
+.ig-grid.ig-feature-right .ig-cell:nth-child(2){grid-column:1;grid-row:2}
+.ig-grid.ig-feature-right .ig-cell:nth-child(3){grid-column:2;grid-row:1/3}
+.ig-grid.ig-triptych{grid-template-columns:1fr 1fr 1fr}
+.ig-grid.ig-quad{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.ig-grid.ig-hero-grid{grid-template-columns:1fr;grid-template-rows:auto auto}
+.ig-grid.ig-hero-grid .ig-cell:first-child{grid-column:1/-1}
+.ig-grid.ig-hero-grid-row{display:grid;grid-template-columns:repeat(var(--ig-hero-cols,3),1fr);gap:8px}
+.ig-grid.ig-mosaic{display:block;columns:3;column-gap:8px}
+.ig-grid.ig-mosaic .ig-cell{break-inside:avoid;margin-bottom:8px}
+.ig-grid.ig-filmstrip{grid-template-columns:repeat(var(--ig-film-count,4),minmax(260px,1fr));grid-template-rows:1fr;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;scrollbar-width:thin}
+.ig-grid.ig-filmstrip .ig-cell{scroll-snap-align:start}
+/* Auto-detect fallbacks by image count */
+.ig-grid.ig-auto-1{grid-template-columns:1fr}
+.ig-grid.ig-auto-2{grid-template-columns:1fr 1fr}
+.ig-grid.ig-auto-3{grid-template-columns:2fr 1fr;grid-template-rows:1fr 1fr}
+.ig-grid.ig-auto-3 .ig-cell:first-child{grid-row:1/3}
+.ig-grid.ig-auto-4{grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr}
+.ig-grid.ig-auto-many{grid-template-columns:repeat(auto-fill,minmax(280px,1fr))}
+/* ── Cell ── */
+.ig-cell{position:relative;overflow:hidden;border-radius:10px;background:var(--fog);min-height:0;display:flex;flex-direction:column}
+.ig-cell-media{position:relative;overflow:hidden;flex:1 1 auto;min-height:0}
+.ig-cell-media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .4s cubic-bezier(.25,.46,.45,.94)}
+.ig-cell:hover .ig-cell-media img{transform:scale(1.03)}
+/* Aspect ratios for grid cells (not filmstrip/mosaic) */
+.ig-grid:not(.ig-mosaic):not(.ig-filmstrip) .ig-cell-media{aspect-ratio:4/3}
+.ig-grid.ig-auto-1 .ig-cell-media,.ig-grid.ig-hero-grid .ig-cell:first-child .ig-cell-media{aspect-ratio:16/9}
+.ig-grid.ig-feature-left .ig-cell:first-child .ig-cell-media,.ig-grid.ig-feature-right .ig-cell:nth-child(3) .ig-cell-media,.ig-grid.ig-auto-3 .ig-cell:first-child .ig-cell-media{aspect-ratio:auto;height:100%}
+.ig-grid.ig-filmstrip .ig-cell-media{aspect-ratio:3/4}
+/* ── Per-image caption & credit (always visible below image) ── */
+.ig-cell-cap{font-family:var(--font-body);font-size:.8rem;color:var(--ink-black,.15,.15,.15);line-height:1.4;padding:.55rem .65rem .15rem;font-weight:400}
+.ig-cell-credit{font-family:var(--font-body);font-size:.7rem;color:var(--ash,#888);font-style:italic;padding:0 .65rem .45rem;line-height:1.35;letter-spacing:.01em}
+.ig-cell-desc{font-family:var(--font-body);font-size:.75rem;color:var(--graphite,#666);line-height:1.45;padding:.15rem .65rem .5rem}
+/* ── Overall caption & credit ── */
+.ig-caption{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.9rem;line-height:1.5;font-weight:400;text-align:center;padding:0 2rem}
+.ig-credit{font-family:var(--font-body);font-size:.72rem;color:var(--ash);margin-top:.35rem;text-align:center;letter-spacing:.02em;font-style:italic}
+/* Broken / placeholder */
 .ig-cell-broken{display:flex;align-items:center;justify-content:center}
 .ig-cell-ph{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);opacity:.5;text-align:center;padding:1.5rem}
+/* ── Responsive: tablet ── */
 @media(max-width:900px){
-  .ig{margin:3rem auto}
-  .ig.ig-editorial,.ig.ig-wide{padding:0 1.25rem}
-  .ig-grid.ig-3{grid-template-columns:1fr 1fr;grid-template-rows:auto}
-  .ig-grid.ig-3 .ig-cell:first-child{grid-row:auto;grid-column:1/-1}
-  .ig-grid.ig-5{grid-template-columns:1fr 1fr;grid-template-rows:auto}
-  .ig-grid.ig-5 .ig-cell:first-child{grid-column:1/-1;grid-row:auto}
-  .ig-grid.ig-5 .ig-cell:nth-child(4),.ig-grid.ig-5 .ig-cell:nth-child(5){grid-column:auto}
-  .ig-grid.ig-masonry{columns:2}
+  .ig{margin:3rem auto;padding:0 1.25rem}
+  .ig-grid.ig-feature-left,.ig-grid.ig-feature-right{grid-template-columns:1fr 1fr;grid-template-rows:auto}
+  .ig-grid.ig-feature-left .ig-cell:first-child,.ig-grid.ig-feature-right .ig-cell:nth-child(3){grid-row:auto;grid-column:1/-1}
+  .ig-grid.ig-feature-right .ig-cell:nth-child(1){grid-column:auto;grid-row:auto}
+  .ig-grid.ig-feature-right .ig-cell:nth-child(2){grid-column:auto;grid-row:auto}
+  .ig-grid.ig-mosaic{columns:2}
 }
+/* ── Responsive: mobile — single column stack ── */
 @media(max-width:600px){
   .ig{margin:2rem auto;padding:0 1rem}
-  .ig.ig-editorial,.ig.ig-wide{padding:0 1rem}
-  .ig-grid.ig-2,.ig-grid.ig-4,.ig-grid.ig-6{grid-template-columns:1fr}
-  .ig-grid.ig-5{grid-template-columns:1fr}
-  .ig-grid.ig-5 .ig-cell:first-child{grid-column:auto}
-  .ig-grid.ig-masonry{columns:1}
-  .ig-grid{gap:4px}
+  .ig-grid{gap:6px}
+  .ig-grid.ig-side-by-side,.ig-grid.ig-triptych,.ig-grid.ig-quad,.ig-grid.ig-auto-2,.ig-grid.ig-auto-3,.ig-grid.ig-auto-4,.ig-grid.ig-auto-many{grid-template-columns:1fr}
+  .ig-grid.ig-feature-left,.ig-grid.ig-feature-right{grid-template-columns:1fr;grid-template-rows:auto}
+  .ig-grid.ig-feature-left .ig-cell:first-child,.ig-grid.ig-feature-right .ig-cell:nth-child(3){grid-row:auto;grid-column:auto}
+  .ig-grid.ig-feature-right .ig-cell:nth-child(1),.ig-grid.ig-feature-right .ig-cell:nth-child(2){grid-column:auto;grid-row:auto}
+  .ig-grid.ig-hero-grid-row{grid-template-columns:1fr}
+  .ig-grid.ig-mosaic{columns:1}
+  .ig-grid.ig-filmstrip{grid-template-columns:repeat(var(--ig-film-count,4),75vw)}
+  .ig-grid:not(.ig-mosaic):not(.ig-filmstrip) .ig-cell-media{aspect-ratio:auto}
 }
 
 /* ── FullBleed (viewport media + text overlay) ── */
@@ -2246,51 +2255,68 @@ function renderEmbed(d) {
   return sec;
 }
 
-// ───────── ImageGrid (smart auto-layout) ─────────
+// ───────── ImageGrid (named layout presets) ─────────
 function renderImageGrid(d) {
-  // Parse layout hint — supports natural language
-  const hint = (d.layout || '').toLowerCase().trim();
-  // Determine width class from hint
-  let widthCls = 'ig-wide';   // default
-  if (/editorial|narrow|small|article/.test(hint))      widthCls = 'ig-editorial';
-  else if (/full|viewport|edge/.test(hint))              widthCls = 'ig-full';
-  else if (/bleed|screen|bigger.*editorial/.test(hint))  widthCls = 'ig-bleed';
-  else if (/wide|large|big|reuters|cinematic/.test(hint)) widthCls = 'ig-wide';
+  const PRESETS = ['side-by-side','feature-left','feature-right','triptych','quad','hero-grid','mosaic','filmstrip'];
 
-  const sec = el('section', { class: `ig ${widthCls}` });
+  const sec = el('section', { class: 'ig' });
   if (d.title) sec.appendChild(el('h3', { class: 'ig-title' }, d.title));
 
   const images = d.images || [];
   const n = images.length;
 
-  // Determine grid layout class
-  let gridCls = '';
-  let explicitCols = 0;
-  if (/masonry|pinterest/.test(hint)) {
-    gridCls = 'ig-masonry';
-  } else if (/(\d)\s*(col|grid|column|row|across|wide)/i.test(hint)) {
-    explicitCols = parseInt(RegExp.$1);
-    gridCls = 'ig-row';
-  } else if (/row|strip|film|horizontal|side.*side|nebeneinander/.test(hint)) {
-    explicitCols = n;
-    gridCls = 'ig-row';
-  } else if (/stack|vertical|übereinander/.test(hint)) {
-    explicitCols = 1;
-    gridCls = 'ig-row';
-  } else {
-    // Auto-detect best layout from image count
-    if (n <= 6) gridCls = `ig-${n}`;
-    else gridCls = 'ig-many';
+  // Resolve layout: explicit preset, legacy hint, or auto-detect from count
+  let layout = (d.layout || '').toLowerCase().trim();
+  if (!PRESETS.includes(layout)) {
+    // Legacy natural-language hint support
+    if (/masonry|pinterest/.test(layout))            layout = 'mosaic';
+    else if (/film|strip|horizontal/.test(layout))   layout = 'filmstrip';
+    else if (/side.*side|nebeneinander/.test(layout)) layout = 'side-by-side';
+    else if (/triptych|3.*equal|three/.test(layout)) layout = 'triptych';
+    else if (/quad|2.*2|four/.test(layout))          layout = 'quad';
+    else if (/hero/.test(layout))                    layout = 'hero-grid';
+    else if (/feature.*left|big.*left/.test(layout)) layout = 'feature-left';
+    else if (/feature.*right|big.*right/.test(layout)) layout = 'feature-right';
+    else layout = ''; // trigger auto-detect
   }
 
-  const grid = el('div', { class: `ig-grid ${gridCls}` });
-  if (explicitCols) grid.style.setProperty('--ig-cols', explicitCols);
+  // Auto-detect from image count when no preset
+  if (!layout) {
+    if (n === 1)      layout = '_auto-1';
+    else if (n === 2) layout = 'side-by-side';
+    else if (n === 3) layout = 'feature-left';
+    else if (n === 4) layout = 'quad';
+    else              layout = '_auto-many';
+  }
 
-  images.forEach((img, i) => {
+  // Validate minimum image counts for complex layouts
+  if (layout === 'feature-left' && n < 3)  layout = 'side-by-side';
+  if (layout === 'feature-right' && n < 3) layout = 'side-by-side';
+  if (layout === 'triptych' && n < 3)      layout = 'side-by-side';
+  if (layout === 'quad' && n < 4)          layout = n >= 3 ? 'triptych' : 'side-by-side';
+
+  // Map layout to grid class
+  const gridClsMap = {
+    '_auto-1': 'ig-auto-1', '_auto-many': 'ig-auto-many',
+    'side-by-side': 'ig-side-by-side', 'feature-left': 'ig-feature-left',
+    'feature-right': 'ig-feature-right', 'triptych': 'ig-triptych',
+    'quad': 'ig-quad', 'hero-grid': 'ig-hero-grid',
+    'mosaic': 'ig-mosaic', 'filmstrip': 'ig-filmstrip',
+  };
+  const gridCls = gridClsMap[layout] || 'ig-auto-many';
+
+  // hero-grid: first image is full-width, remaining in a sub-row
+  const isHeroGrid = layout === 'hero-grid';
+  const grid = el('div', { class: `ig-grid ${gridCls}` });
+
+  if (layout === 'filmstrip') {
+    grid.style.setProperty('--ig-film-count', n);
+  }
+
+  // Build cells
+  function buildCell(img, i) {
     const cell = el('div', { class: 'ig-cell' });
-    // Support span hints per image
-    if (img.span === 2 || img.wide) cell.classList.add('ig-span-2');
-    if (img.tall) cell.classList.add('ig-span-row');
+    const media = el('div', { class: 'ig-cell-media' });
 
     const imgEl = el('img', {
       src: img.src || img.url || '',
@@ -2299,16 +2325,33 @@ function renderImageGrid(d) {
     });
     imgEl.onerror = function() {
       this.style.display = 'none';
-      cell.classList.add('ig-cell-broken');
-      cell.insertAdjacentHTML('afterbegin', '<div class="ig-cell-ph">' + escapeHtml(img.alt || img.caption || 'Image') + '</div>');
+      media.classList.add('ig-cell-broken');
+      media.insertAdjacentHTML('afterbegin', '<div class="ig-cell-ph">' + escapeHtml(img.alt || img.caption || 'Image') + '</div>');
     };
-    cell.appendChild(imgEl);
-    // Per-image caption overlay on hover
-    if (img.caption) {
-      cell.appendChild(el('div', { class: 'ig-cell-cap' }, img.caption));
-    }
-    grid.appendChild(cell);
-  });
+    media.appendChild(imgEl);
+    cell.appendChild(media);
+
+    // Per-image caption (visible below image)
+    if (img.caption) cell.appendChild(el('div', { class: 'ig-cell-cap' }, img.caption));
+    // Per-image credit (italic, below caption)
+    if (img.credit) cell.appendChild(el('div', { class: 'ig-cell-credit' }, img.credit));
+    // Per-image description (small paragraph below credit)
+    if (img.description) cell.appendChild(el('div', { class: 'ig-cell-desc' }, img.description));
+
+    return cell;
+  }
+
+  if (isHeroGrid && n > 1) {
+    // First image as hero
+    grid.appendChild(buildCell(images[0], 0));
+    // Remaining images in a sub-row
+    const row = el('div', { class: 'ig-grid ig-hero-grid-row' });
+    row.style.setProperty('--ig-hero-cols', Math.min(n - 1, 4));
+    for (let i = 1; i < n; i++) row.appendChild(buildCell(images[i], i));
+    grid.appendChild(row);
+  } else {
+    images.forEach((img, i) => grid.appendChild(buildCell(img, i)));
+  }
 
   sec.appendChild(grid);
   if (d.caption) sec.appendChild(el('p', { class: 'ig-caption' }, d.caption));

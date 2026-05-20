@@ -197,16 +197,17 @@ const BLOCK_SCHEMAS = {
     ]
   },
   ImageGrid: {
-    name: 'Evidence',
-    description: 'A collection of photographs — proves the point, shows scale, or documents the scene. Auto-layouts from count.',
+    name: 'Image Grid',
+    description: 'Flexible photo grid with opinionated layout presets — side-by-side, feature, triptych, mosaic, and more.',
     fields: [
+      { key: 'layout',  label: 'Layout preset', kind: 'text', hint: 'side-by-side, feature-left, feature-right, triptych, quad, hero-grid, mosaic, filmstrip' },
       { key: 'images',  label: 'Images',  kind: 'array', group: 'media', itemFields: [
         { key: 'src',     label: 'Image URL', kind: 'text' },
         { key: 'alt',     label: 'Alt text',  kind: 'text' },
-        { key: 'caption', label: 'Caption',   kind: 'text', hint: 'Shows on hover' },
+        { key: 'caption', label: 'Caption',   kind: 'text' },
+        { key: 'credit',  label: 'Credit',    kind: 'text' },
       ]},
-      { key: 'layout',  label: 'Layout',  kind: 'text', group: 'layout', hint: 'Auto-detects from count. Or: "wide", "bleed", "editorial", "2 grid", "3 columns", "masonry", "row", "stack"' },
-      { key: 'title',   label: 'Title',   kind: 'text', group: 'layout', hint: 'Optional heading above images' },
+      { key: 'title',   label: 'Title',   kind: 'text', group: 'layout' },
       { key: 'caption', label: 'Overall caption', kind: 'textarea', group: 'meta', inline: true },
       { key: 'credit',  label: 'Photo credit',    kind: 'text', group: 'meta', inline: true },
     ]
@@ -1018,27 +1019,37 @@ const BLOCK_CREATION_CARDS = {
 
   ImageGrid: {
     headline: 'Image Grid',
-    hint: 'Multiple images in a grid layout',
+    hint: 'Flexible photo grid with layout presets',
     fields: [
-      { key: '_layout', label: 'Layout', kind: 'button_group', options: [
-        { value: '2', label: '2 side-by-side' }, { value: '4', label: '2×2 grid' }, { value: '3', label: '3 across' },
-      ], defaultValue: '2' },
-      { key: 'cells', label: 'Images', kind: 'repeater', min: 2, max: 6, dynamicCount: '_layout',
+      { key: 'layout', label: 'Layout', kind: 'button_group', options: [
+        { value: 'side-by-side', label: '2 Equal' },
+        { value: 'feature-left', label: '1 Big + 2 Small' },
+        { value: 'feature-right', label: '2 Small + 1 Big' },
+        { value: 'triptych', label: '3 Equal' },
+        { value: 'quad', label: '2×2 Grid' },
+        { value: 'hero-grid', label: '1 Top + Row' },
+        { value: 'mosaic', label: 'Mosaic' },
+        { value: 'filmstrip', label: 'Film Strip' },
+      ], defaultValue: 'side-by-side' },
+      { key: 'title', label: 'Title', kind: 'text', hint: 'Optional heading above grid' },
+      { key: 'images', label: 'Images', kind: 'repeater', min: 2, max: 8,
         itemFields: [
           { key: 'src', label: 'Image', kind: 'image_upload' },
+          { key: 'alt', label: 'Alt text', kind: 'text', hint: 'Describe the image for accessibility' },
           { key: 'caption', label: 'Caption', kind: 'text' },
+          { key: 'credit', label: 'Credit', kind: 'text', hint: 'Photographer / source' },
         ],
-        defaults: [{ src: '', caption: '' }, { src: '', caption: '' }],
+        defaults: [{ src: '', alt: '', caption: '', credit: '' }, { src: '', alt: '', caption: '', credit: '' }],
       },
       { key: 'caption', label: 'Grid caption', kind: 'text' },
+      { key: 'credit', label: 'Grid credit', kind: 'text' },
     ],
     postProcess(data) {
-      const count = parseInt(data._layout) || 2;
-      const cells = (data.cells || []).slice(0, count).map(c => ({
-        src: c.src || '', alt: c.caption || '', caption: c.caption || '',
+      const images = (data.images || []).map(c => ({
+        src: c.src || '', alt: c.alt || c.caption || '', caption: c.caption || '', credit: c.credit || '',
       }));
-      while (cells.length < count) cells.push({ src: '', alt: '', caption: '' });
-      return { columns: count <= 2 ? 2 : count, cells, caption: data.caption || '' };
+      while (images.length < 2) images.push({ src: '', alt: '', caption: '', credit: '' });
+      return { layout: data.layout || 'side-by-side', title: data.title || '', images, caption: data.caption || '', credit: data.credit || '' };
     },
   },
 

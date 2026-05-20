@@ -101,6 +101,7 @@
     '.ig-credit':                               { field: 'credit',  type: 'text' },
     '.ig-cell img':                             { field: 'images',  type: 'image', indexed: true, subfield: 'src' },
     '.ig-cell-cap':                             { field: 'images',  type: 'text',  indexed: true, subfield: 'caption' },
+    '.ig-cell-credit':                          { field: 'images',  type: 'text',  indexed: true, subfield: 'credit' },
     // VizPanel
     '.viz-title':                               { field: 'initialTitle', type: 'text' },
     '.viz-sub':                                 { field: 'initialSub',   type: 'text' },
