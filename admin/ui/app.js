@@ -4292,13 +4292,14 @@ function getPreviewBlobUrl() {
   const origin = window.location.origin;
   const theme = doc.theme || 'dia';
   const themeLink = theme !== 'dia' ? `<link rel="stylesheet" href="${origin}/themes/${theme}.css">` : '';
-  const veScript = state.visualEditMode ? `<script src="${origin}/js/visual-edit.js" defer><\/script>` : '';
+  const veBust = 'v=' + Date.now();
+  const veScript = state.visualEditMode ? `<script src="${origin}/js/visual-edit.js?${veBust}" defer><\/script>` : '';
   const html = `<!DOCTYPE html>
 <html lang="${doc.lang || 'de'}" data-theme="${theme}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="${origin}/css/site.css">
+<link rel="stylesheet" href="${origin}/css/site.css?${veBust}">
 ${themeLink}
 <script>window.__PAGE_DATA__ = ${JSON.stringify(doc).replace(/<\//g, '<\\/')};<\/script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"><\/script>
@@ -4307,7 +4308,7 @@ ${themeLink}
 <body>
 <main id="page-root"></main>
 <script type="module">
-import { render } from '${origin}/js/render.js';
+import { render } from '${origin}/js/render.js?${veBust}';
 render();
 <\/script>
 ${veScript}</body></html>`;
