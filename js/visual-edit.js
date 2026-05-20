@@ -92,6 +92,13 @@
       position: relative;
       display: inline-block;
     }
+    [data-ve-img-wrap].ve-wrap-abs {
+      position: absolute;
+      inset: 0;
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
     [data-ve-img-wrap]::after {
       content: '📷 Click to replace';
       position: absolute;
@@ -196,8 +203,11 @@
 
             // Wrap in tooltip container (only if not already wrapped)
             if (!el.parentElement.hasAttribute('data-ve-img-wrap')) {
+              var computed = window.getComputedStyle(el);
+              var isAbs = computed.position === 'absolute' || computed.position === 'fixed';
               const wrapper = document.createElement('span');
               wrapper.setAttribute('data-ve-img-wrap', '');
+              if (isAbs) wrapper.classList.add('ve-wrap-abs');
               el.parentNode.insertBefore(wrapper, el);
               wrapper.appendChild(el);
             }
@@ -329,29 +339,36 @@
   insertStyle.textContent = [
     '.ve-insert-zone {',
     '  position: relative;',
-    '  height: 20px;',
-    '  cursor: pointer;',
-    '  display: flex;',
-    '  align-items: center;',
-    '  justify-content: center;',
-    '  transition: height .2s;',
+    '  height: 0;',
+    '  overflow: visible;',
     '  z-index: 100;',
     '}',
+    '/* Invisible hover target extending 16px above/below the zero-height line */',
     '.ve-insert-zone::before {',
+    '  content: "";',
+    '  position: absolute;',
+    '  left: 0;',
+    '  right: 0;',
+    '  top: -16px;',
+    '  bottom: -16px;',
+    '  cursor: pointer;',
+    '  z-index: 1;',
+    '}',
+    '/* Visible line shown on hover */',
+    '.ve-insert-zone::after {',
     '  content: "";',
     '  position: absolute;',
     '  left: 10%;',
     '  right: 10%;',
-    '  top: 50%;',
+    '  top: -1px;',
     '  height: 2px;',
     '  background: transparent;',
     '  border-radius: 1px;',
     '  transition: background .2s;',
+    '  z-index: 2;',
+    '  pointer-events: none;',
     '}',
-    '.ve-insert-zone:hover {',
-    '  height: 32px;',
-    '}',
-    '.ve-insert-zone:hover::before {',
+    '.ve-insert-zone:hover::after {',
     '  background: #6366f1;',
     '}',
     '.ve-insert-btn {',
@@ -369,16 +386,18 @@
     '  justify-content: center;',
     '  cursor: pointer;',
     '  opacity: 0;',
-    '  transform: scale(0.6);',
+    '  transform: translate(-50%, -50%) scale(0.6);',
     '  transition: opacity .2s, transform .2s, background .15s, color .15s;',
-    '  position: relative;',
-    '  z-index: 2;',
+    '  position: absolute;',
+    '  top: 0;',
+    '  left: 50%;',
+    '  z-index: 3;',
     '  padding: 0;',
     '  box-shadow: 0 2px 6px rgba(99,102,241,.25);',
     '}',
     '.ve-insert-zone:hover .ve-insert-btn {',
     '  opacity: 1;',
-    '  transform: scale(1);',
+    '  transform: translate(-50%, -50%) scale(1);',
     '}',
     '.ve-insert-btn:hover {',
     '  background: #6366f1;',
