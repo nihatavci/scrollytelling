@@ -40,23 +40,34 @@
     '.chapter-title':                           { field: 'title',     type: 'text' },
     '.chapter-sub':                             { field: 'subtitle',  type: 'text' },
     // Scrolly
-    '.sc h3':                                   { field: 'steps', type: 'html', indexed: true, subfield: 'body' },
+    '.sc .step-heading':                        { field: 'steps', type: 'text', indexed: true, subfield: 'heading' },
+    '.sc .step-body':                           { field: 'steps', type: 'html', indexed: true, subfield: 'body' },
+    // DataScrolly
+    '.ds-chart-title':                          { field: 'title',    type: 'text' },
+    '.ds-chart-sub':                            { field: 'subtitle', type: 'text' },
+    '.ds-step-body':                            { field: 'steps', type: 'html', indexed: true, subfield: 'body' },
     // Map2D
+    '.map2d-graphic-title':                     { field: 'title',    type: 'text' },
+    '.map2d-graphic-sub':                       { field: 'subtitle', type: 'text' },
+    '.map2d-step-heading':                      { field: 'steps', type: 'text', indexed: true, subfield: 'heading' },
     '.map2d-step-body':                         { field: 'steps', type: 'html', indexed: true, subfield: 'body' },
     // AudioPlayer
     '.audioplayer-title':                       { field: 'title',        type: 'text' },
     '.audioplayer-subtitle':                    { field: 'subtitle',     type: 'text' },
     '.audioplayer-desc':                        { field: 'description',  type: 'text' },
+    '.audioplayer-cover':                       { field: 'coverSrc',     type: 'image' },
     // StatRow
+    '.statrow-block > h3':                      { field: 'title', type: 'text' },
     '.statrow-cell .v':                         { field: 'stats', type: 'text', indexed: true, subfield: 'value' },
     '.statrow-cell .l':                         { field: 'stats', type: 'text', indexed: true, subfield: 'label' },
     // Timeline
+    '.timeline-block > h3':                     { field: 'title', type: 'text' },
     '.timeline-when':                           { field: 'events', type: 'text', indexed: true, subfield: 'when' },
     '.timeline-title':                          { field: 'events', type: 'text', indexed: true, subfield: 'title' },
     '.timeline-body':                           { field: 'events', type: 'html', indexed: true, subfield: 'body' },
     // Images
     '.editorial figure img':                    { field: 'content', type: 'image', indexed: true, subfield: 'src' },
-    '.scrolly-step-image':                      { field: 'steps',   type: 'image', indexed: true, subfield: 'imageSrc' },
+    '.scrolly__img':                            { field: 'steps',   type: 'image', indexed: true, subfield: 'imageSrc' },
   };
 
   // ── Inject CSS ──────────────────────────────────────────────────────────────
@@ -147,9 +158,17 @@
     return block ? block.getAttribute('data-block-id') : null;
   }
 
-  // ── Helper: get sibling index among matching selector within block ───────────
+  // ── Helper: get step/item index for indexed fields ──────────────────────────
+  // Prefers explicit data-*-idx on a parent (Scrolly, DataScrolly, Map2D) so
+  // the index is always correct even when some steps lack the editable element.
+  // Falls back to sibling counting for flat arrays (StatRow, Timeline, etc.).
   function getSiblingIndex(el, selector, blockEl) {
-    const siblings = Array.from(blockEl.querySelectorAll(selector));
+    var stepParent = el.closest('[data-step-idx], [data-ds-idx], [data-map-idx]');
+    if (stepParent) {
+      var idx = stepParent.dataset.stepIdx ?? stepParent.dataset.dsIdx ?? stepParent.dataset.mapIdx;
+      if (idx != null) return parseInt(idx, 10);
+    }
+    var siblings = Array.from(blockEl.querySelectorAll(selector));
     return siblings.indexOf(el);
   }
 
