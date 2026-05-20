@@ -181,9 +181,14 @@
     }
   `;
   // ── Force pointer-events on in edit mode (override mobile CSS that disables them) ──
+  // CRITICAL: scrolly images are stacked (position:absolute inset:0) — only the
+  // active (visible) one should receive clicks, otherwise the LAST image in DOM
+  // always captures the click regardless of which step the user is viewing.
   style.textContent += `
     .scrolly__steps, .ds-steps, .map2d-steps { pointer-events: auto !important; }
     .step, .sc, .ds-step, .ds-step-card, .map2d-step, .map2d-step-card { pointer-events: auto !important; }
+    .scrolly__img { pointer-events: none !important; }
+    .scrolly__img.active { pointer-events: auto !important; }
   `;
   document.head.appendChild(style);
 
@@ -287,6 +292,16 @@
               e.stopPropagation();
               const index = spec.indexed ? getSiblingIndex(el, selector, blockEl) : undefined;
               const currentSrc = el.src || el.getAttribute('src') || el.style.backgroundImage || '';
+              console.log('[VE] image-pick:', {
+                blockId: blockId,
+                field: spec.field,
+                subfield: spec.subfield,
+                index: index,
+                selector: selector,
+                elTag: el.tagName,
+                stepIdx: el.dataset.stepIdx,
+                isActive: el.classList.contains('active'),
+              });
               window.parent.postMessage({
                 type: 'visual-edit',
                 action: 'image-pick',
@@ -360,10 +375,13 @@
       const blockEl = document.querySelector('[data-block-id="' + msg.blockId + '"]');
       if (!blockEl) return;
 
-      // Find the matching image by selector + step index
-      // IMPORTANT: msg.index is the STEP index (from data-step-idx etc),
-      // not the array position. We must match by step index attribute,
-      // not by position in the querySelectorAll results.
+      console.log('[VE] image-replaced received:', {
+        blockId: msg.blockId,
+        field: msg.field,
+        index: msg.index,
+        newSrc: (msg.newSrc || '').substring(0, 80) + '…',
+      });
+
       Object.keys(EDITABLE_MAP).forEach(function (selector) {
         const spec = EDITABLE_MAP[selector];
         if (spec.type !== 'image') return;
@@ -372,26 +390,30 @@
         var el = null;
         if (msg.index !== null) {
           var matches = Array.from(blockEl.querySelectorAll(selector));
+          console.log('[VE] image-replaced: selector=' + selector + ' matches=' + matches.length +
+            ' looking for index=' + msg.index +
+            ' stepIdxValues=[' + matches.map(function(m) { return m.dataset.stepIdx; }).join(',') + ']');
           // Try to find element by step index attribute on itself or parent
           el = matches.find(function(m) {
-            // Check the element itself for data-step-idx
             if (m.dataset.stepIdx !== undefined) return parseInt(m.dataset.stepIdx, 10) === msg.index;
             if (m.dataset.dsIdx !== undefined) return parseInt(m.dataset.dsIdx, 10) === msg.index;
             if (m.dataset.mapIdx !== undefined) return parseInt(m.dataset.mapIdx, 10) === msg.index;
-            // Check parent step container
             var parent = m.closest('[data-step-idx], [data-ds-idx], [data-map-idx]');
             if (parent) {
               var pIdx = parent.dataset.stepIdx ?? parent.dataset.dsIdx ?? parent.dataset.mapIdx;
               return pIdx !== undefined && parseInt(pIdx, 10) === msg.index;
             }
-            // Fall back to array position
             return matches.indexOf(m) === msg.index;
           }) || null;
         } else {
           el = blockEl.querySelector(selector);
         }
-        if (!el) return;
+        if (!el) {
+          console.log('[VE] image-replaced: no element found for selector=' + selector + ' index=' + msg.index);
+          return;
+        }
 
+        console.log('[VE] image-replaced: updating', el.tagName, 'stepIdx=' + el.dataset.stepIdx);
         if (el.tagName === 'IMG') {
           el.src = msg.newSrc;
         } else {
