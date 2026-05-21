@@ -4380,15 +4380,33 @@ ${veScript}</body></html>`;
   return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
 }
 function refreshPreview() {
-  // Debounced reload of the iframe — blob URLs don't support query params
+  // Debounced reload — preserves scroll position across reloads
   clearTimeout(refreshPreview._t);
   refreshPreview._t = setTimeout(() => {
     const iframe = $('#preview-frame');
+    // Save scroll position before reload
+    let scrollY = 0;
+    try { scrollY = iframe.contentWindow?.scrollY || 0; } catch (_) {}
     // Revoke old blob URL to avoid memory leaks
     if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
     const url = pageUrl();
     iframe._blobUrl = url;
     iframe.src = url;
+    // Restore scroll position after new content loads + renders
+    if (scrollY > 0) {
+      const restore = () => {
+        // Immediate attempt + delayed attempt (wait for render() to finish)
+        try { iframe.contentWindow.scrollTo(0, scrollY); } catch (_) {}
+        setTimeout(() => {
+          try { iframe.contentWindow.scrollTo(0, scrollY); } catch (_) {}
+        }, 300);
+        setTimeout(() => {
+          try { iframe.contentWindow.scrollTo(0, scrollY); } catch (_) {}
+        }, 800);
+        iframe.removeEventListener('load', restore);
+      };
+      iframe.addEventListener('load', restore);
+    }
   }, 400);
 }
 $('#btn-preview').addEventListener('click', () => window.open(pageUrl(), '_blank'));
@@ -4404,6 +4422,15 @@ $('#btn-visual-edit').addEventListener('click', () => {
   $('#btn-visual-edit').classList.toggle('active', state.visualEditMode);
   $('#btn-visual-edit').textContent = state.visualEditMode ? '✏️ Editing' : '✏️ Edit';
   refreshPreview();
+});
+
+// ── Sidebar toggle (glass overlay) ──
+$('#btn-sidebar-toggle').addEventListener('click', () => {
+  const blocks = document.querySelector('.blocks');
+  blocks.classList.toggle('hidden');
+  const isHidden = blocks.classList.contains('hidden');
+  $('#btn-sidebar-toggle').textContent = isHidden ? '☰' : '✕';
+  $('#btn-sidebar-toggle').title = isHidden ? 'Show blocks panel' : 'Hide blocks panel';
 });
 
 // ── Fullscreen preview toggle ──

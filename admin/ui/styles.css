@@ -150,47 +150,84 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; border-radius: 
 
 .layout {
   flex: 1; display: grid;
-  grid-template-columns: 1fr 480px;
+  grid-template-columns: 1fr;
   min-height: 0;
-  transition: grid-template-columns .35s cubic-bezier(.4,0,.2,1);
+  position: relative;
 }
 /* Editor panel hidden — accordion replaces it */
 main.editor { display: none; }
-.layout.preview-fullscreen {
-  grid-template-columns: 0px 1fr;
+
+/* ── Blocks sidebar: Apple glassmorphism overlay ── */
+.blocks {
+  position: absolute;
+  top: 0; left: 0; bottom: 0;
+  width: 380px;
+  z-index: 20;
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(40px) saturate(1.8);
+  -webkit-backdrop-filter: blur(40px) saturate(1.8);
+  border-right: 1px solid rgba(255, 255, 255, 0.45);
+  box-shadow: 0 0 0 1px rgba(0,0,0,.06), 4px 0 24px rgba(0,0,0,.08);
+  overflow: auto;
+  transform: translateX(0);
+  transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .3s ease;
+  will-change: transform;
 }
-.layout.preview-fullscreen > .blocks {
-  overflow: hidden;
-  opacity: 0;
+.blocks.hidden {
+  transform: translateX(-100%);
   pointer-events: none;
-  transition: opacity .25s;
-}
-.layout.preview-fullscreen > .preview {
-  border-right: 0;
-  border-left: 0;
+  opacity: 0;
 }
 
-aside, main {
-  background: var(--snow);
-  border-right: 1px solid var(--fog);
-  overflow: auto;
+/* Preview takes full width always */
+.preview {
+  display: flex; flex-direction: column;
   min-height: 0;
+  grid-column: 1;
 }
-.preview { border-right: 0; display: flex; flex-direction: column; }
+
+/* Fullscreen mode — hide sidebar toggle area */
+.layout.preview-fullscreen > .blocks { transform: translateX(-100%); opacity: 0; pointer-events: none; }
+.layout.preview-fullscreen > .preview { border: 0; }
 
 .aside-head {
   display: flex; align-items: center; justify-content: space-between;
   padding: 12px 16px;
-  border-bottom: 1px solid var(--fog);
+  border-bottom: 1px solid rgba(0,0,0,.06);
   font-weight: 500;
   font-size: 11px;
   color: var(--graphite);
   text-transform: uppercase;
   letter-spacing: .1em;
   position: sticky; top: 0;
-  background: var(--snow);
-  z-index: 1;
+  background: rgba(255,255,255,.6);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  z-index: 2;
 }
+/* Sidebar toggle button — floats over the preview */
+.sidebar-toggle {
+  position: absolute;
+  top: 10px; left: 10px;
+  z-index: 25;
+  width: 36px; height: 36px;
+  border-radius: 10px;
+  border: 1px solid rgba(0,0,0,.08);
+  background: rgba(255,255,255,.82);
+  backdrop-filter: blur(20px) saturate(1.5);
+  -webkit-backdrop-filter: blur(20px) saturate(1.5);
+  box-shadow: 0 2px 10px rgba(0,0,0,.1);
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 16px;
+  transition: background .15s, box-shadow .15s, transform .2s;
+}
+.sidebar-toggle:hover { background: rgba(255,255,255,.95); box-shadow: 0 4px 16px rgba(0,0,0,.14); }
+.sidebar-toggle:active { transform: scale(.95); }
+/* Move toggle right when sidebar is visible */
+.blocks:not(.hidden) ~ .sidebar-toggle { left: 390px; }
+.blocks:not(.hidden) ~ .sidebar-toggle { transition: left .35s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s; }
+.blocks.hidden ~ .sidebar-toggle { transition: left .35s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s; }
 
 /* ── Block list (accordion) ── */
 .block-list { list-style: none; padding: 8px; }
@@ -524,9 +561,28 @@ aside, main {
 .claude-modal-upload.drag-active { border-color: var(--accent, #c06830); background: rgba(192, 104, 48, .06); }
 
 /* ── Preview iframe ── */
+.preview { position: relative; }
 .preview iframe {
   flex: 1; width: 100%; border: 0; background: #fff;
 }
+/* Preview toolbar — floating glass pill in top-right */
+.preview > .aside-head {
+  position: absolute;
+  top: 10px; right: 10px;
+  left: auto;
+  width: auto;
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(0,0,0,.06);
+  border-bottom: 1px solid rgba(0,0,0,.06);
+  background: rgba(255,255,255,.78);
+  backdrop-filter: blur(24px) saturate(1.6);
+  -webkit-backdrop-filter: blur(24px) saturate(1.6);
+  box-shadow: 0 2px 12px rgba(0,0,0,.08);
+  z-index: 15;
+  gap: 6px;
+}
+.preview > .aside-head span:first-child { display: none; }
 .ve-toggle { font-size:11px; padding:4px 10px; border-radius:var(--radius-pill,100px); transition:background .2s,color .2s,box-shadow .2s; }
 .ve-toggle.active { background:#6366f1; color:#fff; border-color:#6366f1; box-shadow:0 0 0 2px rgba(99,102,241,.25); }
 
@@ -541,10 +597,6 @@ aside, main {
 }
 .layout.preview-fullscreen .fullscreen-back-toolbar {
   display: flex;
-}
-/* In fullscreen, hide the aside-head labels for cleaner look */
-.layout.preview-fullscreen .preview .aside-head span:first-child {
-  display: none;
 }
 .fullscreen-back-toolbar button {
   background: rgba(255,255,255,.92);
@@ -894,20 +946,15 @@ aside, main {
 
 /* ── Responsive: Tablet (≤1100px) ── */
 @media (max-width: 1100px) {
-  .layout {
-    grid-template-columns: 1fr 360px;
-  }
+  .blocks { width: 320px; }
+  .blocks:not(.hidden) ~ .sidebar-toggle { left: 330px; }
   .topbar-page select { min-width: 140px; }
 }
 
 /* ── Responsive: Small tablet (≤900px) ── */
 @media (max-width: 900px) {
-  .layout {
-    grid-template-columns: 1fr;
-  }
-  .preview {
-    display: none;
-  }
+  .blocks { width: 280px; }
+  .blocks:not(.hidden) ~ .sidebar-toggle { left: 290px; }
   .topbar {
     flex-wrap: wrap;
     gap: 8px;
@@ -1110,21 +1157,24 @@ aside, main {
     box-shadow: 0 2px 8px rgba(0,0,0,.15);
   }
 
-  /* ── Full-height accordion layout ── */
+  /* ── Full-height layout ── */
   .layout {
     grid-template-columns: 1fr;
     grid-template-rows: 1fr;
     flex: 1; overflow: hidden;
-    position: relative; /* for FAB positioning */
+    position: relative;
   }
   .blocks {
-    grid-column: 1; grid-row: 1;
+    width: 100%;
     border-right: none;
     overflow-y: auto; overflow-x: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
     padding-bottom: 72px; /* room for FAB */
+    background: rgba(255,255,255,.92);
   }
+  .blocks.hidden ~ .sidebar-toggle { left: 10px; }
+  .blocks:not(.hidden) ~ .sidebar-toggle { left: auto; right: 10px; }
   .preview { display: none; }
 
   /* ── Aside header — minimal ── */
