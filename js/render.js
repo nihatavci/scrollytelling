@@ -464,8 +464,9 @@ const COMPONENT_CSS = `
 /* ── Map2D scrollytelling block — always fullscreen viewport ── */
 .map2d-scrolly{display:block;max-width:100%;padding:0;margin:0;position:relative;z-index:3}
 .map2d-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;overflow:hidden;z-index:1}
-.map2d-graphic-title{position:absolute;top:0;left:0;right:0;z-index:10;font-family:var(--font-display);font-size:clamp(1.2rem,2.5vw,1.6rem);font-weight:700;color:var(--ink-black);padding:1.5rem 2rem .3rem;letter-spacing:-.02em;background:linear-gradient(180deg,rgba(255,255,255,.92) 0%,rgba(255,255,255,.7) 70%,transparent 100%);pointer-events:none}
-.map2d-graphic-sub{position:absolute;top:2.6rem;left:0;right:0;z-index:10;font-family:var(--font-body);font-size:.85rem;color:var(--graphite);padding:0 2rem .8rem;background:linear-gradient(180deg,rgba(255,255,255,.7) 0%,transparent 100%);pointer-events:none}
+.map2d-header{position:absolute;top:1rem;left:1rem;z-index:10;max-width:min(380px,calc(100% - 2rem));background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.5);border-radius:10px;padding:.9rem 1.2rem;box-shadow:0 4px 24px rgba(0,0,0,.08),0 1px 3px rgba(0,0,0,.04);pointer-events:none}
+.map2d-graphic-title{font-family:var(--font-display);font-size:clamp(1rem,2vw,1.3rem);font-weight:700;color:var(--ink-black);letter-spacing:-.02em;line-height:1.2;margin:0}
+.map2d-graphic-sub{font-family:var(--font-body);font-size:.8rem;color:var(--graphite);margin-top:.25rem;line-height:1.4}
 .map2d-graphic-source{position:absolute;bottom:0;left:0;z-index:10;font-family:var(--font-body);font-size:.7rem;color:var(--steel);padding:.5rem 1rem;background:rgba(255,255,255,.6);backdrop-filter:blur(4px);border-radius:0 8px 0 0;pointer-events:none}
 .map2d-map-host{position:absolute;inset:0;overflow:hidden}
 .map2d-map-host .leaflet-container{width:100%;height:100%;font-family:var(--font-body)}
@@ -501,7 +502,7 @@ const COMPONENT_CSS = `
 /* layout-behind overrides — fixed instead of sticky */
 .map2d-scrolly.layout-behind .map2d-graphic{position:fixed;top:0;left:0;right:0}
 @media(max-width:900px){.map2d-steps{max-width:100%;margin-right:1rem;margin-left:1rem}.map2d-step{min-height:80vh}.map2d-step-card{max-width:100%}}
-@media(max-width:600px){.map2d-step{min-height:70vh}.map2d-step:first-child{padding-top:30vh}.map2d-step:last-child{padding-bottom:30vh}.map2d-graphic-title{font-size:1.1rem;padding:1rem 1rem .2rem}.map2d-graphic-sub{top:2.2rem;padding:0 1rem}}
+@media(max-width:600px){.map2d-step{min-height:70vh}.map2d-step:first-child{padding-top:30vh}.map2d-step:last-child{padding-bottom:30vh}.map2d-header{top:.5rem;left:.5rem;max-width:calc(100% - 1rem);padding:.7rem 1rem}.map2d-graphic-title{font-size:1rem}.map2d-graphic-sub{font-size:.75rem}}
 
 /* ── FullscreenImage block ── */
 .fsimg{position:relative;z-index:2;width:100%;min-height:100vh;overflow:hidden;background:#000;margin:0;padding:0}
@@ -579,8 +580,12 @@ function renderMap2D(d, block) {
 
   // Sticky map panel
   const graphic = el('div', { class: 'map2d-graphic' });
-  if (d.title) graphic.appendChild(el('div', { class: 'map2d-graphic-title' }, d.title));
-  if (d.subtitle) graphic.appendChild(el('div', { class: 'map2d-graphic-sub' }, d.subtitle));
+  if (d.title || d.subtitle) {
+    const header = el('div', { class: 'map2d-header' });
+    if (d.title) header.appendChild(el('div', { class: 'map2d-graphic-title' }, d.title));
+    if (d.subtitle) header.appendChild(el('div', { class: 'map2d-graphic-sub' }, d.subtitle));
+    graphic.appendChild(header);
+  }
   const mapHost = el('div', { class: 'map2d-map-host', id: 'map2d-host-' + block.id });
   graphic.appendChild(mapHost);
   if (d.source) graphic.appendChild(el('div', { class: 'map2d-graphic-source' }, d.source));

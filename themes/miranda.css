@@ -459,20 +459,50 @@ body {
 .ig-caption,.ig-credit{color:rgba(205,198,190,.6)}
 
 /* ── Map2D dark overrides ── */
-.map2d-map-host{border-color:rgba(205,198,190,.1);box-shadow:0 4px 20px rgba(0,0,0,.4)}
+.map2d-header{background:rgba(42,42,40,.94);border-color:rgba(205,198,190,.08);box-shadow:0 4px 24px rgba(0,0,0,.3)}
 .map2d-graphic-title{color:#cdc6be}
 .map2d-graphic-sub{color:#a8a29e}
-.map2d-graphic-source{color:rgba(205,198,190,.4)}
-.map2d-step-card{background:rgba(42,42,40,.92);border-color:rgba(205,198,190,.08)}
-.map2d-step.is-active .map2d-step-card{box-shadow:0 4px 20px rgba(0,0,0,.4);border-color:rgba(205,198,190,.15)}
+.map2d-graphic-source{color:rgba(205,198,190,.4);background:rgba(29,29,27,.6)}
+.map2d-step-card{background:rgba(42,42,40,.94);border-color:rgba(205,198,190,.08)}
+.map2d-step.is-active .map2d-step-card{box-shadow:0 8px 40px rgba(0,0,0,.5);border-color:rgba(205,198,190,.15)}
 .map2d-step-body{color:#cdc6be}
 .map2d-cap{color:rgba(205,198,190,.6)}
 .map2d-credit{color:rgba(205,198,190,.4)}
-.map2d-scrolly .leaflet-popup-content-wrapper{background:rgba(42,42,40,.92);color:#cdc6be;box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.map2d-scrolly .leaflet-popup-content-wrapper{background:rgba(42,42,40,.94);color:#cdc6be;box-shadow:0 6px 24px rgba(0,0,0,.5)}
 .map2d-scrolly .leaflet-popup-close-button{color:#a8a29e}
-.map2d-scrolly .leaflet-control-attribution{background:rgba(29,29,27,.7)!important;color:rgba(205,198,190,.5)}
-.map2d-scrolly .leaflet-control-attribution a{color:rgba(205,198,190,.6)}
-.map2d-scrolly .leaflet-control-zoom a{background:rgba(42,42,40,.9);color:#cdc6be;border-color:rgba(205,198,190,.1)}
-.map2d-scrolly .leaflet-control-zoom a:hover{background:rgba(53,53,51,.9)}
-.map2d-route-label{background:rgba(42,42,40,.9);color:#cdc6be;box-shadow:0 1px 4px rgba(0,0,0,.3)}
-.map2d-scrolly.layout-behind .map2d-step-card{background:rgba(42,42,40,.92)}
+.map2d-route-label{background:rgba(42,42,40,.92);backdrop-filter:blur(8px);color:#cdc6be;box-shadow:0 2px 8px rgba(0,0,0,.4)}
+.map2d-marker-name{background:rgba(42,42,40,.88);color:#cdc6be;box-shadow:0 1px 4px rgba(0,0,0,.3)}
+
+/* ── FullscreenImage dark overrides ── */
+.fsimg{background:var(--canvas)}
+.fsimg-image{filter:brightness(0.88) contrast(1.05)}
+.fsimg-kicker{color:rgba(205,198,190,.8)}
+.fsimg-title{color:#cdc6be;text-shadow:0 2px 24px rgba(0,0,0,.6)}
+.fsimg-title span{color:#cdc6be}
+.fsimg-subtitle{color:rgba(205,198,190,.88);text-shadow:0 1px 12px rgba(0,0,0,.5)}
+.fsimg-body{color:rgba(205,198,190,.78)}
+.fsimg-caption{color:rgba(205,198,190,.6)}
+.fsimg-credit{color:rgba(205,198,190,.4)}
+.fsimg-scroll-cue{color:rgba(205,198,190,.6)}
+.fsimg-scroll-cue .fsimg-chevron{border-color:rgba(205,198,190,.6)}
+
+/* ── AudioPlayer dark overrides ── */
+.audioplayer{background:var(--canvas)}
+.audioplayer-card{background:rgba(42,42,40,.92);border-color:rgba(205,198,190,.08);box-shadow:0 4px 20px rgba(0,0,0,.3)}
+.audioplayer-title{color:#cdc6be}
+.audioplayer-subtitle{color:#a8a29e}
+.audioplayer-desc{color:#8a857f}
+.audioplayer-play{background:#cdc6be!important;box-shadow:0 2px 8px rgba(0,0,0,.3)}
+.audioplayer-play svg{fill:#1d1d1b}
+.audioplayer-play:hover{box-shadow:0 4px 16px rgba(0,0,0,.4)}
+.audioplayer-bar{background:#cdc6be!important}
+.audioplayer-progress{background:rgba(205,198,190,.12)}
+.audioplayer-progress-fill{background:#cdc6be!important}
+.audioplayer-time{color:#8a857f}
+.audioplayer-transcript-toggle{color:#cdc6be}
+.audioplayer-transcript-text{color:#a8a29e}
+.audioplayer-caption{color:rgba(205,198,190,.6)}
+.audioplayer-credit{color:rgba(205,198,190,.4)}
+
+/* ── Page background — reduce brightness on dark theme ── */
+#page-bg-img{filter:brightness(0.4) contrast(1.1)}
