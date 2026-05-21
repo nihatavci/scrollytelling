@@ -106,8 +106,11 @@
     '.parallax__bg img':        { field: 'backgroundSrc', type: 'image' },
     '.parallax__mid img':       { field: 'midgroundSrc',  type: 'image' },
     '.parallax__fg img':        { field: 'foregroundSrc', type: 'image' },
+    '.parallax__placeholder':   { field: 'backgroundSrc', type: 'image' },
     '.parallax__headline':      { field: 'headline',      type: 'text' },
+    '.parallax__headline--ghost': { field: 'headline',    type: 'text' },
     '.parallax__subtitle':      { field: 'subtitle',      type: 'text' },
+    '.parallax__subtitle--ghost': { field: 'subtitle',    type: 'text' },
     // VizPanel
     '.viz-title':                               { field: 'initialTitle', type: 'text' },
     '.viz-sub':                                 { field: 'initialSub',   type: 'text' },

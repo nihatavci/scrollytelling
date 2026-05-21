@@ -1815,7 +1815,7 @@ function openCreationCard(type, opts = {}) {
     const skipBtn = document.createElement('button');
     skipBtn.type = 'button';
     skipBtn.className = 'ghost';
-    skipBtn.textContent = 'Skip — add empty block';
+    skipBtn.textContent = 'Add empty — edit in preview';
     skipBtn.addEventListener('click', () => {
       closeModal();
       if (!state.doc) { toast('Please create or select a page first', 'error'); return; }
@@ -1831,6 +1831,8 @@ function openCreationCard(type, opts = {}) {
       setDirty(true);
       renderBlockList();
       renderEditor();
+      refreshPreview();
+      toast(`${BLOCK_SCHEMAS[type]?.name || type} added — use Edit mode on the preview to fill it in`, 'success');
     });
 
     const createBtn = document.createElement('button');
@@ -3256,6 +3258,7 @@ function defaultDataFor(type) {
     case 'Map2D': return { title: '', subtitle: '', source: '', layout: 'behind', tileStyle: 'default', height: '100vh', maxWidth: '100%', initialCenter: [52.52, 13.405], initialZoom: 6, flyDuration: 2, scrollZoom: false, markers: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', name: 'Berlin', popupHtml: '<strong>Berlin</strong>', color: '#c06830' }], routes: [], areas: [], steps: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }], caption: '', credit: 'OpenStreetMap' };
     case 'FullscreenImage': return { imageSrc: '', imageAlt: '', kicker: '', title: 'Title', subtitle: '', body: '', overlayPosition: 'bottom-left', scrimOpacity: 0.45, scrimDirection: 'bottom', kenBurns: true, scrollCue: false, caption: '', credit: '' };
     case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
+    case 'Parallax': return { backgroundSrc: '', backgroundAlt: '', midgroundSrc: '', midgroundAlt: '', foregroundSrc: '', foregroundAlt: '', headline: '', subtitle: '', overlayPosition: 'center', tint: 'dark' };
     default:          return {};
   }
 }

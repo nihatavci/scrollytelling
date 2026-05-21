@@ -1149,33 +1149,49 @@ function renderAudioPlayer(d, block) {
 
 function renderParallax(d) {
   var tintCls = d.tint && d.tint !== 'none' ? ' parallax--tint-' + d.tint : ' parallax--tint-dark';
-  var sec = el('section', { class: 'parallax' + tintCls });
+  var hasAnyImage = d.backgroundSrc || d.midgroundSrc || d.foregroundSrc;
+  var sec = el('section', { class: 'parallax' + tintCls + (hasAnyImage ? '' : ' parallax--empty') });
 
-  // Render layers — only if src is non-empty
-  if (d.backgroundSrc) {
-    var bgLayer = el('div', { class: 'parallax__layer parallax__bg' });
-    bgLayer.appendChild(el('img', { src: d.backgroundSrc, alt: d.backgroundAlt || '', loading: 'lazy' }));
-    sec.appendChild(bgLayer);
-  }
-  if (d.midgroundSrc) {
-    var midLayer = el('div', { class: 'parallax__layer parallax__mid' });
-    midLayer.appendChild(el('img', { src: d.midgroundSrc, alt: d.midgroundAlt || '', loading: 'lazy' }));
-    sec.appendChild(midLayer);
-  }
-  if (d.foregroundSrc) {
-    var fgLayer = el('div', { class: 'parallax__layer parallax__fg' });
-    fgLayer.appendChild(el('img', { src: d.foregroundSrc, alt: d.foregroundAlt || '', loading: 'lazy' }));
-    sec.appendChild(fgLayer);
+  if (!hasAnyImage) {
+    // Placeholder state — visible mockup so the user can see & click to edit
+    var ph = el('div', { class: 'parallax__placeholder' });
+    var phIcon = el('div', { class: 'parallax__ph-icon' });
+    phIcon.innerHTML = '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><path d="M2 20l6-10 4 5 4-8 6 13"/><path d="M2 17l7-6 5 4 4-7 4 9" opacity=".4"/></svg>';
+    ph.appendChild(phIcon);
+    ph.appendChild(el('div', { class: 'parallax__ph-title' }, 'Parallax Depth'));
+    ph.appendChild(el('div', { class: 'parallax__ph-hint' }, 'Upload background, midground & foreground images'));
+    // Render placeholder img elements so visual-edit can target them
+    var bgPh = el('div', { class: 'parallax__layer parallax__bg', style: 'display:none' });
+    bgPh.appendChild(el('img', { src: '', alt: '', 'data-placeholder': 'true' }));
+    sec.appendChild(bgPh);
+    sec.appendChild(ph);
+  } else {
+    // Render layers — only if src is non-empty
+    if (d.backgroundSrc) {
+      var bgLayer = el('div', { class: 'parallax__layer parallax__bg' });
+      bgLayer.appendChild(el('img', { src: d.backgroundSrc, alt: d.backgroundAlt || '', loading: 'lazy' }));
+      sec.appendChild(bgLayer);
+    }
+    if (d.midgroundSrc) {
+      var midLayer = el('div', { class: 'parallax__layer parallax__mid' });
+      midLayer.appendChild(el('img', { src: d.midgroundSrc, alt: d.midgroundAlt || '', loading: 'lazy' }));
+      sec.appendChild(midLayer);
+    }
+    if (d.foregroundSrc) {
+      var fgLayer = el('div', { class: 'parallax__layer parallax__fg' });
+      fgLayer.appendChild(el('img', { src: d.foregroundSrc, alt: d.foregroundAlt || '', loading: 'lazy' }));
+      sec.appendChild(fgLayer);
+    }
   }
 
-  // Text overlay — only if headline or subtitle present
-  if (d.headline || d.subtitle) {
-    var pos = d.overlayPosition || 'center';
-    var overlay = el('div', { class: 'parallax__overlay parallax__overlay--' + pos });
-    if (d.headline) overlay.appendChild(el('h2', { class: 'parallax__headline' }, d.headline));
-    if (d.subtitle) overlay.appendChild(el('p', { class: 'parallax__subtitle' }, d.subtitle));
-    sec.appendChild(overlay);
-  }
+  // Text overlay — show even on empty state so user can click to edit
+  var pos = d.overlayPosition || 'center';
+  var overlay = el('div', { class: 'parallax__overlay parallax__overlay--' + pos });
+  if (d.headline) overlay.appendChild(el('h2', { class: 'parallax__headline' }, d.headline));
+  else if (!hasAnyImage) overlay.appendChild(el('h2', { class: 'parallax__headline parallax__headline--ghost' }, 'Your headline here'));
+  if (d.subtitle) overlay.appendChild(el('p', { class: 'parallax__subtitle' }, d.subtitle));
+  else if (!hasAnyImage) overlay.appendChild(el('p', { class: 'parallax__subtitle parallax__subtitle--ghost' }, 'Subtitle text'));
+  sec.appendChild(overlay);
 
   return sec;
 }

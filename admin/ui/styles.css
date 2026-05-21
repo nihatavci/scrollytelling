@@ -1857,6 +1857,43 @@ main.editor { display: none; }
   }
 }
 
+/* ── Empty / placeholder state ── */
+.parallax--empty {
+  background: linear-gradient(135deg, #1a2f28 0%, #2d4a3e 40%, #1a2f28 100%);
+}
+
+.parallax__placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 2;
+  gap: 8px;
+}
+
+.parallax__ph-icon { color: rgba(255,255,255,0.25); }
+
+.parallax__ph-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255,255,255,0.4);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.parallax__ph-hint {
+  font-size: 12px;
+  color: rgba(255,255,255,0.25);
+}
+
+.parallax__headline--ghost,
+.parallax__subtitle--ghost {
+  opacity: 0.25;
+  font-style: italic;
+}
+
 /* ── Mobile ── */
 @media (max-width: 768px) {
   .parallax { height: 75vh; }
