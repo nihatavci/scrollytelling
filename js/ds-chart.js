@@ -857,39 +857,55 @@ export class DSChart {
         .style('stroke', c.accent)
         .style('opacity', 0.6);
 
-      // Pulse dot on the data point
+      // Highlight dot on the data point — filled circle + outer ring
       const match = data.find(d => String(d[xF]) === String(hx));
       if (match) {
+        const mxKey = xIsCat ? match[xF] : +match[xF];
+        const px = isBand ? xScale(mxKey) + xScale.bandwidth() / 2 : xScale(+match[xF]);
+        const py = yScale(+match[yF]);
+
+        // Solid inner dot
+        let dot = this.gHighlight.select('.ds-hl-dot');
+        if (dot.empty()) {
+          dot = this.gHighlight.append('circle')
+            .attr('class', 'ds-hl-dot')
+            .attr('cx', px).attr('cy', py)
+            .attr('r', 0)
+            .style('fill', c.accent);
+        }
+        dot
+          .transition(t)
+          .attr('cx', px).attr('cy', py)
+          .attr('r', 5)
+          .style('fill', c.accent);
+
+        // Outer ring pulse
         let pulse = this.gHighlight.select('.ds-hl-pulse');
         if (pulse.empty()) {
           pulse = this.gHighlight.append('circle')
             .attr('class', 'ds-hl-pulse')
+            .attr('cx', px).attr('cy', py)
             .attr('r', 0)
             .style('fill', 'none')
             .style('stroke', c.accent)
-            .style('stroke-width', 2);
+            .style('stroke-width', 1.5);
         }
-        const mxKey = xIsCat ? match[xF] : +match[xF];
-        const px = isBand ? xScale(mxKey) + xScale.bandwidth() / 2 : xScale(+match[xF]);
-        const py = yScale(+match[yF]);
         pulse
           .attr('cx', px).attr('cy', py)
-          .attr('r', 0)
+          .attr('r', 5)
           .style('stroke', c.accent)
           .style('opacity', 1)
           .transition()
-          .duration(dur * 0.8)
-          .ease(d3.easeElasticOut.amplitude(1).period(0.4))
-          .attr('r', 14)
-          .transition()
-          .duration(600)
-          .attr('r', 10)
-          .style('opacity', 0.5);
+          .duration(dur)
+          .ease(d3.easeCubicOut)
+          .attr('r', 12)
+          .style('opacity', 0.3);
       } else {
+        this.gHighlight.select('.ds-hl-dot').transition(t).attr('r', 0).style('opacity', 0).remove();
         this.gHighlight.select('.ds-hl-pulse').transition(t).attr('r', 0).style('opacity', 0).remove();
       }
     } else {
-      // Remove highlights
+      // Remove all highlight elements
       this.gHighlight.selectAll('*').transition(t).style('opacity', 0).remove();
     }
   }
@@ -910,48 +926,62 @@ export class DSChart {
         const px = isBand ? xScale(mxKey) + xScale.bandwidth() / 2 : xScale(+match[xF]);
         const py = yScale(+match[yF]);
 
-        // Background pill
+        // Position above the point — clamp to stay inside chart
+        const offsetY = -28;
+        const labelY = Math.max(this.margin.top + 12, py + offsetY);
+        // If point is near top, place label below instead
+        const finalY = (py - this.margin.top) < 40 ? py + 28 : labelY;
+
+        // Background pill + text label
         let bg = this.gAnnotation.select('.ds-ann-bg');
         let label = this.gAnnotation.select('.ds-ann-text');
 
         if (label.empty()) {
           bg = this.gAnnotation.append('rect')
             .attr('class', 'ds-ann-bg')
-            .attr('rx', 6)
-            .attr('ry', 6)
-            .style('fill', c.ink)
+            .attr('rx', 10)
+            .attr('ry', 10)
+            .attr('x', px)
+            .attr('y', finalY - 12)
+            .attr('width', 0)
+            .attr('height', 0)
+            .style('fill', 'rgba(255,255,255,0.92)')
+            .style('stroke', 'rgba(0,0,0,0.1)')
+            .style('stroke-width', 1)
+            .style('filter', 'drop-shadow(0 2px 6px rgba(0,0,0,0.1))')
             .style('opacity', 0);
           label = this.gAnnotation.append('text')
             .attr('class', 'ds-ann-text')
+            .attr('x', px)
+            .attr('y', finalY)
             .style('font-family', c.font)
             .style('font-size', '12px')
             .style('font-weight', '600')
-            .style('fill', c.canvas)
+            .style('fill', c.ink)
             .style('text-anchor', 'middle')
             .style('opacity', 0);
         }
 
-        // Position above the point
-        const offsetY = -28;
         label
           .text(ann)
           .transition(t)
           .attr('x', px)
-          .attr('y', py + offsetY)
-          .style('fill', c.canvas)
+          .attr('y', finalY)
+          .style('fill', c.ink)
           .style('opacity', 1);
 
-        // Measure text for background
+        // Measure text for background pill — position immediately, then fade in
         requestAnimationFrame(() => {
           const bbox = label.node()?.getBBox();
           if (bbox) {
-            bg.transition(t)
-              .attr('x', bbox.x - 8)
-              .attr('y', bbox.y - 3)
-              .attr('width', bbox.width + 16)
-              .attr('height', bbox.height + 6)
-              .style('fill', c.ink)
-              .style('opacity', 0.9);
+            const pad = 10;
+            bg
+              .attr('x', bbox.x - pad)
+              .attr('y', bbox.y - pad / 2)
+              .attr('width', bbox.width + pad * 2)
+              .attr('height', bbox.height + pad)
+              .transition(t)
+              .style('opacity', 1);
           }
         });
       }

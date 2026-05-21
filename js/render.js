@@ -243,8 +243,8 @@ const COMPONENT_CSS = `
 .ds-graphic{position:sticky;top:0;height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:flex-start;padding:1.5rem 0}
 .ds-chart-title{font-family:var(--font-display);font-size:clamp(1.3rem,2.2vw,1.6rem);font-weight:500;color:var(--ink-black);letter-spacing:-.02em;line-height:1.25}
 .ds-chart-sub{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.3rem;line-height:1.45;margin-bottom:1rem}
-.ds-chart{width:100%;max-width:760px;min-height:380px;position:relative}
-.ds-chart svg{width:100%!important;height:auto!important;display:block}
+.ds-chart{width:100%;max-width:760px;min-height:380px;position:relative;overflow:visible}
+.ds-chart svg{width:100%!important;height:auto!important;display:block;overflow:visible}
 .ds-chart-error{font-family:var(--font-body);font-size:.85rem;color:var(--spectrum-red);padding:1rem;background:rgba(250,61,29,.05);border-radius:8px}
 .ds-chart-source{font-family:var(--font-body);font-size:.7rem;color:var(--ash);margin-top:1rem;font-style:normal}
 .ds-steps{padding:30vh 0;display:flex;flex-direction:column}
