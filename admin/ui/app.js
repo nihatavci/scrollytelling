@@ -1831,7 +1831,7 @@ function openCreationCard(type, opts = {}) {
       setDirty(true);
       renderBlockList();
       renderEditor();
-      refreshPreview();
+      softRefreshPreview();
       toast(`${BLOCK_SCHEMAS[type]?.name || type} added — use Edit mode on the preview to fill it in`, 'success');
     });
 
@@ -1874,7 +1874,7 @@ function openCreationCard(type, opts = {}) {
       closeModal();
       renderBlockList();
       renderEditor();
-      refreshPreview();
+      softRefreshPreview();
       toast(`${schemaName} created`, 'success');
     });
 
@@ -2439,7 +2439,7 @@ function setupTouchDrag(el, idx, listEl, kind) {
           setDirty(true);
           renderBlockList();
           renderEditor();
-          refreshPreview();
+          softRefreshPreview();
         }
         // Sub-item reorder is handled by the caller via a callback
       }
@@ -2577,7 +2577,7 @@ function renderBlockList() {
       setDirty(true);
       renderBlockList();
       renderEditor();
-      refreshPreview();
+      softRefreshPreview();
     });
 
     // Touch drag support
@@ -2640,7 +2640,7 @@ function renderBlockList() {
     setDirty(true);
     renderBlockList();
     renderEditor();
-    refreshPreview();
+    softRefreshPreview();
   });
   ol.appendChild(endZone);
 
@@ -3194,7 +3194,7 @@ function openClaudeModal(opts) {
           toast(aiMode ? `${type} block created by Claude` : `${type} block created — text preserved`, 'success');
         }
         closeModal();
-        refreshPreview();
+        softRefreshPreview();
       } catch (e) {
         spinner.className = 'claude-modal-spinner error';
         spinner.textContent = 'Failed: ' + e.message;
@@ -3314,7 +3314,7 @@ function renderEditor() {
   };
   const OPEN_GROUPS = new Set(['content', 'media', 'data']);
 
-  const onFieldChange = () => { setDirty(true); refreshPreview(); updateBlockSummary(); };
+  const onFieldChange = () => { setDirty(true); hotSwapBlock(state.selectedBlockId); updateBlockSummary(); };
 
   GROUP_ORDER.forEach(groupKey => {
     const fields = groups[groupKey];
@@ -3391,14 +3391,14 @@ function renderEditor() {
       block.data.bgOpacity = v;
       bgValSpan.textContent = String(v);
       setDirty(true);
-      refreshPreview();
+      hotSwapBlock(block.id);
     });
     bgClear.addEventListener('click', () => {
       delete block.data.bgOpacity;
       bgRange.value = '';
       bgValSpan.textContent = '—';
       setDirty(true);
-      refreshPreview();
+      hotSwapBlock(block.id);
     });
     bgRow.appendChild(bgRange);
     bgRow.appendChild(bgValSpan);
@@ -4422,6 +4422,40 @@ render();
 ${veScript}</body></html>`;
   return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
 }
+// ── Hot-swap: update a single block without reloading the iframe ─────────────
+// Sends the block data to the iframe via postMessage; render.js re-renders just
+// that block in-place.  Scroll position is completely untouched.
+function hotSwapBlock(blockId) {
+  const block = state.doc?.blocks.find(b => b.id === blockId);
+  if (!block) return;
+  const iframe = $('#preview-frame');
+  try {
+    if (!iframe.contentWindow) throw 0;
+    iframe.contentWindow.postMessage({
+      type: 'hot-swap-block',
+      blockId: block.id,
+      blockType: block.type,
+      blockData: { ...block.data },
+    }, '*');
+  } catch (_) {
+    refreshPreview(); // fallback if iframe isn't ready
+  }
+}
+// ── Soft refresh: re-render all blocks without iframe navigation ─────────────
+// Used for structural changes (add / delete / reorder blocks).
+// Scroll position is preserved because we don't navigate the iframe.
+function softRefreshPreview() {
+  const iframe = $('#preview-frame');
+  try {
+    if (!iframe.contentWindow) throw 0;
+    iframe.contentWindow.postMessage({
+      type: 'soft-refresh',
+      doc: JSON.parse(JSON.stringify(state.doc)),
+    }, '*');
+  } catch (_) {
+    refreshPreview(); // fallback
+  }
+}
 function refreshPreview() {
   // Debounced reload — preserves scroll position across reloads
   clearTimeout(refreshPreview._t);
@@ -4614,9 +4648,9 @@ window.addEventListener('message', async (evt) => {
     }
   }
 
-  // URL field changed — refresh preview to re-render the block
+  // URL field changed — hot-swap the block to re-render it without losing scroll
   if (action === 'request-refresh') {
-    refreshPreview();
+    hotSwapBlock(blockId);
   }
 
   // Insert block at position (from visual-edit hover zones)
@@ -4770,7 +4804,7 @@ $('#btn-settings').addEventListener('click', () => {
         delete state.doc.background;
       }
       setDirty(true);
-      refreshPreview();
+      softRefreshPreview();
       closeModal();
       toast('Settings updated — publish to apply', 'success');
     });

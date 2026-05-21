@@ -2537,6 +2537,60 @@ function renderVideoEmbed(d) {
 }
 
 // ───────── Tiny DOM helpers ─────────
+// ── Hot-swap: re-render a single block in-place without page reload ──────────
+// The admin panel sends a postMessage with the block's updated data.
+// We re-render just that block and swap the DOM node. Scroll position is
+// untouched because there is no iframe navigation.
+window.addEventListener('message', function (evt) {
+  if (!evt.data) return;
+
+  // Tier 1 — single-block hot-swap (field edits)
+  if (evt.data.type === 'hot-swap-block') {
+    var msg = evt.data;
+    var fn = BLOCK_RENDERERS[msg.blockType];
+    if (!fn) return;
+    var oldNode = document.querySelector('[data-block-id="' + msg.blockId + '"]');
+    if (!oldNode) return;
+    var newNode = fn(msg.blockData, { id: msg.blockId, type: msg.blockType, data: msg.blockData });
+    if (newNode && newNode.nodeType === 1) {
+      newNode.dataset.blockId = msg.blockId;
+      if (msg.blockData.bgOpacity != null) {
+        newNode.dataset.bgOpacity = String(msg.blockData.bgOpacity);
+      }
+    }
+    oldNode.replaceWith(newNode);
+    // MutationObserver in visual-edit.js will re-bind editables automatically
+    return;
+  }
+
+  // Tier 2 — soft refresh: re-render ALL blocks without iframe navigation
+  // Used for structural changes (add / delete / reorder).
+  if (evt.data.type === 'soft-refresh') {
+    var doc = evt.data.doc;
+    if (!doc) return;
+    window.__PAGE_DATA__ = doc;
+    var root = document.querySelector('#page-root');
+    if (!root) return;
+    root.innerHTML = '';
+    var blocks = doc.blocks || [];
+    for (var i = 0; i < blocks.length; i++) {
+      var block = blocks[i];
+      var renderFn = BLOCK_RENDERERS[block.type];
+      if (!renderFn) continue;
+      var node = renderFn(block.data || {}, block);
+      if (node && node.nodeType === 1) {
+        node.dataset.blockId = block.id;
+        if (block.data && block.data.bgOpacity != null) {
+          node.dataset.bgOpacity = String(block.data.bgOpacity);
+        }
+      }
+      if (node) root.appendChild(node);
+    }
+    document.dispatchEvent(new CustomEvent('content:ready', { detail: { doc: doc } }));
+    return;
+  }
+});
+
 function el(tag, attrs = {}, text) {
   const node = document.createElement(tag);
   for (const [k, v] of Object.entries(attrs || {})) {
