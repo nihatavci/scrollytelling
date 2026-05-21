@@ -639,24 +639,23 @@ async function wireMap2D(blockId, d) {
   const steps = Array.from(document.querySelectorAll('.map2d-step[data-map-id="' + blockId + '"]'));
   if (!steps.length) return;
 
-  // Tile URLs
-  // Tile providers — prefer label-free/minimal variants to avoid text overlap
-  const STADIA = 'https://tiles.stadiamaps.com/tiles/';
+  // Tile URLs — free providers (no API key required)
+  const CARTO = 'https://{s}.basemaps.cartocdn.com/';
   const TILES = {
-    default:      STADIA + 'stamen_toner_background/{z}/{x}/{y}{r}.png',
-    clean:        STADIA + 'alidade_smooth/{z}/{x}/{y}{r}.png',
-    toner:        STADIA + 'stamen_toner_background/{z}/{x}/{y}{r}.png',
-    'toner-lite': STADIA + 'stamen_toner_lite/{z}/{x}/{y}{r}.png',
-    watercolor:   STADIA + 'stamen_watercolor/{z}/{x}/{y}.jpg',
-    dark:         STADIA + 'alidade_smooth_dark/{z}/{x}/{y}{r}.png',
-    'dark-nolabel': STADIA + 'alidade_smooth_dark/{z}/{x}/{y}{r}.png',
-    osm:          'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    default:        CARTO + 'light_nolabels/{z}/{x}/{y}{r}.png',
+    clean:          CARTO + 'light_nolabels/{z}/{x}/{y}{r}.png',
+    toner:          CARTO + 'light_nolabels/{z}/{x}/{y}{r}.png',
+    'toner-lite':   CARTO + 'light_all/{z}/{x}/{y}{r}.png',
+    watercolor:     CARTO + 'rastertiles/voyager_nolabels/{z}/{x}/{y}{r}.png',
+    dark:           CARTO + 'dark_nolabels/{z}/{x}/{y}{r}.png',
+    'dark-nolabel': CARTO + 'dark_nolabels/{z}/{x}/{y}{r}.png',
+    osm:            'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
   };
-  const STADIA_ATTR = '&copy; <a href="https://stadiamaps.com/">Stadia</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>';
+  const CARTO_ATTR = '&copy; <a href="https://carto.com/">CARTO</a> &copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>';
   const ATTR = {
-    default: STADIA_ATTR, clean: STADIA_ATTR, toner: STADIA_ATTR,
-    'toner-lite': STADIA_ATTR, watercolor: STADIA_ATTR,
-    dark: STADIA_ATTR, 'dark-nolabel': STADIA_ATTR,
+    default: CARTO_ATTR, clean: CARTO_ATTR, toner: CARTO_ATTR,
+    'toner-lite': CARTO_ATTR, watercolor: CARTO_ATTR,
+    dark: CARTO_ATTR, 'dark-nolabel': CARTO_ATTR,
     osm: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
   };
 
@@ -1640,7 +1639,8 @@ function renderScrolly(d) {
   const stickyWrap = el('div', { class: 'scrolly__sticky' });
   const imgContainer = el('div', { class: 'scrolly__images' });
 
-  // Extract images from steps: use imageSrc field or parse <img> from body
+  // Create an image (or placeholder) for EVERY step so visual-edit can always
+  // bind a click handler and the IntersectionObserver can toggle .active reliably.
   const stepImages = (d.steps || []).map((step, i) => {
     let src = step.imageSrc || step.image || '';
     if (!src && step.body) {
@@ -1668,15 +1668,18 @@ function renderScrolly(d) {
       imgContainer.appendChild(img);
       return img;
     }
-    return null;
+    // No image for this step — render a placeholder that visual-edit can target
+    const ph = el('div', {
+      class: 'scrolly__img scrolly__img-ph' + (i === 0 ? ' active' : ''),
+      'data-step-idx': String(i),
+    });
+    ph.innerHTML = `<span class="scrolly__ph-label">${escapeHtml(step.badgeLabel || 'Step ' + (i + 1))}</span>`;
+    imgContainer.appendChild(ph);
+    return ph;
   });
   stickyWrap.appendChild(imgContainer);
-  const hasAnyImages = stepImages.some(img => img !== null);
-  if (hasAnyImages) {
-    section.appendChild(stickyWrap);
-  } else {
-    section.classList.add('scrolly--no-images');
-  }
+  // Always show the image container (placeholders visible for steps without images)
+  section.appendChild(stickyWrap);
 
   // ── Scrolling text cards (right on desktop) ──
   const steps = el('div', { class: 'scrolly__steps', id: d.stepsId || '' });

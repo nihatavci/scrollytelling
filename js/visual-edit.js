@@ -417,7 +417,18 @@
         if (el.tagName === 'IMG') {
           el.src = msg.newSrc;
         } else {
-          el.style.backgroundImage = 'url(' + msg.newSrc + ')';
+          // Placeholder div — swap it for a real <img> so the image renders properly.
+          // Keep all relevant classes and data attributes. MutationObserver will re-bind.
+          var newImg = document.createElement('img');
+          newImg.className = el.className.replace(/scrolly__img-ph/g, '').replace(/\s+/g, ' ').trim();
+          newImg.src = msg.newSrc;
+          newImg.alt = 'Step ' + ((parseInt(el.dataset.stepIdx || '0', 10)) + 1);
+          if (el.dataset.stepIdx !== undefined) newImg.dataset.stepIdx = el.dataset.stepIdx;
+          if (el.dataset.dsIdx !== undefined) newImg.dataset.dsIdx = el.dataset.dsIdx;
+          if (el.dataset.mapIdx !== undefined) newImg.dataset.mapIdx = el.dataset.mapIdx;
+          // Remove old overlay if present
+          if (el._veOverlay && el._veOverlay.parentNode) el._veOverlay.parentNode.removeChild(el._veOverlay);
+          el.replaceWith(newImg);
         }
       });
     }
