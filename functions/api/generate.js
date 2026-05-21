@@ -400,7 +400,7 @@ The user may paste raw image URLs — put each URL as a src in the images array.
         { id: 'frankfurt', lat: 50.11, lng: 8.68, label: '2', name: 'Frankfurt', popupHtml: '<strong>Frankfurt</strong><br>Druckerei und Vertrieb', color: '#5d8fa8' }
       ],
       routes: [
-        { id: 'route-main', points: [[52.52,13.405],[51.34,12.37],[50.93,11.59],[50.11,8.68]], color: '#c06830', weight: 3, animate: true, label: 'Telegrafenlinie' }
+        { id: 'route-main', points: [[52.52,13.405],[52.1,12.8],[51.65,12.1],[51.34,11.4],[50.93,10.5],[50.55,9.6],[50.11,8.68]], color: '#c06830', weight: 2, animate: true, label: 'Telegrafenlinie' }
       ],
       areas: [],
       steps: [
@@ -411,65 +411,55 @@ The user may paste raw image URLs — put each URL as a src in the images array.
       caption: '',
       credit: 'Kartendaten: OpenStreetMap'
     },
-    description: `Scrollytelling map — sticky interactive map with story cards that fly between locations as the reader scrolls. Like NYT/Reuters geographic storytelling.
+    description: `Scrollytelling map — sticky interactive map with story cards. Like NYT/WaPo geographic storytelling.
 
-Top-level fields:
-- title (string, optional): heading above the map
-- subtitle (string, optional): subheading
-- source (string, optional): data source attribution below map
-- height (string): map height. "100vh" (full viewport, default), "80vh", "60vh", "500px".
-- maxWidth (string): max container width. "1400px" (default), "1100px", "100%".
-- layout (string): "side" (map left, cards right — default) or "behind" (full-viewport map, cards float on top).
-- tileStyle (string): map tile appearance. "default" (clean, no city labels — best for scrollytelling), "clean" (smooth minimal), "toner" (high-contrast B&W, no labels), "watercolor" (artistic), "toner-lite" (light B&W), "dark" (dark smooth), "osm" (standard OSM with labels).
-- initialCenter ([lat, lng]): starting center point. Use real coordinates.
-- initialZoom (number): starting zoom 1-18. Country=6, region=9, city=12, neighborhood=15, street=17.
-- flyDuration (number): seconds for fly-to animation between steps. Default 2.
-- scrollZoom (boolean): allow scroll wheel zoom. Default false.
-- mapRadius (string): border-radius of the map container. "16px" default, "0" for sharp.
+CRITICAL RULES — follow these exactly or the map will break:
+1. Route endpoints MUST exactly match marker coordinates. If marker "berlin" is at [52.52, 13.405], the route MUST start or end at exactly [52.52, 13.405]. No approximations.
+2. Use real, accurate coordinates for every place. Look up actual lat/lng.
+3. Routes need 5-10 waypoints following the real geographic path (roads, shipping lanes, flight arcs). Never draw straight lines between distant points.
+4. Every marker referenced in showMarkers must exist in the markers array.
+5. Every route referenced in animateRoute must exist in the routes array.
+6. The first step should NOT animate a route — it sets the scene. Route animation starts from step 2+.
+7. Step center coordinates should match or be near the action (a marker, a route midpoint).
+8. Use "behind" layout for immersive stories, "side" for analytical/data stories.
 
-Geographic features (defined once, referenced by ID in steps):
-- markers (array): each has:
-  - id (string): unique ID referenced by steps (e.g. "berlin", "marker-1")
-  - lat (number): latitude (decimal degrees)
-  - lng (number): longitude (decimal degrees)
-  - label (string): text on the marker circle (e.g. "1", "A", emoji)
-  - name (string): place name shown below the marker dot (e.g. "Berlin", "Honolulu"). ALWAYS set this — it replaces tile city labels.
-  - popupHtml (string): HTML popup content. Use <strong> for titles, <br> for line breaks.
-  - color (string): hex color for marker. Default "#c06830".
-- routes (array): animated polyline paths. Each has:
-  - id (string): unique ID referenced by steps
-  - points (array): array of [lat, lng] coordinate pairs defining the path. Use 4-8 points along the real route.
-  - color (string): hex color. Default "#c06830".
-  - weight (number): line thickness. Default 3.
-  - animate (boolean): if true, route draws progressively when triggered. Default true.
-  - label (string): text shown at midpoint of route.
-  - dashArray (string): dash pattern e.g. "10,6" for dashed. Empty for solid.
-- areas (array): polygon highlights. Each has:
-  - id (string): unique ID
-  - points (array): array of [lat, lng] coordinate pairs forming the boundary
-  - color (string): hex color. Default "#c06830".
-  - fillOpacity (number): 0-1. Default 0.2.
-  - label (string): popup text when clicked.
+Fields:
+- title, subtitle, source (strings, optional)
+- height: "100vh" (default), "80vh", "60vh"
+- maxWidth: "100%" (default for behind), "1400px" (for side)
+- layout: "behind" (fullscreen map, cards float) or "side" (map left, cards right)
+- tileStyle: "default" (clean, no labels — best), "toner-lite" (light labels), "dark", "watercolor", "osm"
+- initialCenter: [lat, lng] — starting view
+- initialZoom: 1-18. World=3, continent=4, country=6, region=9, city=12, street=16
+- flyDuration: seconds for transitions. Default 2.
 
-Scrollytelling steps:
-- steps (array): each step controls what the reader sees. Each has:
-  - badgeKind (string): pyramid/data/explain/future/voice
-  - badgeLabel (string): short label on the badge
-  - heading (string, optional): step heading
-  - body (string): 2-3 punchy sentences about this location/moment
-  - mapState (object): controls the map for this step:
-    - center ([lat, lng]): fly the camera here
-    - zoom (number): zoom level to fly to
-    - showMarkers (string[]): IDs of markers to show (others hidden). ["berlin","frankfurt"]
-    - showAreas (string[]): IDs of areas to show
-    - animateRoute (string|null): route ID to animate drawing. null = no route this step.
-    - tileStyle (string|null): switch tile style. null = keep current.
-    - fitBounds (boolean): if true, fit map to all visible features instead of flyTo
+markers array — each: { id, lat, lng, label, name, popupHtml, color }
+- label: "1", "2", "A", etc. (shown on dot)
+- name: place name below dot. ALWAYS set — tiles have no labels.
+- color: hex. Default "#c06830". Use different colors for origin vs destination.
 
-- caption (string, optional): caption below the block
-- credit (string): attribution line
+routes array — each: { id, points, color, weight, animate, label, dashArray }
+- points: [[lat,lng], ...] — 5-10 waypoints. FIRST point = origin marker coords. LAST point = destination marker coords.
+- weight: line thickness. Default 2. Use 1.5 for secondary routes, 2 for primary.
+- dashArray: "8,5" for dashed (sea routes, flights), null for solid (roads, rails)
 
-CRITICAL: Use real geographic coordinates. Look up actual lat/lng for cities, landmarks, regions. Each step should fly to a different location to create the scrollytelling journey. Write 3-5 steps.`,
+areas array — each: { id, points, color, fillOpacity }
+
+steps array — each: { badgeKind, badgeLabel, heading, body, mapState }
+- badgeKind: pyramid/data/explain/future/voice
+- heading: short title for this step
+- body: 2-3 punchy sentences
+- mapState: { center, zoom, showMarkers, showAreas, animateRoute, tileStyle, fitBounds }
+  - showMarkers: IDs of markers visible this step
+  - animateRoute: route ID to draw, or null
+  - fitBounds: true to auto-zoom to all visible features
+
+Example route connecting markers correctly:
+  markers: [{ id:"a", lat:52.52, lng:13.405, ... }, { id:"b", lat:50.11, lng:8.68, ... }]
+  routes: [{ id:"r1", points:[[52.52,13.405],[52.1,12.3],[51.3,11.0],[50.8,9.5],[50.11,8.68]], ... }]
+  ↑ First point = marker "a" coords, Last point = marker "b" coords. Middle points follow the real path.
+
+credit: "OpenStreetMap" (always include)`,
   },
 
   FullscreenImage: {
@@ -671,12 +661,12 @@ IMPROVE RULES:
 - For Scrolly blocks: "narrower layout" → reduce maxWidth (e.g. "1100px"). "wider" → increase (e.g. "1600px").
 - For Map2D blocks: "zoom in" → increase initialZoom or step mapState.zoom by 2. "zoom out" → decrease by 2.
 - For Map2D blocks: "focus on [city]" → change initialCenter to that city's real coordinates and set initialZoom to 13.
-- For Map2D blocks: "add marker at [place]" → add to markers array with real lat/lng and a unique id, and add id to relevant step's showMarkers.
-- For Map2D blocks: "dark map" or "dark tiles" → set tileStyle to "dark". "watercolor" → "watercolor". "black and white" → "toner". "clean" → "toner-lite".
-- For Map2D blocks: "smaller map" → set height to "60vh" or "400px". "bigger" or "full screen" → "100vh". "full width" → maxWidth "100%".
-- For Map2D blocks: "draw route from A to B" → add a route with real coordinate waypoints and a unique id. "add area around [place]" → add area polygon.
-- For Map2D blocks: "behind layout" or "fullscreen map" → set layout to "behind". "side layout" → "side".
-- For Map2D blocks: "faster transitions" → reduce flyDuration. "slower" → increase flyDuration.
+- For Map2D blocks: "add marker at [place]" → add to markers array with real lat/lng, unique id, and add id to relevant step's showMarkers.
+- For Map2D blocks: "draw route from A to B" → add route. CRITICAL: first point = origin marker [lat,lng], last point = destination marker [lat,lng]. Add 5-8 intermediate waypoints following the real geographic path. Route weight should be 2.
+- For Map2D blocks: "dark map" → tileStyle "dark". "watercolor" → "watercolor". "b&w" → "toner". "clean" → "toner-lite".
+- For Map2D blocks: "behind layout" or "fullscreen" → layout "behind". "side layout" → "side".
+- For Map2D blocks: when editing routes, ALWAYS verify route start/end points match the connected markers' exact lat/lng coordinates.
+- For Map2D blocks: "thinner lines" → reduce route weight (min 1). "thicker" → increase (max 4). "dashed" → dashArray "8,5".
 - For FullscreenImage blocks: "darker overlay" or "darker" → increase scrimOpacity. "lighter" → decrease scrimOpacity. "center text" → overlayPosition "center". "add kicker" → set kicker field. "no animation" → kenBurns false. "scroll indicator" or "scroll cue" → scrollCue true. "top-left" → overlayPosition "top-left". "no scrim" → scrimOpacity 0.
 - For AudioPlayer blocks: "change color" → update accentColor and waveformColor. "add transcript" → set transcript text. "shorter description" → trim description. "remove cover" → clear coverSrc. "add cover" → set coverSrc.
 - Universal: every block supports "bgOpacity" (number 0-1) to control the page background image visibility behind this block. "show background" → bgOpacity 0.3. "hide background" → bgOpacity 0. "strong background" → bgOpacity 0.5-0.8.

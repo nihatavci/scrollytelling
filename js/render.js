@@ -500,10 +500,8 @@ const COMPONENT_CSS = `
 .map2d-marker-wrap.is-visible .map2d-marker::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid currentColor;animation:map2dRing .9s cubic-bezier(.25,.1,.25,1) forwards}
 @keyframes map2dRing{0%{transform:scale(.7);opacity:.7}100%{transform:scale(1.8);opacity:0}}
 .map2d-marker-name{font-family:var(--font-body);font-size:.68rem;font-weight:600;color:var(--ink-black);white-space:nowrap;margin-top:5px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);box-shadow:0 1px 4px rgba(0,0,0,.1);letter-spacing:.01em}
-/* Route lines — thin, confident, with subtle drop shadow */
-.map2d-scrolly .leaflet-overlay-pane svg path.map2d-route{transition:stroke-dashoffset 2.5s cubic-bezier(.25,.1,.25,1),opacity .8s ease;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 3px rgba(0,0,0,.2))}
-/* Route shadow line — thicker blurred line behind the main route */
-.map2d-scrolly .leaflet-overlay-pane svg path.map2d-route-shadow{stroke-linecap:round;stroke-linejoin:round;transition:opacity .8s ease;filter:blur(3px)}
+/* Route lines — thin, confident, minimal */
+.map2d-scrolly .leaflet-overlay-pane svg path.map2d-route{transition:stroke-dashoffset 2.5s cubic-bezier(.25,.1,.25,1),opacity .8s ease;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 0 2px rgba(0,0,0,.12))}
 .map2d-route-label{background:rgba(255,255,255,.94);backdrop-filter:blur(10px);padding:4px 12px;border-radius:6px;font-family:var(--font-body);font-size:.7rem;font-weight:600;color:var(--ink-black);box-shadow:0 2px 8px rgba(0,0,0,.1);white-space:nowrap;pointer-events:none;transform:translate(-50%,-50%)}
 /* Area polygon transitions */
 .map2d-scrolly .leaflet-overlay-pane svg path.map2d-area{transition:fill-opacity .6s ease,stroke-opacity .6s ease}
@@ -759,27 +757,15 @@ async function wireMap2D(blockId, d) {
     });
   });
 
-  // Create all routes (initially hidden) — shadow line behind + main line
+  // Create all routes (initially hidden)
   const routeMap = {};
   (d.routes || []).forEach((r) => {
     if (!r.points || r.points.length < 2) return;
     const color = resolveColor(r.color);
-    const mainWeight = r.weight || 3;
-
-    // Shadow line — wider, blurred, sits behind the main route
-    const shadow = L.polyline(r.points, {
-      color: color,
-      weight: mainWeight * 3,
-      opacity: 0,
-      lineCap: 'round',
-      lineJoin: 'round',
-      className: 'map2d-route-shadow',
-      interactive: false,
-    }).addTo(map);
 
     const line = L.polyline(r.points, {
       color: color,
-      weight: mainWeight,
+      weight: r.weight || 2,
       opacity: 0,
       dashArray: r.dashArray || null,
       lineCap: 'round',
@@ -789,7 +775,6 @@ async function wireMap2D(blockId, d) {
     const rId = r.id || ('r' + JSON.stringify(r.points[0]));
     routeMap[rId] = {
       line: line,
-      shadow: shadow,
       points: r.points,
       animate: r.animate !== false,
       revealed: false,
@@ -882,11 +867,10 @@ async function wireMap2D(blockId, d) {
       });
     }
 
-    // Animate route drawing — main line + shadow
+    // Animate route drawing
     if (ms.animateRoute) {
       const entry = routeMap[ms.animateRoute];
       if (entry && !entry.revealed) {
-        entry.shadow.setStyle({ opacity: 0.12 });
         entry.line.setStyle({ opacity: 0.9 });
         requestAnimationFrame(() => {
           const pathEl = entry.line.getElement();
@@ -896,16 +880,6 @@ async function wireMap2D(blockId, d) {
             pathEl.style.strokeDashoffset = len + '';
             pathEl.getBoundingClientRect();
             pathEl.style.strokeDashoffset = '0';
-          }
-          // Also animate shadow draw in sync
-          const shadowEl = entry.shadow.getElement();
-          if (shadowEl && entry.animate) {
-            const sLen = shadowEl.getTotalLength();
-            shadowEl.style.strokeDasharray = sLen + '';
-            shadowEl.style.strokeDashoffset = sLen + '';
-            shadowEl.style.transition = 'stroke-dashoffset 2.5s cubic-bezier(.25,.1,.25,1)';
-            shadowEl.getBoundingClientRect();
-            shadowEl.style.strokeDashoffset = '0';
           }
         });
         if (entry.labelMarker) {
@@ -917,7 +891,6 @@ async function wireMap2D(blockId, d) {
         }
         entry.revealed = true;
       } else if (entry) {
-        entry.shadow.setStyle({ opacity: 0.12 });
         entry.line.setStyle({ opacity: 0.9 });
       }
     }
