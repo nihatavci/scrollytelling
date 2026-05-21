@@ -566,14 +566,8 @@ const COMPONENT_CSS = `
 
 /* ── Parallax block ── */
 .parallax{position:relative;height:100vh;overflow:hidden;z-index:1;background:#000}
-.parallax__layer{position:absolute;inset:0}
-.parallax__layer img{width:100%;height:100%;object-fit:cover;display:block}
-.parallax__bg img{scale:1.3;animation:parallax-slow linear both;animation-timeline:view();animation-range:entry 0% exit 100%}
-.parallax__mid img{scale:1.4;animation:parallax-mid linear both;animation-timeline:view();animation-range:entry 0% exit 100%}
-.parallax__fg img{scale:1.5;animation:parallax-fast linear both;animation-timeline:view();animation-range:entry 0% exit 100%}
-@keyframes parallax-slow{from{translate:0 8%}to{translate:0 -8%}}
-@keyframes parallax-mid{from{translate:0 14%}to{translate:0 -14%}}
-@keyframes parallax-fast{from{translate:0 20%}to{translate:0 -20%}}
+.parallax__layer{position:absolute;inset:-15% 0;height:130%}
+.parallax__layer img{width:100%;height:100%;object-fit:cover;display:block;will-change:transform}
 .parallax__overlay{position:absolute;z-index:4;padding:2rem;max-width:680px}
 .parallax__overlay--center{inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;margin:0 auto}
 .parallax__overlay--bottom-left{bottom:0;left:0;padding-bottom:4rem}
@@ -583,7 +577,6 @@ const COMPONENT_CSS = `
 .parallax__subtitle{font-family:var(--font-body);font-size:clamp(.95rem,2vw,1.15rem);color:rgba(255,255,255,.88);line-height:1.5;text-shadow:0 1px 10px rgba(0,0,0,.4);margin:.6rem 0 0}
 .parallax--tint-dark::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.15),rgba(0,0,0,.45));z-index:3;pointer-events:none}
 .parallax--tint-light::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,.15),rgba(255,255,255,.4));z-index:3;pointer-events:none}
-@supports not (animation-timeline:view()){.parallax__bg img,.parallax__mid img,.parallax__fg img{scale:1.05;animation:none}}
 .parallax--empty{background:linear-gradient(135deg,#e2e8f0 0%,#cbd5e1 50%,#94a3b8 100%);display:flex;align-items:center;justify-content:center}
 .parallax__placeholder{display:flex;flex-direction:column;align-items:center;gap:.75rem;color:rgba(0,0,0,.4);z-index:5;text-align:center;cursor:pointer}
 .parallax__ph-icon{opacity:.5}
@@ -1249,6 +1242,46 @@ function renderParallax(d) {
   if (d.subtitle) overlay.appendChild(el('p', { class: 'parallax__subtitle' }, d.subtitle));
   else if (!hasAnyImage) overlay.appendChild(el('p', { class: 'parallax__subtitle parallax__subtitle--ghost' }, 'Subtitle text'));
   sec.appendChild(overlay);
+
+  // ── JS-driven parallax scroll effect ──
+  if (hasAnyImage) {
+    var layers = [];
+    var bgImg = sec.querySelector('.parallax__bg img');
+    var midImg = sec.querySelector('.parallax__mid img');
+    var fgImg = sec.querySelector('.parallax__fg img');
+    if (bgImg)  layers.push({ el: bgImg,  speed: 0.3 });  // slow — classic parallax
+    if (midImg) layers.push({ el: midImg, speed: 0.5 });  // medium
+    if (fgImg)  layers.push({ el: fgImg,  speed: 0.7 });  // fast
+    // Single-layer? Still shift it for that editorial depth
+    if (layers.length === 1) layers[0].speed = 0.35;
+
+    var active = false;
+    var rafId;
+    function updateParallax() {
+      var rect = sec.getBoundingClientRect();
+      var vh = window.innerHeight;
+      // progress: 0.5 when entering bottom, 0 when centered, -0.5 when exiting top
+      var progress = (rect.top + rect.height * 0.5 - vh * 0.5) / vh;
+      for (var i = 0; i < layers.length; i++) {
+        var shift = progress * layers[i].speed * -30; // percent shift
+        layers[i].el.style.transform = 'translateY(' + shift + '%)';
+      }
+      if (active) rafId = requestAnimationFrame(updateParallax);
+    }
+    var pxObs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(e) {
+        if (e.isIntersecting && !active) {
+          active = true;
+          rafId = requestAnimationFrame(updateParallax);
+        } else if (!e.isIntersecting && active) {
+          active = false;
+          cancelAnimationFrame(rafId);
+        }
+      });
+    }, { rootMargin: '100% 0px' });
+    // Start observing once element is in DOM (deferred)
+    requestAnimationFrame(function() { pxObs.observe(sec); });
+  }
 
   return sec;
 }
