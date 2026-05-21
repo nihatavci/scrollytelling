@@ -557,6 +557,34 @@ const COMPONENT_CSS = `
 .audioplayer-caption{font-family:var(--font-body);font-size:.85rem;color:var(--graphite,#636363);font-style:italic;line-height:1.5}
 .audioplayer-credit{font-family:var(--font-body);font-size:.75rem;color:var(--steel,#8c8078);margin-top:.15rem}
 @media(max-width:600px){.audioplayer{padding:0 1rem}.audioplayer-card{flex-direction:column;padding:1.2rem}.audioplayer-cover{width:100%;height:160px}.audioplayer-meta{padding:0 1rem}}
+
+/* ── Parallax block ── */
+.parallax{position:relative;height:100vh;overflow:hidden;z-index:1;background:#000}
+.parallax__layer{position:absolute;inset:0}
+.parallax__layer img{width:100%;height:100%;object-fit:cover;display:block}
+.parallax__bg img{scale:1.3;animation:parallax-slow linear both;animation-timeline:view();animation-range:entry 0% exit 100%}
+.parallax__mid img{scale:1.4;animation:parallax-mid linear both;animation-timeline:view();animation-range:entry 0% exit 100%}
+.parallax__fg img{scale:1.5;animation:parallax-fast linear both;animation-timeline:view();animation-range:entry 0% exit 100%}
+@keyframes parallax-slow{from{translate:0 8%}to{translate:0 -8%}}
+@keyframes parallax-mid{from{translate:0 14%}to{translate:0 -14%}}
+@keyframes parallax-fast{from{translate:0 20%}to{translate:0 -20%}}
+.parallax__overlay{position:absolute;z-index:4;padding:2rem;max-width:680px}
+.parallax__overlay--center{inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;margin:0 auto}
+.parallax__overlay--bottom-left{bottom:0;left:0;padding-bottom:4rem}
+.parallax__overlay--bottom-right{bottom:0;right:0;text-align:right;padding-bottom:4rem}
+.parallax__overlay--top-left{top:0;left:0;padding-top:4rem}
+.parallax__headline{font-family:var(--font-display);font-size:clamp(2rem,5vw,3.5rem);font-weight:300;color:#fff;line-height:1.1;letter-spacing:-.04em;text-shadow:0 2px 20px rgba(0,0,0,.5);margin:0}
+.parallax__subtitle{font-family:var(--font-body);font-size:clamp(.95rem,2vw,1.15rem);color:rgba(255,255,255,.88);line-height:1.5;text-shadow:0 1px 10px rgba(0,0,0,.4);margin:.6rem 0 0}
+.parallax--tint-dark::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,.15),rgba(0,0,0,.45));z-index:3;pointer-events:none}
+.parallax--tint-light::after{content:"";position:absolute;inset:0;background:linear-gradient(to bottom,rgba(255,255,255,.15),rgba(255,255,255,.4));z-index:3;pointer-events:none}
+@supports not (animation-timeline:view()){.parallax__bg img,.parallax__mid img,.parallax__fg img{scale:1.05;animation:none}}
+.parallax--empty{background:linear-gradient(135deg,#e2e8f0 0%,#cbd5e1 50%,#94a3b8 100%);display:flex;align-items:center;justify-content:center}
+.parallax__placeholder{display:flex;flex-direction:column;align-items:center;gap:.75rem;color:rgba(0,0,0,.4);z-index:5;text-align:center;cursor:pointer}
+.parallax__ph-icon{opacity:.5}
+.parallax__ph-title{font-family:var(--font-display);font-size:1.1rem;font-weight:500;letter-spacing:-.01em}
+.parallax__ph-hint{font-size:.8rem;opacity:.6;max-width:240px;line-height:1.4}
+.parallax__headline--ghost,.parallax__subtitle--ghost{opacity:.35;font-style:italic}
+@media(max-width:600px){.parallax{height:75vh}.parallax__overlay{padding:1.5rem}}
 `;
 
 function injectComponentCSS() {

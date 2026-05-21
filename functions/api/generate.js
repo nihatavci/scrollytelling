@@ -570,6 +570,39 @@ WRITING RULES for FullBleed:
 - Subtitle is the thesis in one sentence. Evocative, not descriptive.
 - Body is optional — only if the image needs narrative context. Keep under 2 sentences.`,
   },
+  Parallax: {
+    example: {
+      backgroundSrc: '',
+      backgroundAlt: 'Mountain landscape',
+      midgroundSrc: '',
+      midgroundAlt: 'Trees in mid-distance',
+      foregroundSrc: '',
+      foregroundAlt: 'Flowers in foreground',
+      headline: 'Die Tiefe der Geschichte',
+      subtitle: 'Drei Ebenen, ein Augenblick — Parallax erzählt räumlich.',
+      overlayPosition: 'center',
+      tint: 'dark',
+    },
+    description: `Layered depth parallax block — 2-3 images shift at different scroll speeds for cinematic immersion. Used as chapter openers or dramatic section breaks.
+
+Fields:
+- backgroundSrc (string): URL of the deepest/slowest layer image
+- backgroundAlt (string): alt text for background
+- midgroundSrc (string): URL of the middle layer image (optional)
+- midgroundAlt (string): alt text for midground
+- foregroundSrc (string): URL of the closest/fastest layer image (optional)
+- foregroundAlt (string): alt text for foreground
+- headline (string): large display heading overlaid on the parallax
+- subtitle (string): one-line subtitle
+- overlayPosition (string): "center" (default), "bottom-left", "bottom-right", or "top-left"
+- tint (string): "dark" (default), "light", or "none"
+
+WRITING RULES for Parallax:
+- Headline: dramatic, 3-6 words. This is a chapter opener.
+- Subtitle: evocative single sentence, not descriptive.
+- Image fields are URLs — leave empty strings if no images are provided (user uploads separately).
+- tint "dark" is best for light text on dark images, "light" for dark landscapes.`,
+  },
 };
 
 function buildSystemPrompt(type, mode, lang, direct) {
@@ -658,6 +691,7 @@ function validateBlockData(type, data) {
     Editorial: ['content'],
     FullscreenImage: ['imageSrc', 'title'],
     FullBleed: ['title'],
+    Parallax: ['headline'],
     Quote: ['text'],
     Aside: ['title', 'body'],
     Outro: ['h2'],
