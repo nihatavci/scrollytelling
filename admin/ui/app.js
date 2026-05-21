@@ -200,13 +200,19 @@ const BLOCK_SCHEMAS = {
     name: 'Image Grid',
     description: 'Flexible photo grid with opinionated layout presets — side-by-side, feature, triptych, mosaic, and more.',
     fields: [
-      { key: 'layout',  label: 'Layout preset', kind: 'text', hint: 'side-by-side, feature-left, feature-right, triptych, quad, hero-grid, mosaic, filmstrip' },
-      { key: 'images',  label: 'Images',  kind: 'array', group: 'media', itemFields: [
-        { key: 'src',     label: 'Image URL', kind: 'text' },
-        { key: 'alt',     label: 'Alt text',  kind: 'text' },
-        { key: 'caption', label: 'Caption',   kind: 'text' },
-        { key: 'credit',  label: 'Credit',    kind: 'text' },
-      ]},
+      { key: 'layout', label: 'Layout', kind: 'layout_grid', group: 'layout', defaultValue: 'side-by-side', imageCount: {
+        'side-by-side': 2, 'feature-left': 3, 'feature-right': 3, 'triptych': 3,
+        'quad': 4, 'hero-grid': 3, 'mosaic': 5, 'filmstrip': 6,
+      }},
+      { key: 'images', label: 'Images', kind: 'repeater', group: 'media', min: 1, max: 8,
+        itemFields: [
+          { key: 'src', label: 'Image', kind: 'image_upload' },
+          { key: 'alt', label: 'Alt text', kind: 'text', hint: 'Describe the image for accessibility' },
+          { key: 'caption', label: 'Caption', kind: 'text' },
+          { key: 'credit', label: 'Credit', kind: 'text', hint: 'Photographer / source' },
+        ],
+        defaults: [{ src: '', alt: '', caption: '', credit: '' }, { src: '', alt: '', caption: '', credit: '' }],
+      },
       { key: 'title',   label: 'Title',   kind: 'text', group: 'layout' },
       { key: 'caption', label: 'Overall caption', kind: 'textarea', group: 'meta', inline: true },
       { key: 'credit',  label: 'Photo credit',    kind: 'text', group: 'meta', inline: true },
@@ -1021,18 +1027,12 @@ const BLOCK_CREATION_CARDS = {
     headline: 'Image Grid',
     hint: 'Flexible photo grid with layout presets',
     fields: [
-      { key: 'layout', label: 'Layout', kind: 'button_group', options: [
-        { value: 'side-by-side', label: '2 Equal' },
-        { value: 'feature-left', label: '1 Big + 2 Small' },
-        { value: 'feature-right', label: '2 Small + 1 Big' },
-        { value: 'triptych', label: '3 Equal' },
-        { value: 'quad', label: '2×2 Grid' },
-        { value: 'hero-grid', label: '1 Top + Row' },
-        { value: 'mosaic', label: 'Mosaic' },
-        { value: 'filmstrip', label: 'Film Strip' },
-      ], defaultValue: 'side-by-side' },
+      { key: 'layout', label: 'Layout', kind: 'layout_grid', defaultValue: 'side-by-side', imageCount: {
+        'side-by-side': 2, 'feature-left': 3, 'feature-right': 3, 'triptych': 3,
+        'quad': 4, 'hero-grid': 3, 'mosaic': 5, 'filmstrip': 6,
+      }},
       { key: 'title', label: 'Title', kind: 'text', hint: 'Optional heading above grid' },
-      { key: 'images', label: 'Images', kind: 'repeater', min: 2, max: 8,
+      { key: 'images', label: 'Images', kind: 'repeater', min: 1, max: 8,
         itemFields: [
           { key: 'src', label: 'Image', kind: 'image_upload' },
           { key: 'alt', label: 'Alt text', kind: 'text', hint: 'Describe the image for accessibility' },
@@ -1048,7 +1048,8 @@ const BLOCK_CREATION_CARDS = {
       const images = (data.images || []).map(c => ({
         src: c.src || '', alt: c.alt || c.caption || '', caption: c.caption || '', credit: c.credit || '',
       }));
-      while (images.length < 2) images.push({ src: '', alt: '', caption: '', credit: '' });
+      const needed = ({ 'side-by-side': 2, 'feature-left': 3, 'feature-right': 3, 'triptych': 3, 'quad': 4, 'hero-grid': 3, 'mosaic': 5, 'filmstrip': 6 })[data.layout] || 2;
+      while (images.length < needed) images.push({ src: '', alt: '', caption: '', credit: '' });
       return { layout: data.layout || 'side-by-side', title: data.title || '', images, caption: data.caption || '', credit: data.credit || '' };
     },
   },
@@ -1328,6 +1329,49 @@ function renderCreationField(fieldDef, data, onChange) {
       });
       if (!data[key] && options.length) data[key] = typeof options[0] === 'string' ? options[0] : options[0].value;
       wrap.appendChild(group);
+      break;
+    }
+
+    // ── Visual layout grid picker (ImageGrid layouts with SVG thumbnails) ──
+    case 'layout_grid': {
+      const LAYOUT_THUMBS = {
+        'side-by-side': { label: '2 Equal', count: 2, svg: '<rect x="1" y="1" width="17" height="22" rx="2" fill="#e8e4df"/><rect x="20" y="1" width="17" height="22" rx="2" fill="#d4cdc5"/>' },
+        'feature-left': { label: 'Feature Left', count: 3, svg: '<rect x="1" y="1" width="22" height="22" rx="2" fill="#d4cdc5"/><rect x="25" y="1" width="12" height="10" rx="2" fill="#e8e4df"/><rect x="25" y="13" width="12" height="10" rx="2" fill="#e8e4df"/>' },
+        'feature-right': { label: 'Feature Right', count: 3, svg: '<rect x="1" y="1" width="12" height="10" rx="2" fill="#e8e4df"/><rect x="1" y="13" width="12" height="10" rx="2" fill="#e8e4df"/><rect x="15" y="1" width="22" height="22" rx="2" fill="#d4cdc5"/>' },
+        'triptych': { label: '3 Equal', count: 3, svg: '<rect x="1" y="1" width="11" height="22" rx="2" fill="#e8e4df"/><rect x="13.5" y="1" width="11" height="22" rx="2" fill="#d4cdc5"/><rect x="26" y="1" width="11" height="22" rx="2" fill="#e8e4df"/>' },
+        'quad': { label: '2x2 Grid', count: 4, svg: '<rect x="1" y="1" width="17" height="10" rx="2" fill="#e8e4df"/><rect x="20" y="1" width="17" height="10" rx="2" fill="#d4cdc5"/><rect x="1" y="13" width="17" height="10" rx="2" fill="#d4cdc5"/><rect x="20" y="13" width="17" height="10" rx="2" fill="#e8e4df"/>' },
+        'hero-grid': { label: 'Hero + Row', count: 3, svg: '<rect x="1" y="1" width="36" height="13" rx="2" fill="#d4cdc5"/><rect x="1" y="16" width="17" height="7" rx="2" fill="#e8e4df"/><rect x="20" y="16" width="17" height="7" rx="2" fill="#e8e4df"/>' },
+        'mosaic': { label: 'Mosaic', count: 5, svg: '<rect x="1" y="1" width="17" height="13" rx="2" fill="#d4cdc5"/><rect x="20" y="1" width="17" height="8" rx="2" fill="#e8e4df"/><rect x="20" y="11" width="17" height="12" rx="2" fill="#d4cdc5"/><rect x="1" y="16" width="11" height="7" rx="2" fill="#e8e4df"/><rect x="14" y="16" width="4" height="7" rx="2" fill="#d9d0c7"/>' },
+        'filmstrip': { label: 'Film Strip', count: 6, svg: '<rect x="0" y="4" width="8" height="16" rx="1.5" fill="#e8e4df"/><rect x="9" y="2" width="8" height="20" rx="1.5" fill="#d4cdc5"/><rect x="18" y="4" width="8" height="16" rx="1.5" fill="#e8e4df"/><rect x="27" y="2" width="8" height="20" rx="1.5" fill="#d4cdc5"/><rect x="36" y="6" width="3" height="12" rx="1" fill="#e8e4df" opacity=".5"/>' },
+      };
+      const grid = document.createElement('div');
+      grid.className = 'cc-layout-grid';
+      const current = data[key] ?? defaultValue ?? 'side-by-side';
+      const imgCounts = fieldDef.imageCount || {};
+      Object.entries(LAYOUT_THUMBS).forEach(([val, thumb]) => {
+        const card = document.createElement('button');
+        card.type = 'button';
+        card.className = 'cc-layout-card' + (val === current ? ' active' : '');
+        card.innerHTML = `<svg viewBox="0 0 38 24" class="cc-layout-svg">${thumb.svg}</svg><div class="cc-layout-label">${thumb.label}</div><div class="cc-layout-count">${thumb.count} img</div>`;
+        card.addEventListener('click', () => {
+          data[key] = val;
+          grid.querySelectorAll('.cc-layout-card').forEach(c => c.classList.toggle('active', c === card));
+          // Auto-resize images array to match layout's expected count
+          const needed = imgCounts[val] || 2;
+          if (Array.isArray(data.images)) {
+            while (data.images.length < needed) data.images.push({ src: '', alt: '', caption: '', credit: '' });
+          }
+          onChange(key, val);
+        });
+        grid.appendChild(card);
+      });
+      if (!data[key]) data[key] = current;
+      // Initialize images count on first render
+      const initNeeded = imgCounts[current] || 2;
+      if (Array.isArray(data.images) && data.images.length < initNeeded) {
+        while (data.images.length < initNeeded) data.images.push({ src: '', alt: '', caption: '', credit: '' });
+      }
+      wrap.appendChild(grid);
       break;
     }
 
@@ -3555,8 +3599,18 @@ function renderField(field, data, onChange) {
       wrap.appendChild(addBtn);
       break;
     }
-    default:
-      wrap.appendChild(document.createTextNode(`Unsupported field kind: ${field.kind}`));
+    default: {
+      // Delegate to renderCreationField for kinds it supports (layout_grid, repeater, button_group, image_upload, etc.)
+      const delegated = renderCreationField(field, data, (k, v) => { data[k] = v; onChange(); renderEditor(); });
+      if (delegated) {
+        // Strip the duplicate label — renderCreationField adds its own
+        wrap.innerHTML = '';
+        wrap.appendChild(delegated);
+      } else {
+        wrap.appendChild(document.createTextNode(`Unsupported field kind: ${field.kind}`));
+      }
+      break;
+    }
   }
   return wrap;
 }

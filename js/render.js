@@ -2316,29 +2316,39 @@ function renderImageGrid(d) {
     grid.style.setProperty('--ig-film-count', n);
   }
 
-  // Build cells
+  // Build cells — always creates an <img> (with placeholder fallback) so visual-edit can target it
   function buildCell(img, i) {
     const cell = el('div', { class: 'ig-cell' });
     const media = el('div', { class: 'ig-cell-media' });
+    const src = img.src || img.url || '';
 
-    const imgEl = el('img', {
-      src: img.src || img.url || '',
-      alt: img.alt || img.caption || '',
-      loading: i < 2 ? 'eager' : 'lazy',
-    });
-    imgEl.onerror = function() {
-      this.style.display = 'none';
+    if (src) {
+      const imgEl = el('img', {
+        class: 'ig-cell-img',
+        src: src,
+        alt: img.alt || img.caption || '',
+        loading: i < 2 ? 'eager' : 'lazy',
+      });
+      imgEl.onerror = function() {
+        this.style.display = 'none';
+        media.classList.add('ig-cell-broken');
+        media.insertAdjacentHTML('afterbegin', '<div class="ig-cell-ph">' + escapeHtml(img.alt || img.caption || 'Image') + '</div>');
+      };
+      media.appendChild(imgEl);
+    } else {
+      // Empty placeholder — visual-edit can bind click handler via .ig-cell img selector
       media.classList.add('ig-cell-broken');
-      media.insertAdjacentHTML('afterbegin', '<div class="ig-cell-ph">' + escapeHtml(img.alt || img.caption || 'Image') + '</div>');
-    };
-    media.appendChild(imgEl);
+      const ph = el('img', {
+        class: 'ig-cell-img',
+        src: 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" viewBox="0 0 400 300"><rect fill="#f0f0f0" width="400" height="300"/><text x="200" y="155" text-anchor="middle" font-family="system-ui" font-size="14" fill="#999">Image</text></svg>'),
+        alt: img.alt || 'Image placeholder',
+      });
+      media.appendChild(ph);
+    }
     cell.appendChild(media);
 
-    // Per-image caption (visible below image)
     if (img.caption) cell.appendChild(el('div', { class: 'ig-cell-cap' }, img.caption));
-    // Per-image credit (italic, below caption)
     if (img.credit) cell.appendChild(el('div', { class: 'ig-cell-credit' }, img.credit));
-    // Per-image description (small paragraph below credit)
     if (img.description) cell.appendChild(el('div', { class: 'ig-cell-desc' }, img.description));
 
     return cell;

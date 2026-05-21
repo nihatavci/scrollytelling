@@ -1305,6 +1305,21 @@ aside, main {
 .cc-btn-opt:hover { background: #f6f8fa; color: #1f2328; }
 .cc-btn-opt.active { background: #1f2328; color: #fff; }
 
+/* Layout grid picker (ImageGrid visual layout selector) */
+.cc-layout-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+}
+.cc-layout-card {
+  display: flex; flex-direction: column; align-items: center; gap: 4px;
+  padding: 10px 6px 8px; border: 2px solid #e1e4e8; border-radius: 10px;
+  background: #fff; cursor: pointer; transition: all 0.15s;
+}
+.cc-layout-card:hover { border-color: #b0b8c1; background: #f8f9fa; }
+.cc-layout-card.active { border-color: #1f2328; background: #f0f3f6; box-shadow: 0 0 0 1px #1f2328; }
+.cc-layout-svg { width: 100%; height: 28px; }
+.cc-layout-label { font-size: 11px; font-weight: 600; color: #1f2328; line-height: 1.2; text-align: center; }
+.cc-layout-count { font-size: 10px; font-weight: 400; color: #8b949e; }
+
 /* Range slider */
 .cc-range-row { display: flex; align-items: center; gap: 10px; }
 .cc-range { flex: 1; accent-color: #0969da; }
