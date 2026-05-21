@@ -102,6 +102,12 @@
     '.ig-cell img':                             { field: 'images',  type: 'image', indexed: true, subfield: 'src' },
     '.ig-cell-cap':                             { field: 'images',  type: 'text',  indexed: true, subfield: 'caption' },
     '.ig-cell-credit':                          { field: 'images',  type: 'text',  indexed: true, subfield: 'credit' },
+    // Parallax
+    '.parallax__bg img':        { field: 'backgroundSrc', type: 'image' },
+    '.parallax__mid img':       { field: 'midgroundSrc',  type: 'image' },
+    '.parallax__fg img':        { field: 'foregroundSrc', type: 'image' },
+    '.parallax__headline':      { field: 'headline',      type: 'text' },
+    '.parallax__subtitle':      { field: 'subtitle',      type: 'text' },
     // VizPanel
     '.viz-title':                               { field: 'initialTitle', type: 'text' },
     '.viz-sub':                                 { field: 'initialSub',   type: 'text' },
