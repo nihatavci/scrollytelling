@@ -144,6 +144,24 @@ const BLOCK_SCHEMAS = {
       { key: 'credit',           label: 'Credit',             kind: 'text', group: 'meta', inline: true },
     ]
   },
+  Parallax: {
+    name: 'Depth',
+    description: 'Layered depth parallax — 2-3 images shift at different scroll speeds. Cinematic immersion for chapter openers.',
+    fields: [
+      { key: 'backgroundSrc', label: 'Background image (slowest)', kind: 'image', group: 'media' },
+      { key: 'backgroundAlt', label: 'Background alt text',        kind: 'text', group: 'media', inline: true },
+      { key: 'midgroundSrc',  label: 'Midground image',            kind: 'image', group: 'media' },
+      { key: 'midgroundAlt',  label: 'Midground alt text',         kind: 'text', group: 'media', inline: true },
+      { key: 'foregroundSrc', label: 'Foreground image (fastest)',  kind: 'image', group: 'media' },
+      { key: 'foregroundAlt', label: 'Foreground alt text',        kind: 'text', group: 'media', inline: true },
+      { key: 'headline',      label: 'Headline',                    kind: 'text', group: 'content' },
+      { key: 'subtitle',      label: 'Subtitle',                    kind: 'text', group: 'content' },
+      { key: 'overlayPosition', label: 'Text position', kind: 'select', group: 'layout',
+        options: ['center', 'bottom-left', 'bottom-center'] },
+      { key: 'tint', label: 'Tint', kind: 'select', group: 'layout',
+        options: ['dark', 'light', 'none'] },
+    ]
+  },
   VideoEmbed: {
     name: 'Footage',
     description: 'Moving image evidence — interviews, event recordings, scene-setting footage. Embedded from YouTube or Vimeo.',
@@ -332,7 +350,7 @@ const BLOCK_ICONS = {
   DataScrolly: '\u{1F4C8}', FullBleed: '\u{1F3AC}', ImageCompare: '\u{2696}\u{FE0F}',
   ImageHotspot: '\u{1F4CD}', AccordionBlock: '\u{1F4C2}', ProgressNav: '\u{1F4CD}',
   EmbedBlock: '\u{1F9E9}', ImageGrid: '\u{1F50D}', Map2D: '\u{1F9ED}',
-  FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}',
+  FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}', Parallax: '🏔️',
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -405,7 +423,7 @@ const PALETTE_CATEGORIES = [
   {
     label: 'Immersive Moments',
     hint: 'Full-viewport scenes that stop the reader',
-    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer'],
+    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer', 'Parallax'],
   },
   {
     label: 'Evidence & Proof',
@@ -620,6 +638,17 @@ const BLOCK_PREVIEWS = {
       </div>
       <div style="position:absolute;bottom:5px;right:8px;display:flex;flex-direction:column;align-items:center;gap:1px;">
         <div style="width:5px;height:5px;border-right:1px solid rgba(255,255,255,.5);border-bottom:1px solid rgba(255,255,255,.5);transform:rotate(45deg);"></div>
+      </div>
+    </div>`,
+  Parallax: `
+    <div style="border-radius:6px;height:70px;position:relative;overflow:hidden;">
+      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#2d4a3e 0%,#1a2f28 100%);"></div>
+      <div style="position:absolute;inset:-8px -4px;background:linear-gradient(135deg,#3d6a5e 0%,#2a4f38 100%);opacity:.5;transform:translateY(4px);"></div>
+      <div style="position:absolute;inset:-12px -6px;background:linear-gradient(135deg,#5d8a7e 0%,#3a6f58 100%);opacity:.3;transform:translateY(8px);"></div>
+      <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.5) 100%);z-index:2;"></div>
+      <div style="position:absolute;bottom:8px;left:10px;right:10px;z-index:3;text-align:center;">
+        <div style="font:700 13px 'DM Sans',sans-serif;color:#fff;line-height:1.1;letter-spacing:-.02em;">Layered Depth</div>
+        <div style="font:400 6.5px 'DM Sans',sans-serif;color:rgba(255,255,255,.65);margin-top:3px;">3 images · CSS parallax · 60fps</div>
       </div>
     </div>`,
   ImageCompare: `
@@ -987,6 +1016,17 @@ const BLOCK_CREATION_CARDS = {
       { key: 'description', label: 'Description', kind: 'textarea', rows: 3 },
       { key: 'coverSrc', label: 'Cover art', kind: 'image_upload' },
       { key: 'subtitle', label: 'Speaker name', kind: 'text' },
+    ],
+  },
+
+  Parallax: {
+    headline: 'Parallax Depth',
+    hint: '2-3 image layers that shift at different scroll speeds — cinematic depth effect',
+    fields: [
+      { key: 'backgroundSrc', label: 'Background image', kind: 'image_upload', required: true },
+      { key: 'headline', label: 'Headline', kind: 'text', placeholder: 'Chapter title or dramatic statement' },
+      { key: 'tint', label: 'Tint', kind: 'select',
+        options: ['dark', 'light', 'none'], defaultValue: 'dark' },
     ],
   },
 
