@@ -1274,6 +1274,28 @@ function defaultContentUrl() {
   return `./content/${slug === 'index.rendered' ? 'index' : slug}.json`;
 }
 
+// ── Lenis smooth scroll (loaded dynamically when enabled) ──
+function initLenis() {
+  if (window.__lenis) return;
+  const script = document.createElement('script');
+  script.src = 'https://cdn.jsdelivr.net/npm/lenis@1/dist/lenis.min.js';
+  script.onload = () => {
+    if (!window.Lenis) return;
+    const lenis = new window.Lenis({
+      lerp: 0.08,          // lower = smoother & slower (0.05-0.15 range)
+      smoothWheel: true,
+      syncTouch: false,     // native touch on mobile is already smooth
+    });
+    window.__lenis = lenis;
+    function raf(time) {
+      lenis.raf(time);
+      requestAnimationFrame(raf);
+    }
+    requestAnimationFrame(raf);
+  };
+  document.head.appendChild(script);
+}
+
 export async function render(jsonUrl, rootSelector = '#page-root') {
   injectComponentCSS();
 
@@ -1290,8 +1312,12 @@ export async function render(jsonUrl, rootSelector = '#page-root') {
 
   if (doc.meta?.title) document.title = doc.meta.title;
   if (doc.lang)        document.documentElement.lang = doc.lang;
-  if (doc.smoothScroll) document.documentElement.style.scrollBehavior = 'smooth';
-  else                  document.documentElement.style.scrollBehavior = '';
+  // Smooth scroll — Lenis for buttery-smooth wheel/touch scrolling
+  if (doc.smoothScroll && !window.__lenis) {
+    initLenis();
+  } else if (!doc.smoothScroll && window.__lenis) {
+    window.__lenis.destroy(); window.__lenis = null;
+  }
   applyMeta(doc.meta || {});
 
   // Load theme CSS (dia = default, claude, miranda)
@@ -2607,9 +2633,12 @@ window.addEventListener('message', function (evt) {
     var doc = evt.data.doc;
     if (!doc) return;
     window.__PAGE_DATA__ = doc;
-    // Apply page-level settings
-    if (doc.smoothScroll) document.documentElement.style.scrollBehavior = 'smooth';
-    else                  document.documentElement.style.scrollBehavior = '';
+    // Apply page-level settings — Lenis smooth scroll
+    if (doc.smoothScroll && !window.__lenis) {
+      initLenis();
+    } else if (!doc.smoothScroll && window.__lenis) {
+      window.__lenis.destroy(); window.__lenis = null;
+    }
     var root = document.querySelector('#page-root');
     if (!root) return;
     root.innerHTML = '';
