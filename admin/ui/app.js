@@ -4461,6 +4461,8 @@ function refreshPreview() {
   clearTimeout(refreshPreview._t);
   refreshPreview._t = setTimeout(() => {
     const iframe = $('#preview-frame');
+    // Suppress "Reload site?" dialog from contenteditable changes
+    try { iframe.contentWindow.onbeforeunload = null; } catch (_) {}
     // Save scroll position before reload
     let scrollY = 0;
     try { scrollY = iframe.contentWindow?.scrollY || 0; } catch (_) {}
@@ -4498,7 +4500,24 @@ $('#btn-visual-edit').addEventListener('click', () => {
   state.visualEditMode = !state.visualEditMode;
   $('#btn-visual-edit').classList.toggle('active', state.visualEditMode);
   $('#btn-visual-edit').textContent = state.visualEditMode ? '✏️ Editing' : '✏️ Edit';
-  refreshPreview();
+  const iframe = $('#preview-frame');
+  if (state.visualEditMode) {
+    // Enable: inject visual-edit.js into the existing iframe (no navigation)
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      const old = doc.getElementById('ve-injected');
+      if (old) old.remove();
+      const script = doc.createElement('script');
+      script.id = 've-injected';
+      script.src = window.location.origin + '/js/visual-edit.js?v=' + Date.now();
+      doc.body.appendChild(script);
+    } catch (_) {
+      refreshPreview(); // fallback for cross-origin issues
+    }
+  } else {
+    // Disable: tell visual-edit.js to tear down, then soft-refresh to clean DOM
+    try { iframe.contentWindow.postMessage({ type: 'visual-edit-teardown' }, '*'); } catch (_) {}
+  }
 });
 
 // ── Sidebar toggle (glass overlay) ──

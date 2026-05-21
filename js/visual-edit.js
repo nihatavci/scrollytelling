@@ -2,6 +2,14 @@
 (function () {
   'use strict';
 
+  // Guard against double-loading (e.g. script injected after blob already had it)
+  if (window.__VE_LOADED__) return;
+  window.__VE_LOADED__ = true;
+
+  // Prevent Chrome "Reload site?" dialog — contenteditable elements make Chrome
+  // think there are unsaved changes when the iframe navigates.
+  window.onbeforeunload = null;
+
   const EDITABLE_MAP = {
     // Hero
     '.cin-brand':                               { field: 'brand',        type: 'text' },
@@ -618,5 +626,40 @@
     });
   });
   observer.observe(document.body, { childList: true, subtree: true });
+
+  // ── Teardown: cleanly disable visual-edit without iframe navigation ─────────
+  // Parent sends { type: 'visual-edit-teardown' } when the pencil is toggled off.
+  window.addEventListener('message', function (e) {
+    if (!e.data) return;
+    if (e.data.type === 'visual-edit-teardown') {
+      // Stop observing so soft-refresh won't re-bind
+      observer.disconnect();
+      clearInterval(retryTimer);
+      // Remove contenteditable + data attributes
+      document.querySelectorAll('[data-ve]').forEach(function (el) {
+        el.removeAttribute('contenteditable');
+        el.removeAttribute('data-ve');
+      });
+      document.querySelectorAll('[data-ve-img]').forEach(function (el) {
+        el.removeAttribute('data-ve-img');
+        if (el._veOverlay && el._veOverlay.parentNode) el._veOverlay.parentNode.removeChild(el._veOverlay);
+      });
+      document.querySelectorAll('[data-ve-url]').forEach(function (el) {
+        el.removeAttribute('data-ve-url');
+        if (el._veUrlOverlay && el._veUrlOverlay.parentNode) el._veUrlOverlay.parentNode.removeChild(el._veUrlOverlay);
+      });
+      document.querySelectorAll('[data-ve-block-click]').forEach(function (el) {
+        el.removeAttribute('data-ve-block-click');
+      });
+      document.querySelectorAll('.ve-insert-zone').forEach(function (z) { z.remove(); });
+      // Remove badge and styles
+      var b = document.getElementById('ve-badge');
+      if (b) b.remove();
+      style.remove();
+      insertStyle.remove();
+      // Allow re-injection
+      window.__VE_LOADED__ = false;
+    }
+  });
 
 })();
