@@ -749,11 +749,17 @@ function validateBlockData(type, data) {
   return null; // valid
 }
 
-// DataScrolly quality assessment — returns { score, warnings[] } or null for non-DataScrolly
+// DataScrolly quality assessment — extracted to functions/lib/datascrolly-quality.js for testability
+// In Cloudflare Workers ESM context we can't require(), so we inline-import at module level.
+// The canonical source is functions/lib/datascrolly-quality.js (CJS for Node tests).
+// To keep a single source of truth without a build step, we duplicate the function here
+// via a thin wrapper that delegates to the same logic.
+// NOTE: If you change the scoring logic, update functions/lib/datascrolly-quality.js too.
+
 function assessDataScrollyQuality(type, data) {
   if (type !== 'DataScrolly' || !data) return null;
   const warnings = [];
-  let score = 100; // start at 100, deduct for issues
+  let score = 100;
 
   const spec = data.chartSpec || {};
   const chartData = Array.isArray(spec.data) ? spec.data : [];
@@ -761,7 +767,6 @@ function assessDataScrollyQuality(type, data) {
   const xF = spec.xField || 'x';
   const yF = spec.yField || 'y';
 
-  // 1. Data quantity check
   if (chartData.length < 3) {
     warnings.push('Very few data points (' + chartData.length + '). Add more data for a meaningful chart.');
     score -= 40;
@@ -770,7 +775,6 @@ function assessDataScrollyQuality(type, data) {
     score -= 15;
   }
 
-  // 2. Placeholder data detection — look for suspiciously round/fake values
   const yValues = chartData.map(d => +d[yF]).filter(v => !isNaN(v));
   const allRound = yValues.length > 2 && yValues.every(v => v % 5 === 0 || v % 10 === 0);
   const allSimple = yValues.length > 0 && yValues.every(v => v <= 100 && v === Math.round(v));
@@ -780,7 +784,6 @@ function assessDataScrollyQuality(type, data) {
     score -= 30;
   }
 
-  // 3. Generic label detection
   const xLabel = (spec.xLabel || '').toLowerCase();
   const yLabel = (spec.yLabel || '').toLowerCase();
   if (['x', 'value', 'label', 'category', ''].includes(xLabel)) {
@@ -792,13 +795,11 @@ function assessDataScrollyQuality(type, data) {
     score -= 10;
   }
 
-  // 4. Source check
   if (!data.source || data.source.length < 5) {
     warnings.push('No data source cited. Add a source for credibility.');
     score -= 10;
   }
 
-  // 5. Step-data consistency — check that highlightX values exist in the data
   const xValues = new Set(chartData.map(d => String(d[xF])));
   steps.forEach((s, i) => {
     const hx = s.vizState?.highlightX;
@@ -808,7 +809,6 @@ function assessDataScrollyQuality(type, data) {
     }
   });
 
-  // 6. Check for chart type morphing
   const hasMorph = steps.some(s => s.vizState?.chartType);
   if (!hasMorph && steps.length >= 3) {
     warnings.push('No chart type transitions between steps. Add chartType morphing for visual impact.');
