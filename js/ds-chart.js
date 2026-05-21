@@ -962,28 +962,30 @@ export class DSChart {
             .style('opacity', 0);
         }
 
+        // Set text content first so we can measure, then animate position
+        label.text(ann);
+
+        // Measure text width at current position for bg sizing
+        const bbox = label.node()?.getBBox();
+        const textW = bbox ? bbox.width : ann.length * 7; // fallback estimate
+        const textH = bbox ? bbox.height : 14;
+        const pad = 10;
+
+        // Animate both label and bg to the target position together
         label
-          .text(ann)
           .transition(t)
           .attr('x', px)
           .attr('y', finalY)
           .style('fill', c.ink)
           .style('opacity', 1);
 
-        // Measure text for background pill — position immediately, then fade in
-        requestAnimationFrame(() => {
-          const bbox = label.node()?.getBBox();
-          if (bbox) {
-            const pad = 10;
-            bg
-              .attr('x', bbox.x - pad)
-              .attr('y', bbox.y - pad / 2)
-              .attr('width', bbox.width + pad * 2)
-              .attr('height', bbox.height + pad)
-              .transition(t)
-              .style('opacity', 1);
-          }
-        });
+        bg
+          .transition(t)
+          .attr('x', px - textW / 2 - pad)
+          .attr('y', finalY - textH + 1 - pad / 2)
+          .attr('width', textW + pad * 2)
+          .attr('height', textH + pad)
+          .style('opacity', 1);
       }
     } else {
       this.gAnnotation.selectAll('*').transition(t).style('opacity', 0).remove();
