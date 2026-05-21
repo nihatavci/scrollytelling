@@ -1117,6 +1117,8 @@ function renderAudioPlayer(d, block) {
   if (d.audioSrc) audio.src = d.audioSrc;
 
   let playing = false;
+  const PLAY_SVG = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+  const PAUSE_SVG = '<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
 
   function formatTime(s) {
     if (!s || !isFinite(s)) return '0:00';
@@ -1144,18 +1146,24 @@ function renderAudioPlayer(d, block) {
   audio.addEventListener('timeupdate', updateProgress);
   audio.addEventListener('ended', () => {
     playing = false;
-    playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+    playBtn.innerHTML = PLAY_SVG;
   });
 
   playBtn.addEventListener('click', () => {
     if (playing) {
       audio.pause();
-      playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
+      playBtn.innerHTML = PLAY_SVG;
+      playing = false;
     } else {
-      audio.play().catch(() => {});
-      playBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M6 4h4v16H6zM14 4h4v16h-4z"/></svg>';
+      // Optimistic UI — flip immediately, revert on failure
+      playBtn.innerHTML = PAUSE_SVG;
+      playing = true;
+      audio.play().catch((err) => {
+        console.warn('[AudioPlayer] play() failed:', err.name, err.message);
+        playBtn.innerHTML = PLAY_SVG;
+        playing = false;
+      });
     }
-    playing = !playing;
   });
 
   // Seekable progress bar
