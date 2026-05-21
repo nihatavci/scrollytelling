@@ -954,6 +954,8 @@ main.editor { display: none; }
 }
 .toast.error { background: var(--spectrum-red); }
 .toast.success { background: var(--ink-black); }
+.toast.info { background: #2563eb; }
+.toast.warning { background: #d97706; }
 
 /* ─── Auth screen ─── */
 .auth-screen {

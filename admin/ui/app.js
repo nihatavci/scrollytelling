@@ -931,6 +931,23 @@ const BLOCK_CREATION_CARDS = {
       },
     ],
     postProcess(data) {
+      const steps = (data.steps || []).map((s, i) => ({
+        badgeKind: s.badgeKind || 'data',
+        badgeLabel: s.badgeLabel || `Step ${i + 1}`,
+        body: s.body || '',
+        vizState: s.vizState || {},
+      }));
+      // If AI already populated a valid chartSpec (with real data), use it directly
+      if (data.chartSpec && Array.isArray(data.chartSpec.data) && data.chartSpec.data.length >= 2) {
+        return {
+          title: data.title || 'Chart',
+          subtitle: data.subtitle || '',
+          source: data.source || '',
+          chartSpec: data.chartSpec,
+          steps,
+        };
+      }
+      // Otherwise build chartSpec from the flat CSV form fields (manual entry)
       const lines = (data._csvData || '').trim().split('\n').filter(l => l.trim());
       const chartData = lines.map(line => {
         const parts = line.split(',').map(s => s.trim());
@@ -939,12 +956,6 @@ const BLOCK_CREATION_CARDS = {
         return { label, value: val };
       });
       if (chartData.length === 0) chartData.push({ label: 'A', value: 10 }, { label: 'B', value: 20 });
-      const steps = (data.steps || []).map((s, i) => ({
-        badgeKind: s.badgeKind || 'data',
-        badgeLabel: s.badgeLabel || `Step ${i + 1}`,
-        body: s.body || '',
-        vizState: s.vizState || {},
-      }));
       return {
         title: data.title || 'Chart',
         subtitle: data.subtitle || '',
@@ -1782,6 +1793,14 @@ function openCreationCard(type, opts = {}) {
         // Populate form fields from AI response
         if (r && r.data) {
           Object.assign(formData, r.data);
+          // Map nested chartSpec to flat creation card fields for DataScrolly
+          if (r.data.chartSpec && Array.isArray(r.data.chartSpec.data)) {
+            const cs = r.data.chartSpec;
+            formData._chartKind = cs.kind || 'bar';
+            const xf = cs.xField || 'label';
+            const yf = cs.yField || 'value';
+            formData._csvData = cs.data.map(d => `${d[xf]}, ${d[yf]}`).join('\n');
+          }
           // Re-render fields to show AI-filled values
           fieldsContainer.innerHTML = '';
           let fi = 0;
@@ -1800,6 +1819,14 @@ function openCreationCard(type, opts = {}) {
             }
           }
           toast('Claude filled in the form — review and edit before creating', 'success');
+          // Show DataScrolly quality warnings
+          if (r.quality && r.quality.warnings && r.quality.warnings.length > 0) {
+            setTimeout(() => {
+              r.quality.warnings.slice(0, 2).forEach((w, i) => {
+                setTimeout(() => toast(`💡 ${w}`, r.quality.score < 40 ? 'warning' : 'info'), i * 1500);
+              });
+            }, 1200);
+          }
         }
       } catch (e) {
         toast('AI generation failed: ' + e.message, 'error');
@@ -3183,6 +3210,14 @@ function openClaudeModal(opts) {
           renderBlockList();
           if (opts.block.id === state.selectedBlockId) renderEditor();
           toast(aiMode ? `${type} enhanced by Claude` : `${type} updated — text preserved`, 'success');
+          // Show DataScrolly quality warnings if present
+          if (r.quality && r.quality.warnings && r.quality.warnings.length > 0) {
+            setTimeout(() => {
+              r.quality.warnings.slice(0, 2).forEach((w, i) => {
+                setTimeout(() => toast(`💡 ${w}`, 'info'), i * 1500);
+              });
+            }, 800);
+          }
         } else {
           // If no page is loaded yet, auto-create one first
           if (!state.doc) {
@@ -3210,6 +3245,19 @@ function openClaudeModal(opts) {
           renderBlockList();
           renderEditor();
           toast(aiMode ? `${type} block created by Claude` : `${type} block created — text preserved`, 'success');
+        }
+        // Show DataScrolly quality warnings if present
+        if (r.quality && r.quality.warnings && r.quality.warnings.length > 0) {
+          setTimeout(() => {
+            const score = r.quality.score;
+            const level = score >= 70 ? 'info' : score >= 40 ? 'warning' : 'error';
+            const prefix = score < 40 ? '⚠️ Data quality issue' : score < 70 ? '💡 Chart tip' : '✅ Chart';
+            toast(`${prefix}: ${r.quality.warnings[0]}`, level === 'info' ? 'success' : level);
+            // Show additional warnings after a delay
+            r.quality.warnings.slice(1, 3).forEach((w, i) => {
+              setTimeout(() => toast(`💡 ${w}`, level === 'error' ? 'error' : 'info'), (i + 1) * 1500);
+            });
+          }, 800);
         }
         closeModal();
         softRefreshPreview();
@@ -3256,21 +3304,26 @@ function defaultDataFor(type) {
     case 'Quote': return { text: 'Type the quote here.', attribution: 'Name', role: '', portraitSrc: '', sourceUrl: '', sourceLabel: '' };
     case 'VideoEmbed': return { url: '', caption: '', credit: '' };
     case 'DataScrolly': return {
-      title: 'New chart',
-      subtitle: '',
-      source: '[estimated illustrative values]',
+      title: 'Chart Title',
+      subtitle: 'Descriptive subtitle with time period',
+      source: 'Data source (year)',
       chartSpec: {
-        kind: 'line',
-        data: [{ year: 2000, value: 10 }, { year: 2010, value: 25 }, { year: 2020, value: 40 }],
+        kind: 'bar',
+        data: [
+          { year: '2000', value: 6.7 }, { year: '2004', value: 14.2 }, { year: '2008', value: 23.1 },
+          { year: '2012', value: 35.1 }, { year: '2016', value: 45.8 }, { year: '2020', value: 59.5 },
+          { year: '2024', value: 67.4 },
+        ],
         xField: 'year',
         yField: 'value',
         xLabel: 'Year',
-        yLabel: 'Value',
+        yLabel: 'Value (%)',
       },
       steps: [
-        { badgeKind: 'data', badgeLabel: 'Start',   body: 'In 2000 the value started at 10.', vizState: { highlightX: 2000, annotation: '10' } },
-        { badgeKind: 'data', badgeLabel: 'Middle',  body: 'By 2010 it had grown to 25.',      vizState: { highlightX: 2010, annotation: '25' } },
-        { badgeKind: 'data', badgeLabel: 'Today',   body: 'In 2020 it reached 40.',           vizState: { highlightX: 2020, annotation: '40' } },
+        { badgeKind: 'data', badgeLabel: 'Overview', body: 'The overview of the trend. Replace this with your narrative.', vizState: {} },
+        { badgeKind: 'data', badgeLabel: 'Growth',   body: 'By 2012, the value reached 35.1% — a fivefold increase.', vizState: { highlightX: '2012', annotation: '35.1%' } },
+        { badgeKind: 'explain', badgeLabel: 'Trend',  body: 'The line reveals the acceleration pattern more clearly.', vizState: { chartType: 'line' } },
+        { badgeKind: 'future', badgeLabel: 'Today',   body: 'In 2024, two-thirds of the target is reached.', vizState: { highlightX: '2024', annotation: '67.4%', chartType: 'area' } },
       ],
     };
     case 'Map2D': return { title: '', subtitle: '', source: '', layout: 'behind', tileStyle: 'default', height: '100vh', maxWidth: '100%', initialCenter: [52.52, 13.405], initialZoom: 6, flyDuration: 2, scrollZoom: false, markers: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', name: 'Berlin', popupHtml: '<strong>Berlin</strong>', color: '#c06830' }], routes: [], areas: [], steps: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }], caption: '', credit: 'OpenStreetMap' };
@@ -4539,13 +4592,16 @@ $('#btn-visual-edit').addEventListener('click', () => {
 });
 
 // ── Sidebar toggle (glass overlay) ──
-$('#btn-sidebar-toggle').addEventListener('click', () => {
-  const blocks = document.querySelector('.blocks');
-  blocks.classList.toggle('hidden');
-  const isHidden = blocks.classList.contains('hidden');
-  $('#btn-sidebar-toggle').textContent = isHidden ? '☰' : '✕';
-  $('#btn-sidebar-toggle').title = isHidden ? 'Show blocks panel' : 'Hide blocks panel';
-});
+const sidebarToggle = $('#btn-sidebar-toggle');
+if (sidebarToggle) {
+  sidebarToggle.addEventListener('click', () => {
+    const blocks = document.querySelector('.blocks');
+    blocks.classList.toggle('hidden');
+    const isHidden = blocks.classList.contains('hidden');
+    sidebarToggle.textContent = isHidden ? '☰' : '✕';
+    sidebarToggle.title = isHidden ? 'Show blocks panel' : 'Hide blocks panel';
+  });
+}
 
 // ── Fullscreen preview toggle ──
 (function initFullscreenPreview() {

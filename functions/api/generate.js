@@ -201,34 +201,55 @@ Write 3-4 steps. Each step should reveal one insight, building on the previous.`
 
   DataScrolly: {
     example: {
-      title: 'Pyramidenanteil nach Jahrzehnt', subtitle: 'Anteil der Artikel mit Summary Lead', source: 'Birkner et al., eigene Erhebung (n=8.527)',
-      chartSpec: { kind: 'bar', xField: 'decade', yField: 'percent', xLabel: 'Jahrzehnt', yLabel: 'Anteil (%)', data: [{ decade: '1920er', percent: 42 }, { decade: '1950er', percent: 45 }, { decade: '1980er', percent: 48 }, { decade: '2000er', percent: 38 }, { decade: '2020er', percent: 32 }] },
+      title: 'Internet Users by Region', subtitle: 'Percentage of population online, 2000–2023', source: 'ITU World Telecommunication Indicators (2024)',
+      chartSpec: { kind: 'bar', xField: 'year', yField: 'percent', xLabel: 'Year', yLabel: 'Internet users (% of population)',
+        data: [
+          { year: '2000', percent: 6.7 }, { year: '2003', percent: 12.3 }, { year: '2005', percent: 15.8 },
+          { year: '2007', percent: 20.6 }, { year: '2010', percent: 29.3 }, { year: '2012', percent: 35.1 },
+          { year: '2015', percent: 43.4 }, { year: '2017', percent: 48.7 }, { year: '2020', percent: 59.5 },
+          { year: '2023', percent: 67.4 },
+        ],
+      },
       steps: [
-        { badgeKind: 'data', badgeLabel: 'Daten', body: 'Über Jahrzehnte liegt der Anteil bei 40–50 %. Weder Nationalsozialismus noch DDR konnten die Form brechen.', vizState: {} },
-        { badgeKind: 'data', badgeLabel: 'Daten', body: 'Die 1980er markieren den Höhepunkt — fast jeder zweite Artikel beginnt mit einem Summary Lead.', vizState: { highlightX: '1980er', annotation: '48 %' } },
-        { badgeKind: 'future', badgeLabel: 'Wende', body: 'Erst ab 2004 sinkt der Wert deutlich. Der Grund: nicht politischer Druck, sondern der digitale Newsfeed.', vizState: { highlightX: '2020er', annotation: '32 %', chartType: 'line' } }
+        { badgeKind: 'data', badgeLabel: 'Overview', body: 'In 2000, fewer than 7% of the world population was online. The internet was still a luxury — concentrated in wealthy nations with fixed broadband.', vizState: {} },
+        { badgeKind: 'data', badgeLabel: 'Growth', body: 'By 2010, nearly a third of humanity had internet access. Mobile broadband was the catalyst — bringing connectivity to regions that had never seen a landline.', vizState: { highlightX: '2010', annotation: '29.3%' } },
+        { badgeKind: 'explain', badgeLabel: 'Acceleration', body: 'The smartphone revolution drove the steepest climb. Between 2010 and 2020, a billion new users came online — mostly in Sub-Saharan Africa and South Asia.', vizState: { highlightX: '2020', annotation: '59.5%', chartType: 'line' } },
+        { badgeKind: 'future', badgeLabel: 'Today', body: 'By 2023, two-thirds of the world is connected. But 2.6 billion people remain offline — nearly all in the Global South. The digital divide is narrowing, but far from closed.', vizState: { highlightX: '2023', annotation: '67.4%', chartType: 'area' } },
       ],
     },
-    description: `Data-driven scrolly with D3 animated chart. The chart engine supports fluid transitions between chart types.
+    description: `Data-driven scrolly with D3 animated chart. NYT/Reuters-quality data storytelling with fluid animated transitions between chart types.
+
+CRITICAL RULES — follow these exactly or the chart will look broken:
+1. DATA MINIMUM: chartSpec.data MUST have at least 6 data points. 8-12 is ideal. NEVER use fewer than 6.
+2. REAL DATA: Use real, plausible data with specific numbers. Research actual statistics for the topic. If you cannot find exact numbers, use well-informed estimates clearly labeled in the source field as "estimated based on [reason]".
+3. NARRATIVE-DATA SYNC: Every number mentioned in a step's body text MUST exist in chartSpec.data. If a step says "reached 59.5%", then { percent: 59.5 } must be in the data array. NEVER reference numbers that aren't in the chart.
+4. HIGHLIGHTX MATCH: Every vizState.highlightX value MUST exactly match an xField value in the data array. If xField values are strings like "2010", use highlightX: "2010" (string). If numbers, use numbers.
+5. ANNOTATION MATCH: vizState.annotation should show the actual y-value for the highlighted point, formatted with units (e.g. "29.3%", "$4.2T", "1,200").
+6. PROGRESSIVE REVELATION: Step 1 shows the overview (no highlight). Steps 2+ each highlight ONE data point and explain its significance. At least one step should morph the chart type.
+7. STEP COUNT: Use 4-5 steps minimum. Each reveals ONE new insight. No step should repeat what a previous step said.
+8. DESCRIPTIVE LABELS: xLabel and yLabel must be descriptive with units in parentheses, e.g. "GDP per capita (USD)", "Year", "Share of articles (%)". Never use generic labels like "x" or "value".
+9. SOURCE CITATION: The source field must name the actual data source (institution, publication, year). If using estimates, say "Author estimate based on [source]".
+10. CHART TYPE STRATEGY: Start with "bar" for overview, use "line" to show trends over time, "area" to emphasize cumulative growth, "scatter" for correlation. Every DataScrolly needs at least one chartType morph.
 
 Fields:
-- title, subtitle, source (academic citation)
+- title (string): descriptive chart title, states what is being measured
+- subtitle (string): adds detail — time period, geographic scope, or methodology note
+- source (string): data source citation with year
 - chartSpec: { kind: "bar"|"line"|"area"|"scatter", xField, yField, xLabel, yLabel, data: [{...}] }
-- steps: array of { badgeKind: "data"|"pyramid"|"explain"|"future"|"voice", badgeLabel: "short label", body: "HTML narrative text", vizState: { chartType?, highlightX?, annotation?, filter?, sort? } }
-
-IMPORTANT vizState capabilities:
-- chartType: "bar"|"line"|"area"|"scatter" — changing this between steps MORPHS the chart type with smooth animation (bars shrink to dots, dots connect into lines, etc.)
-- highlightX: value matching xField — highlights that data point with a pulsing accent dot and vertical rule
-- annotation: text shown as a floating pill above the highlighted point
-- filter: { field: "col", values: ["a","b"] } — filters visible data points
-- sort: "ascending"|"descending" — reorders bars with animation
-
-DESIGN RULES:
-- Start with bars (step 1 = overview), then highlight specific values, then morph to line for trends
-- Each step should reveal ONE new insight about the data
-- Use 3-5 steps minimum — each with a different vizState
-- Use realistic data with specific numbers and German labels
-- Every DataScrolly needs at least one chartType morph between steps for visual impact`,
+  - kind: initial chart type (first step uses this)
+  - xField/yField: keys in data objects to map to axes
+  - xLabel/yLabel: axis labels with units
+  - data: array of objects, each with at least xField and yField keys. MINIMUM 6 items.
+- steps: array of { badgeKind, badgeLabel, body, vizState }
+  - badgeKind: "data"|"explain"|"future"|"pyramid"|"voice" — sets the step badge color
+  - badgeLabel: 1-2 word label (e.g. "Overview", "Peak", "Turning Point", "Today")
+  - body: 2-3 sentences of narrative. Reference specific data points. Use em-dashes for drama.
+  - vizState: { chartType?, highlightX?, annotation?, filter?, sort? }
+    - chartType: morphs chart with animation (bars shrink to dots, dots connect into lines, etc.)
+    - highlightX: value matching xField — highlights with pulsing accent dot and vertical rule
+    - annotation: text pill shown above highlighted point
+    - filter: { field: "col", values: ["a","b"] } — filters visible data
+    - sort: "ascending"|"descending" — reorders bars with animation`,
   },
 
   VizPanel: {
@@ -667,6 +688,13 @@ IMPROVE RULES:
 - For Map2D blocks: "behind layout" or "fullscreen" → layout "behind". "side layout" → "side".
 - For Map2D blocks: when editing routes, ALWAYS verify route start/end points match the connected markers' exact lat/lng coordinates.
 - For Map2D blocks: "thinner lines" → reduce route weight (min 1). "thicker" → increase (max 4). "dashed" → dashArray "8,5".
+- For DataScrolly blocks: "more data" or "add data points" → add more entries to chartSpec.data (minimum 6 total, aim for 8-12).
+- For DataScrolly blocks: "better data" or "use real data" → replace generic values with realistic, specific numbers. Update source field with a plausible citation.
+- For DataScrolly blocks: "add step" → add a new step with a unique vizState (highlight a different data point, morph chart type, or add filter).
+- For DataScrolly blocks: "bar chart" → set chartSpec.kind to "bar" and reset any chartType overrides. "line chart" → kind "line". "area" → kind "area". "scatter" → kind "scatter".
+- For DataScrolly blocks: "fix labels" or "better labels" → update xLabel and yLabel to be descriptive with units in parentheses.
+- For DataScrolly blocks: "add source" → set a plausible academic/institutional source citation.
+- For DataScrolly blocks: ALWAYS ensure every highlightX in steps matches an xField value in the data, and every number mentioned in step body text exists in the data.
 - For FullscreenImage blocks: "darker overlay" or "darker" → increase scrimOpacity. "lighter" → decrease scrimOpacity. "center text" → overlayPosition "center". "add kicker" → set kicker field. "no animation" → kenBurns false. "scroll indicator" or "scroll cue" → scrollCue true. "top-left" → overlayPosition "top-left". "no scrim" → scrimOpacity 0.
 - For AudioPlayer blocks: "change color" → update accentColor and waveformColor. "add transcript" → set transcript text. "shorter description" → trim description. "remove cover" → clear coverSrc. "add cover" → set coverSrc.
 - Universal: every block supports "bgOpacity" (number 0-1) to control the page background image visibility behind this block. "show background" → bgOpacity 0.3. "hide background" → bgOpacity 0. "strong background" → bgOpacity 0.5-0.8.
@@ -719,6 +747,75 @@ function validateBlockData(type, data) {
   }
 
   return null; // valid
+}
+
+// DataScrolly quality assessment — returns { score, warnings[] } or null for non-DataScrolly
+function assessDataScrollyQuality(type, data) {
+  if (type !== 'DataScrolly' || !data) return null;
+  const warnings = [];
+  let score = 100; // start at 100, deduct for issues
+
+  const spec = data.chartSpec || {};
+  const chartData = Array.isArray(spec.data) ? spec.data : [];
+  const steps = Array.isArray(data.steps) ? data.steps : [];
+  const xF = spec.xField || 'x';
+  const yF = spec.yField || 'y';
+
+  // 1. Data quantity check
+  if (chartData.length < 3) {
+    warnings.push('Very few data points (' + chartData.length + '). Add more data for a meaningful chart.');
+    score -= 40;
+  } else if (chartData.length < 6) {
+    warnings.push('Only ' + chartData.length + ' data points. Consider adding more for richer visualization.');
+    score -= 15;
+  }
+
+  // 2. Placeholder data detection — look for suspiciously round/fake values
+  const yValues = chartData.map(d => +d[yF]).filter(v => !isNaN(v));
+  const allRound = yValues.length > 2 && yValues.every(v => v % 5 === 0 || v % 10 === 0);
+  const allSimple = yValues.length > 0 && yValues.every(v => v <= 100 && v === Math.round(v));
+  const isSequential = yValues.length >= 3 && yValues.every((v, i) => i === 0 || v > yValues[i - 1]);
+  if (allRound && allSimple && isSequential && yValues[0] <= 10) {
+    warnings.push('Data values look like placeholders (10, 20, 30...). Replace with real data for the topic.');
+    score -= 30;
+  }
+
+  // 3. Generic label detection
+  const xLabel = (spec.xLabel || '').toLowerCase();
+  const yLabel = (spec.yLabel || '').toLowerCase();
+  if (['x', 'value', 'label', 'category', ''].includes(xLabel)) {
+    warnings.push('X-axis label is generic ("' + spec.xLabel + '"). Use a descriptive label with units.');
+    score -= 10;
+  }
+  if (['y', 'value', 'count', ''].includes(yLabel)) {
+    warnings.push('Y-axis label is generic ("' + spec.yLabel + '"). Use a descriptive label with units.');
+    score -= 10;
+  }
+
+  // 4. Source check
+  if (!data.source || data.source.length < 5) {
+    warnings.push('No data source cited. Add a source for credibility.');
+    score -= 10;
+  }
+
+  // 5. Step-data consistency — check that highlightX values exist in the data
+  const xValues = new Set(chartData.map(d => String(d[xF])));
+  steps.forEach((s, i) => {
+    const hx = s.vizState?.highlightX;
+    if (hx != null && !xValues.has(String(hx))) {
+      warnings.push('Step ' + (i + 1) + ' highlights "' + hx + '" which doesn\'t exist in the chart data.');
+      score -= 10;
+    }
+  });
+
+  // 6. Check for chart type morphing
+  const hasMorph = steps.some(s => s.vizState?.chartType);
+  if (!hasMorph && steps.length >= 3) {
+    warnings.push('No chart type transitions between steps. Add chartType morphing for visual impact.');
+    score -= 5;
+  }
+
+  return { score: Math.max(0, score), warnings };
 }
 
 export async function onRequest(context) {
@@ -803,12 +900,14 @@ export async function onRequest(context) {
   }
 
   try {
+    // DataScrolly and Map2D need more tokens for complex structured data
+    const maxTokens = (type === 'DataScrolly' || type === 'Map2D') ? 6144 : 4096;
     const aiResponse = await env.AI.run(MODEL, {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },
       ],
-      max_tokens: 4096,
+      max_tokens: maxTokens,
       temperature: 0.7,
     });
 
@@ -853,7 +952,13 @@ export async function onRequest(context) {
       });
     }
 
-    return new Response(JSON.stringify({ data }), {
+    // DataScrolly quality assessment — include warnings in response
+    const quality = assessDataScrollyQuality(type, data);
+    const responseBody = quality
+      ? { data, quality: { score: quality.score, warnings: quality.warnings } }
+      : { data };
+
+    return new Response(JSON.stringify(responseBody), {
       status: 200,
       headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
     });
