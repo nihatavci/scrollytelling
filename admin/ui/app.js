@@ -4737,6 +4737,27 @@ $('#btn-settings').addEventListener('click', () => {
     langSel.innerHTML = `<option value="de" ${state.doc.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.doc.lang === 'en' ? 'selected' : ''}>English</option>`;
     body.appendChild(langSel);
 
+    // ── Smooth scroll ──
+    const scrollSep = document.createElement('div');
+    scrollSep.style.cssText = 'margin-top:16px;padding-top:14px;border-top:1px solid #eaeef2;';
+    body.appendChild(scrollSep);
+
+    const scrollRow = document.createElement('label');
+    scrollRow.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;';
+    const scrollChk = document.createElement('input');
+    scrollChk.type = 'checkbox';
+    scrollChk.checked = !!state.doc.smoothScroll;
+    scrollRow.appendChild(scrollChk);
+    const scrollTxt = document.createElement('span');
+    scrollTxt.style.cssText = 'font-size:13px;color:#24292f;';
+    scrollTxt.textContent = 'Smooth scroll';
+    scrollRow.appendChild(scrollTxt);
+    body.appendChild(scrollRow);
+    const scrollHint = document.createElement('div');
+    scrollHint.style.cssText = 'font-size:11px;color:#8c959f;margin-top:3px;line-height:1.45;';
+    scrollHint.textContent = 'Enables CSS smooth scrolling for anchor links and scroll-to actions.';
+    body.appendChild(scrollHint);
+
     // ── Background image ──
     const bgData = state.doc.background || {};
 
@@ -4830,6 +4851,8 @@ $('#btn-settings').addEventListener('click', () => {
       state.doc.lang = langSel.value;
       if (!state.doc.meta) state.doc.meta = {};
       state.doc.meta.title = titleInp.value.trim();
+      // Smooth scroll
+      state.doc.smoothScroll = scrollChk.checked;
       // Background
       const bgSrc = bgImgInp.value.trim();
       if (bgSrc) {

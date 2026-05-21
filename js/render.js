@@ -1290,6 +1290,8 @@ export async function render(jsonUrl, rootSelector = '#page-root') {
 
   if (doc.meta?.title) document.title = doc.meta.title;
   if (doc.lang)        document.documentElement.lang = doc.lang;
+  if (doc.smoothScroll) document.documentElement.style.scrollBehavior = 'smooth';
+  else                  document.documentElement.style.scrollBehavior = '';
   applyMeta(doc.meta || {});
 
   // Load theme CSS (dia = default, claude, miranda)
@@ -2605,6 +2607,9 @@ window.addEventListener('message', function (evt) {
     var doc = evt.data.doc;
     if (!doc) return;
     window.__PAGE_DATA__ = doc;
+    // Apply page-level settings
+    if (doc.smoothScroll) document.documentElement.style.scrollBehavior = 'smooth';
+    else                  document.documentElement.style.scrollBehavior = '';
     var root = document.querySelector('#page-root');
     if (!root) return;
     root.innerHTML = '';
