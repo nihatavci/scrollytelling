@@ -469,15 +469,19 @@ const COMPONENT_CSS = `
 .map2d-graphic-sub{font-family:var(--font-body);font-size:.8rem;color:var(--graphite);margin-top:.25rem;line-height:1.4}
 .map2d-graphic-source{position:absolute;bottom:0;left:0;z-index:10;font-family:var(--font-body);font-size:.7rem;color:var(--steel);padding:.5rem 1rem;background:rgba(255,255,255,.6);backdrop-filter:blur(4px);border-radius:0 8px 0 0;pointer-events:none}
 .map2d-map-host{position:absolute;inset:0;overflow:hidden}
+/* Soft vignette — fades route lines at viewport edges instead of hard clip */
+.map2d-map-host::after{content:'';position:absolute;inset:0;pointer-events:none;z-index:600;background:radial-gradient(ellipse 80% 80% at 50% 50%,transparent 55%,rgba(255,255,255,.45) 100%)}
+.map2d-scrolly[data-tile-dark] .map2d-map-host::after{background:radial-gradient(ellipse 80% 80% at 50% 50%,transparent 55%,rgba(20,20,24,.5) 100%)}
 .map2d-map-host .leaflet-container{width:100%;height:100%;font-family:var(--font-body)}
 .map2d-steps{position:relative;z-index:4;max-width:400px;margin-left:auto;margin-right:clamp(1rem,4vw,3rem)}
 .map2d-step{min-height:100vh;display:flex;align-items:center;padding:1rem 0}
 .map2d-step:first-child{padding-top:45vh}
 .map2d-step:last-child{padding-bottom:45vh}
-.map2d-step-card{background:rgba(255,255,255,.92);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,.5);border-radius:10px;padding:1.4rem 1.6rem;box-shadow:0 4px 24px rgba(0,0,0,.1),0 1px 3px rgba(0,0,0,.06);max-width:380px;opacity:.2;transform:translateY(12px);transition:opacity .5s ease,transform .5s ease,box-shadow .5s ease}
-.map2d-step.is-active .map2d-step-card{opacity:1;transform:translateY(0);box-shadow:0 8px 40px rgba(0,0,0,.14),0 2px 6px rgba(0,0,0,.06)}
+.map2d-step-card{background:rgba(255,255,255,.94);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid rgba(255,255,255,.6);border-radius:12px;padding:1.4rem 1.6rem;box-shadow:0 4px 24px rgba(0,0,0,.08),0 1px 2px rgba(0,0,0,.04);max-width:380px;opacity:.15;transform:translateY(16px);transition:opacity .6s cubic-bezier(.25,.1,.25,1),transform .6s cubic-bezier(.25,.1,.25,1),box-shadow .6s ease}
+.map2d-step.is-active .map2d-step-card{opacity:1;transform:translateY(0);box-shadow:0 8px 40px rgba(0,0,0,.12),0 2px 4px rgba(0,0,0,.04)}
 .map2d-step-card .badge{display:inline-block;font-size:.65rem;padding:3px 10px;border-radius:4px;text-transform:uppercase;letter-spacing:.08em;font-weight:700;margin-bottom:.5rem}
-.map2d-step-body{font-family:var(--font-body);font-size:.95rem;line-height:1.65;color:var(--ink-black);font-weight:400}
+.map2d-step-heading{font-family:var(--font-display);font-size:1.15rem;font-weight:600;color:var(--ink-black);line-height:1.25;letter-spacing:-.01em;margin-bottom:.35rem}
+.map2d-step-body{font-family:var(--font-body);font-size:.92rem;line-height:1.65;color:var(--ink-black);font-weight:400}
 .map2d-cap{font-family:var(--font-body);font-size:.85rem;color:var(--graphite);margin-top:.7rem;line-height:1.5;font-weight:400;padding:0 2rem}
 .map2d-credit{font-family:var(--font-body);font-size:.75rem;color:var(--steel);margin-top:.2rem;padding:0 2rem}
 /* Hide all Leaflet chrome — zoom, attribution, etc. */
@@ -488,15 +492,19 @@ const COMPONENT_CSS = `
 .map2d-scrolly .leaflet-popup-content-wrapper{border-radius:10px;font-family:var(--font-body);font-size:.9rem;box-shadow:0 6px 24px rgba(0,0,0,.14)}
 .map2d-scrolly .leaflet-popup-content{margin:14px 18px;line-height:1.5}
 .map2d-scrolly .leaflet-popup-tip{display:none}
-/* Marker wrap — dot + name label stacked vertically */
-.map2d-marker-wrap{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%);transition:transform .4s cubic-bezier(.34,1.56,.64,1),opacity .4s ease;pointer-events:auto}
+/* Marker — refined dot + pulse ring on appear */
+.map2d-marker-wrap{display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-50%);transition:transform .5s cubic-bezier(.34,1.56,.64,1),opacity .5s ease;pointer-events:auto}
 .map2d-marker-wrap.is-hidden{transform:translate(-50%,-50%) scale(0);opacity:0}
 .map2d-marker-wrap.is-visible{transform:translate(-50%,-50%) scale(1);opacity:1}
-.map2d-marker{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:50%;color:#fff;font-weight:700;font-size:.8rem;font-family:var(--font-body);box-shadow:0 3px 12px rgba(0,0,0,.35),0 0 0 3px rgba(255,255,255,.7);border:2.5px solid #fff}
-.map2d-marker-name{font-family:var(--font-body);font-size:.7rem;font-weight:600;color:var(--ink-black);white-space:nowrap;margin-top:4px;padding:2px 7px;border-radius:4px;background:rgba(255,255,255,.88);backdrop-filter:blur(6px);box-shadow:0 1px 4px rgba(0,0,0,.1);letter-spacing:.01em}
-/* Route animation — thicker, smoother lines */
-.map2d-scrolly .leaflet-overlay-pane svg path.map2d-route{transition:stroke-dashoffset 2s cubic-bezier(.4,0,.2,1);stroke-linecap:round;stroke-linejoin:round}
-.map2d-route-label{background:rgba(255,255,255,.92);backdrop-filter:blur(8px);padding:4px 12px;border-radius:6px;font-family:var(--font-body);font-size:.72rem;font-weight:600;color:var(--ink-black);box-shadow:0 2px 8px rgba(0,0,0,.12);white-space:nowrap;pointer-events:none;transform:translate(-50%,-50%)}
+.map2d-marker{position:relative;display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:50%;color:#fff;font-weight:700;font-size:.72rem;font-family:var(--font-body);box-shadow:0 2px 8px rgba(0,0,0,.3),0 0 0 2.5px rgba(255,255,255,.8);border:2px solid #fff}
+.map2d-marker-wrap.is-visible .map2d-marker::after{content:'';position:absolute;inset:-5px;border-radius:50%;border:2px solid currentColor;animation:map2dRing .9s cubic-bezier(.25,.1,.25,1) forwards}
+@keyframes map2dRing{0%{transform:scale(.7);opacity:.7}100%{transform:scale(1.8);opacity:0}}
+.map2d-marker-name{font-family:var(--font-body);font-size:.68rem;font-weight:600;color:var(--ink-black);white-space:nowrap;margin-top:5px;padding:2px 8px;border-radius:4px;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);box-shadow:0 1px 4px rgba(0,0,0,.1);letter-spacing:.01em}
+/* Route lines — thin, confident, with subtle drop shadow */
+.map2d-scrolly .leaflet-overlay-pane svg path.map2d-route{transition:stroke-dashoffset 2.5s cubic-bezier(.25,.1,.25,1),opacity .8s ease;stroke-linecap:round;stroke-linejoin:round;filter:drop-shadow(0 1px 3px rgba(0,0,0,.2))}
+/* Route shadow line — thicker blurred line behind the main route */
+.map2d-scrolly .leaflet-overlay-pane svg path.map2d-route-shadow{stroke-linecap:round;stroke-linejoin:round;transition:opacity .8s ease;filter:blur(3px)}
+.map2d-route-label{background:rgba(255,255,255,.94);backdrop-filter:blur(10px);padding:4px 12px;border-radius:6px;font-family:var(--font-body);font-size:.7rem;font-weight:600;color:var(--ink-black);box-shadow:0 2px 8px rgba(0,0,0,.1);white-space:nowrap;pointer-events:none;transform:translate(-50%,-50%)}
 /* Area polygon transitions */
 .map2d-scrolly .leaflet-overlay-pane svg path.map2d-area{transition:fill-opacity .6s ease,stroke-opacity .6s ease}
 /* layout-behind overrides — fixed instead of sticky */
@@ -598,7 +606,9 @@ function injectComponentCSS() {
 // ───────── Map2D Scrollytelling ─────────
 function renderMap2D(d, block) {
   const layoutCls = d.layout === 'behind' ? 'layout-behind' : 'layout-side';
+  const isDark = d.tileStyle === 'dark' || d.tileStyle === 'dark-nolabel';
   const sec = el('section', { class: `map2d-scrolly ${layoutCls}`, 'data-map-id': block.id });
+  if (isDark) sec.dataset.tileDark = '';
 
   // Data-driven sizing
   if (d.height) sec.style.setProperty('--map-h', d.height);
@@ -749,22 +759,37 @@ async function wireMap2D(blockId, d) {
     });
   });
 
-  // Create all routes (initially hidden)
+  // Create all routes (initially hidden) — shadow line behind + main line
   const routeMap = {};
   (d.routes || []).forEach((r) => {
     if (!r.points || r.points.length < 2) return;
     const color = resolveColor(r.color);
+    const mainWeight = r.weight || 3;
+
+    // Shadow line — wider, blurred, sits behind the main route
+    const shadow = L.polyline(r.points, {
+      color: color,
+      weight: mainWeight * 3,
+      opacity: 0,
+      lineCap: 'round',
+      lineJoin: 'round',
+      className: 'map2d-route-shadow',
+      interactive: false,
+    }).addTo(map);
+
     const line = L.polyline(r.points, {
       color: color,
-      weight: r.weight || 4,
+      weight: mainWeight,
       opacity: 0,
       dashArray: r.dashArray || null,
       lineCap: 'round',
       lineJoin: 'round',
       className: 'map2d-route',
     }).addTo(map);
-    routeMap[r.id || ('r' + JSON.stringify(r.points[0]))] = {
+    const rId = r.id || ('r' + JSON.stringify(r.points[0]));
+    routeMap[rId] = {
       line: line,
+      shadow: shadow,
       points: r.points,
       animate: r.animate !== false,
       revealed: false,
@@ -857,11 +882,12 @@ async function wireMap2D(blockId, d) {
       });
     }
 
-    // Animate route drawing
+    // Animate route drawing — main line + shadow
     if (ms.animateRoute) {
       const entry = routeMap[ms.animateRoute];
       if (entry && !entry.revealed) {
-        entry.line.setStyle({ opacity: 0.8 });
+        entry.shadow.setStyle({ opacity: 0.12 });
+        entry.line.setStyle({ opacity: 0.9 });
         requestAnimationFrame(() => {
           const pathEl = entry.line.getElement();
           if (pathEl && entry.animate) {
@@ -871,17 +897,28 @@ async function wireMap2D(blockId, d) {
             pathEl.getBoundingClientRect();
             pathEl.style.strokeDashoffset = '0';
           }
+          // Also animate shadow draw in sync
+          const shadowEl = entry.shadow.getElement();
+          if (shadowEl && entry.animate) {
+            const sLen = shadowEl.getTotalLength();
+            shadowEl.style.strokeDasharray = sLen + '';
+            shadowEl.style.strokeDashoffset = sLen + '';
+            shadowEl.style.transition = 'stroke-dashoffset 2.5s cubic-bezier(.25,.1,.25,1)';
+            shadowEl.getBoundingClientRect();
+            shadowEl.style.strokeDashoffset = '0';
+          }
         });
         if (entry.labelMarker) {
           const lEl = entry.labelMarker.getElement();
           if (lEl) {
             const inner = lEl.querySelector('.map2d-route-label');
-            if (inner) setTimeout(() => { inner.style.opacity = '1'; }, 800);
+            if (inner) setTimeout(() => { inner.style.opacity = '1'; }, 1000);
           }
         }
         entry.revealed = true;
       } else if (entry) {
-        entry.line.setStyle({ opacity: 0.8 });
+        entry.shadow.setStyle({ opacity: 0.12 });
+        entry.line.setStyle({ opacity: 0.9 });
       }
     }
 
@@ -893,6 +930,12 @@ async function wireMap2D(blockId, d) {
         maxZoom: 19,
       }).addTo(map);
       currentTileKey = ms.tileStyle;
+      // Update vignette for dark/light tile switch
+      const scrolly = host.closest('.map2d-scrolly');
+      if (scrolly) {
+        if (ms.tileStyle === 'dark' || ms.tileStyle === 'dark-nolabel') scrolly.dataset.tileDark = '';
+        else delete scrolly.dataset.tileDark;
+      }
     }
   }
 
