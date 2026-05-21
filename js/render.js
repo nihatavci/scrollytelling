@@ -1147,6 +1147,39 @@ function renderAudioPlayer(d, block) {
   return sec;
 }
 
+function renderParallax(d) {
+  var tintCls = d.tint && d.tint !== 'none' ? ' parallax--tint-' + d.tint : ' parallax--tint-dark';
+  var sec = el('section', { class: 'parallax' + tintCls });
+
+  // Render layers — only if src is non-empty
+  if (d.backgroundSrc) {
+    var bgLayer = el('div', { class: 'parallax__layer parallax__bg' });
+    bgLayer.appendChild(el('img', { src: d.backgroundSrc, alt: d.backgroundAlt || '', loading: 'lazy' }));
+    sec.appendChild(bgLayer);
+  }
+  if (d.midgroundSrc) {
+    var midLayer = el('div', { class: 'parallax__layer parallax__mid' });
+    midLayer.appendChild(el('img', { src: d.midgroundSrc, alt: d.midgroundAlt || '', loading: 'lazy' }));
+    sec.appendChild(midLayer);
+  }
+  if (d.foregroundSrc) {
+    var fgLayer = el('div', { class: 'parallax__layer parallax__fg' });
+    fgLayer.appendChild(el('img', { src: d.foregroundSrc, alt: d.foregroundAlt || '', loading: 'lazy' }));
+    sec.appendChild(fgLayer);
+  }
+
+  // Text overlay — only if headline or subtitle present
+  if (d.headline || d.subtitle) {
+    var pos = d.overlayPosition || 'center';
+    var overlay = el('div', { class: 'parallax__overlay parallax__overlay--' + pos });
+    if (d.headline) overlay.appendChild(el('h2', { class: 'parallax__headline' }, d.headline));
+    if (d.subtitle) overlay.appendChild(el('p', { class: 'parallax__subtitle' }, d.subtitle));
+    sec.appendChild(overlay);
+  }
+
+  return sec;
+}
+
 const BLOCK_RENDERERS = {
   Hero:           renderHero,
   VizPanel:       renderVizPanel,
@@ -1170,6 +1203,7 @@ const BLOCK_RENDERERS = {
   Map2D:          renderMap2D,
   FullscreenImage: renderFullscreenImage,
   AudioPlayer:     renderAudioPlayer,
+  Parallax:        renderParallax,
 };
 
 // Resolve which content file to load based on the current URL path.
