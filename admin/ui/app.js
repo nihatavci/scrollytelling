@@ -845,11 +845,25 @@ const BLOCK_CREATION_CARDS = {
       { key: 'subtitle', label: 'Subtitle', kind: 'text', placeholder: 'A supporting line' },
       { key: 'brand', label: 'Brand line (small caps at top)', kind: 'text', placeholder: 'BRAND' },
       { key: 'lines', label: 'Intro lines (appear one by one before headline)', kind: 'repeater',
-        itemFields: [{ key: 'value', label: 'Line', kind: 'text' }],
-        flatten: true,
+        itemFields: [{ key: 'text', label: 'Line', kind: 'text' }],
+        defaults: [],
       },
       { key: 'scrollCueText', label: 'Scroll cue text', kind: 'text', placeholder: 'Scroll', defaultValue: 'Scroll' },
     ],
+    postProcess(data) {
+      const lines = (data.lines || []).map((line, i) => {
+        if (typeof line === 'string') return { cls: `cin-l${i + 1}`, text: line };
+        if (line.text !== undefined) return { cls: line.cls || `cin-l${i + 1}`, text: line.text };
+        return line; // already {cls,text}
+      });
+      return {
+        brand: data.brand || '',
+        titleHtml: data.titleHtml || '',
+        subtitle: data.subtitle || '',
+        scrollCueText: data.scrollCueText || 'Scroll down',
+        lines,
+      };
+    },
   },
 
   ChapterDivider: {
@@ -890,6 +904,12 @@ const BLOCK_CREATION_CARDS = {
         hint: 'Each blank line starts a new paragraph.' },
     ],
     postProcess(data) {
+      // If AI already returned a content[] array (and reverse-mapping is absent or insufficient),
+      // use it directly so nothing gets thrown away
+      if (Array.isArray(data.content) && data.content.length > 0 &&
+          !data._kicker && !data._heading && !data._body) {
+        return { content: data.content };
+      }
       const content = [];
       if (data._kicker) content.push({ kind: 'kicker', text: data._kicker });
       if (data._heading) content.push({ kind: 'h2', text: data._heading });
@@ -1846,6 +1866,29 @@ function openCreationCard(type, opts = {}) {
             const xf = cs.xField || 'label';
             const yf = cs.yField || 'value';
             formData._csvData = cs.data.map(d => `${d[xf]}, ${d[yf]}`).join('\n');
+          }
+          // For Editorial: AI returns content[] directly — reverse-map to _kicker/_heading/_body
+          // so the form fields show the generated content (postProcess will also accept content[] directly)
+          if (type === 'Editorial' && Array.isArray(r.data.content)) {
+            const c = r.data.content;
+            const kicker = c.find(i => i.kind === 'kicker');
+            const h2 = c.find(i => i.kind === 'h2');
+            const lead = c.find(i => i.kind === 'lead');
+            const ps = c.filter(i => i.kind === 'p' || i.kind === 'dropcap');
+            if (kicker) formData._kicker = kicker.text || '';
+            if (h2)     formData._heading = h2.text || '';
+            const bodyParts = [];
+            if (lead) bodyParts.push(lead.text || '');
+            ps.forEach(p => bodyParts.push(p.html || p.text || ''));
+            formData._body = bodyParts.join('\n\n');
+          }
+          // For Hero: AI returns lines as [{cls,text}] — also set a displayable _linesText
+          // so the repeater shows text values (postProcess auto-assigns cls)
+          if (type === 'Hero' && Array.isArray(r.data.lines)) {
+            // Convert [{cls,text}] → plain strings for the flatten:true repeater display
+            formData.lines = r.data.lines.map(l =>
+              typeof l === 'string' ? l : (l.text || '')
+            );
           }
           // Re-render fields to show AI-filled values
           fieldsContainer.innerHTML = '';
