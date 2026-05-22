@@ -753,7 +753,7 @@ function validateBlockData(type, data) {
     AccordionBlock: ['items'],
     ImageGrid: ['images'],
     VizPanel: ['spec'],
-    VideoEmbed: ['src'],
+    VideoEmbed: ['url'],
     EmbedBlock: ['html'],
     ProgressNav: [],
     Separator: [],
