@@ -144,37 +144,6 @@ const BLOCK_SCHEMAS = {
       { key: 'credit',           label: 'Credit',             kind: 'text', group: 'meta', inline: true },
     ]
   },
-  LottieScroll: {
-    name: 'Lottie',
-    description: 'Scroll-driven vector animation — Lottie JSON file scrubbed by scroll position. Fluid motion graphics that react to the reader\'s pace.',
-    fields: [
-      { key: 'lottieUrl', label: 'Lottie JSON URL', kind: 'text', group: 'media', hint: 'Paste a URL to a .json Lottie file (LottieFiles, CDN, self-hosted, etc.)' },
-      { key: 'caption', label: 'Caption (optional)', kind: 'textarea', group: 'meta' },
-      { key: 'layout', label: 'Layout', kind: 'select', group: 'layout',
-        options: ['contained', 'fullscreen'] },
-      { key: 'scrubMode', label: 'Play mode', kind: 'select', group: 'layout',
-        options: ['scroll', 'autoplay'],
-        hint: '<b>scroll</b> — animation driven by scroll position (Webflow style). <b>autoplay</b> — loops while in view.' },
-    ]
-  },
-  Parallax: {
-    name: 'Depth',
-    description: 'Layered depth parallax — 2-3 images shift at different scroll speeds. Cinematic immersion for chapter openers.',
-    fields: [
-      { key: 'backgroundSrc', label: 'Background image (slowest)', kind: 'image', group: 'media' },
-      { key: 'backgroundAlt', label: 'Background alt text',        kind: 'text', group: 'media', inline: true },
-      { key: 'midgroundSrc',  label: 'Midground image',            kind: 'image', group: 'media' },
-      { key: 'midgroundAlt',  label: 'Midground alt text',         kind: 'text', group: 'media', inline: true },
-      { key: 'foregroundSrc', label: 'Foreground image (fastest)',  kind: 'image', group: 'media' },
-      { key: 'foregroundAlt', label: 'Foreground alt text',        kind: 'text', group: 'media', inline: true },
-      { key: 'headline',      label: 'Headline',                    kind: 'text', group: 'content' },
-      { key: 'subtitle',      label: 'Subtitle',                    kind: 'text', group: 'content' },
-      { key: 'overlayPosition', label: 'Text position', kind: 'select', group: 'layout',
-        options: ['center', 'bottom-left', 'bottom-center'] },
-      { key: 'tint', label: 'Tint', kind: 'select', group: 'layout',
-        options: ['dark', 'light', 'none'] },
-    ]
-  },
   VideoEmbed: {
     name: 'Footage',
     description: 'Moving image evidence — interviews, event recordings, scene-setting footage. Embedded from YouTube or Vimeo.',
@@ -228,23 +197,16 @@ const BLOCK_SCHEMAS = {
     ]
   },
   ImageGrid: {
-    name: 'Image Grid',
-    description: 'Flexible photo grid with opinionated layout presets — side-by-side, feature, triptych, mosaic, and more.',
+    name: 'Evidence',
+    description: 'A collection of photographs — proves the point, shows scale, or documents the scene. Auto-layouts from count.',
     fields: [
-      { key: 'layout', label: 'Layout', kind: 'layout_grid', group: 'layout', defaultValue: 'side-by-side', imageCount: {
-        'side-by-side': 2, 'feature-left': 3, 'feature-right': 3, 'triptych': 3,
-        'quad': 4, 'hero-grid': 3, 'mosaic': 5, 'filmstrip': 6,
-      }},
-      { key: 'images', label: 'Images', kind: 'repeater', group: 'media', min: 1, max: 8,
-        itemFields: [
-          { key: 'src', label: 'Image', kind: 'image_upload' },
-          { key: 'alt', label: 'Alt text', kind: 'text', hint: 'Describe the image for accessibility' },
-          { key: 'caption', label: 'Caption', kind: 'text' },
-          { key: 'credit', label: 'Credit', kind: 'text', hint: 'Photographer / source' },
-        ],
-        defaults: [{ src: '', alt: '', caption: '', credit: '' }, { src: '', alt: '', caption: '', credit: '' }],
-      },
-      { key: 'title',   label: 'Title',   kind: 'text', group: 'layout' },
+      { key: 'images',  label: 'Images',  kind: 'array', group: 'media', itemFields: [
+        { key: 'src',     label: 'Image URL', kind: 'text' },
+        { key: 'alt',     label: 'Alt text',  kind: 'text' },
+        { key: 'caption', label: 'Caption',   kind: 'text', hint: 'Shows on hover' },
+      ]},
+      { key: 'layout',  label: 'Layout',  kind: 'text', group: 'layout', hint: 'Auto-detects from count. Or: "wide", "bleed", "editorial", "2 grid", "3 columns", "masonry", "row", "stack"' },
+      { key: 'title',   label: 'Title',   kind: 'text', group: 'layout', hint: 'Optional heading above images' },
       { key: 'caption', label: 'Overall caption', kind: 'textarea', group: 'meta', inline: true },
       { key: 'credit',  label: 'Photo credit',    kind: 'text', group: 'meta', inline: true },
     ]
@@ -363,7 +325,7 @@ const BLOCK_ICONS = {
   DataScrolly: '\u{1F4C8}', FullBleed: '\u{1F3AC}', ImageCompare: '\u{2696}\u{FE0F}',
   ImageHotspot: '\u{1F4CD}', AccordionBlock: '\u{1F4C2}', ProgressNav: '\u{1F4CD}',
   EmbedBlock: '\u{1F9E9}', ImageGrid: '\u{1F50D}', Map2D: '\u{1F9ED}',
-  FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}', Parallax: '🏔️', LottieScroll: '✨',
+  FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}',
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -436,7 +398,7 @@ const PALETTE_CATEGORIES = [
   {
     label: 'Immersive Moments',
     hint: 'Full-viewport scenes that stop the reader',
-    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer', 'Parallax', 'LottieScroll'],
+    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer'],
   },
   {
     label: 'Evidence & Proof',
@@ -653,31 +615,6 @@ const BLOCK_PREVIEWS = {
         <div style="width:5px;height:5px;border-right:1px solid rgba(255,255,255,.5);border-bottom:1px solid rgba(255,255,255,.5);transform:rotate(45deg);"></div>
       </div>
     </div>`,
-  Parallax: `
-    <div style="border-radius:6px;height:70px;position:relative;overflow:hidden;">
-      <div style="position:absolute;inset:0;background:linear-gradient(135deg,#2d4a3e 0%,#1a2f28 100%);"></div>
-      <div style="position:absolute;inset:-8px -4px;background:linear-gradient(135deg,#3d6a5e 0%,#2a4f38 100%);opacity:.5;transform:translateY(4px);"></div>
-      <div style="position:absolute;inset:-12px -6px;background:linear-gradient(135deg,#5d8a7e 0%,#3a6f58 100%);opacity:.3;transform:translateY(8px);"></div>
-      <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 40%,rgba(0,0,0,.5) 100%);z-index:2;"></div>
-      <div style="position:absolute;bottom:8px;left:10px;right:10px;z-index:3;text-align:center;">
-        <div style="font:700 13px 'DM Sans',sans-serif;color:#fff;line-height:1.1;letter-spacing:-.02em;">Layered Depth</div>
-        <div style="font:400 6.5px 'DM Sans',sans-serif;color:rgba(255,255,255,.65);margin-top:3px;">3 images · CSS parallax · 60fps</div>
-      </div>
-    </div>`,
-  LottieScroll: `
-    <div style="border-radius:6px;height:70px;position:relative;overflow:hidden;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);">
-      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
-        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <circle cx="18" cy="18" r="14" stroke="rgba(255,255,255,.18)" stroke-width="1.5"/>
-          <path d="M14 12.5l10 5.5-10 5.5V12.5z" fill="rgba(255,255,255,.55)"/>
-          <circle cx="18" cy="18" r="8" stroke="rgba(99,102,241,.5)" stroke-width="1" stroke-dasharray="3 2"/>
-        </svg>
-      </div>
-      <div style="position:absolute;bottom:7px;left:0;right:0;text-align:center;">
-        <div style="font:700 10px 'DM Sans',sans-serif;color:rgba(255,255,255,.85);letter-spacing:-.01em;">Lottie Animation</div>
-        <div style="font:400 6px 'DM Sans',sans-serif;color:rgba(255,255,255,.45);margin-top:2px;">scroll-driven · JSON vector · lottie-web</div>
-      </div>
-    </div>`,
   ImageCompare: `
     <div style="border-radius:6px;overflow:hidden;height:60px;position:relative;display:flex;">
       <div style="flex:1;background:linear-gradient(135deg,#d4c5b0 0%,#a89880 100%);display:flex;align-items:center;justify-content:center;position:relative;">
@@ -845,25 +782,11 @@ const BLOCK_CREATION_CARDS = {
       { key: 'subtitle', label: 'Subtitle', kind: 'text', placeholder: 'A supporting line' },
       { key: 'brand', label: 'Brand line (small caps at top)', kind: 'text', placeholder: 'BRAND' },
       { key: 'lines', label: 'Intro lines (appear one by one before headline)', kind: 'repeater',
-        itemFields: [{ key: 'text', label: 'Line', kind: 'text' }],
-        defaults: [],
+        itemFields: [{ key: 'value', label: 'Line', kind: 'text' }],
+        flatten: true,
       },
       { key: 'scrollCueText', label: 'Scroll cue text', kind: 'text', placeholder: 'Scroll', defaultValue: 'Scroll' },
     ],
-    postProcess(data) {
-      const lines = (data.lines || []).map((line, i) => {
-        if (typeof line === 'string') return { cls: `cin-l${i + 1}`, text: line };
-        if (line.text !== undefined) return { cls: line.cls || `cin-l${i + 1}`, text: line.text };
-        return line; // already {cls,text}
-      });
-      return {
-        brand: data.brand || '',
-        titleHtml: data.titleHtml || '',
-        subtitle: data.subtitle || '',
-        scrollCueText: data.scrollCueText || 'Scroll down',
-        lines,
-      };
-    },
   },
 
   ChapterDivider: {
@@ -878,16 +801,11 @@ const BLOCK_CREATION_CARDS = {
 
   ProgressNav: {
     headline: 'Progress Navigation',
-    hint: 'Reading progress bar fixed at top. Auto-detects ChapterDivider blocks.',
+    hint: 'Section labels shown as progress dots',
     fields: [
-      { key: 'autoGenerate', label: 'Auto-generate from ChapterDividers', kind: 'checkbox', default: true },
-      { key: 'showPercentage', label: 'Show scroll percentage', kind: 'checkbox', default: false },
-      { key: 'chapters', label: 'Manual chapters (leave empty to auto-detect)', kind: 'repeater', min: 0, max: 20,
-        itemFields: [
-          { key: 'label', label: 'Chapter name', kind: 'text' },
-          { key: 'id', label: 'Target element ID (optional)', kind: 'text', placeholder: 'e.g. chapter-2' },
-        ],
-        defaults: [],
+      { key: 'sections', label: 'Section labels', kind: 'repeater', min: 2, max: 10,
+        itemFields: [{ key: 'label', label: 'Section name', kind: 'text' }],
+        defaults: [{ label: 'Introduction' }, { label: 'Evidence' }, { label: 'Conclusion' }],
       },
     ],
   },
@@ -904,12 +822,12 @@ const BLOCK_CREATION_CARDS = {
         hint: 'Each blank line starts a new paragraph.' },
     ],
     postProcess(data) {
-      // If AI already returned a content[] array (and reverse-mapping is absent or insufficient),
-      // use it directly so nothing gets thrown away
-      if (Array.isArray(data.content) && data.content.length > 0 &&
-          !data._kicker && !data._heading && !data._body) {
+      // AI generate fills data.content directly — pass it through so the full
+      // rich content (pullquotes, separators, bigNumbers, etc.) is preserved.
+      if (Array.isArray(data.content) && data.content.length > 0) {
         return { content: data.content };
       }
+      // Manual form path: build content from flat fields.
       const content = [];
       if (data._kicker) content.push({ kind: 'kicker', text: data._kicker });
       if (data._heading) content.push({ kind: 'h2', text: data._heading });
@@ -983,23 +901,6 @@ const BLOCK_CREATION_CARDS = {
       },
     ],
     postProcess(data) {
-      const steps = (data.steps || []).map((s, i) => ({
-        badgeKind: s.badgeKind || 'data',
-        badgeLabel: s.badgeLabel || `Step ${i + 1}`,
-        body: s.body || '',
-        vizState: s.vizState || {},
-      }));
-      // If AI already populated a valid chartSpec (with real data), use it directly
-      if (data.chartSpec && Array.isArray(data.chartSpec.data) && data.chartSpec.data.length >= 2) {
-        return {
-          title: data.title || 'Chart',
-          subtitle: data.subtitle || '',
-          source: data.source || '',
-          chartSpec: data.chartSpec,
-          steps,
-        };
-      }
-      // Otherwise build chartSpec from the flat CSV form fields (manual entry)
       const lines = (data._csvData || '').trim().split('\n').filter(l => l.trim());
       const chartData = lines.map(line => {
         const parts = line.split(',').map(s => s.trim());
@@ -1008,6 +909,12 @@ const BLOCK_CREATION_CARDS = {
         return { label, value: val };
       });
       if (chartData.length === 0) chartData.push({ label: 'A', value: 10 }, { label: 'B', value: 20 });
+      const steps = (data.steps || []).map((s, i) => ({
+        badgeKind: s.badgeKind || 'data',
+        badgeLabel: s.badgeLabel || `Step ${i + 1}`,
+        body: s.body || '',
+        vizState: s.vizState || {},
+      }));
       return {
         title: data.title || 'Chart',
         subtitle: data.subtitle || '',
@@ -1082,31 +989,6 @@ const BLOCK_CREATION_CARDS = {
     ],
   },
 
-  Parallax: {
-    headline: 'Parallax Depth',
-    hint: '2-3 image layers that shift at different scroll speeds — cinematic depth effect',
-    fields: [
-      { key: 'backgroundSrc', label: 'Background image', kind: 'image_upload', required: true },
-      { key: 'headline', label: 'Headline', kind: 'text', placeholder: 'Chapter title or dramatic statement' },
-      { key: 'tint', label: 'Tint', kind: 'select',
-        options: ['dark', 'light', 'none'], defaultValue: 'dark' },
-    ],
-  },
-
-  LottieScroll: {
-    headline: 'Lottie Animation',
-    hint: 'Scroll-driven vector animation from a Lottie JSON file',
-    fields: [
-      { key: 'lottieUrl', label: 'Lottie JSON URL', kind: 'text', required: true,
-        placeholder: 'https://assets.lottiefiles.com/packages/lf20_….json',
-        hint: 'Paste any .json Lottie URL — from LottieFiles, your CDN, or self-hosted.' },
-      { key: 'layout', label: 'Layout', kind: 'select',
-        options: ['contained', 'fullscreen'], defaultValue: 'contained' },
-      { key: 'scrubMode', label: 'Play mode', kind: 'select',
-        options: ['scroll', 'autoplay'], defaultValue: 'scroll' },
-    ],
-  },
-
   // ── Evidence & Proof ─────────────────────────────────────────
 
   ImageCompare: {
@@ -1142,32 +1024,27 @@ const BLOCK_CREATION_CARDS = {
 
   ImageGrid: {
     headline: 'Image Grid',
-    hint: 'Flexible photo grid with layout presets',
+    hint: 'Multiple images in a grid layout',
     fields: [
-      { key: 'layout', label: 'Layout', kind: 'layout_grid', defaultValue: 'side-by-side', imageCount: {
-        'side-by-side': 2, 'feature-left': 3, 'feature-right': 3, 'triptych': 3,
-        'quad': 4, 'hero-grid': 3, 'mosaic': 5, 'filmstrip': 6,
-      }},
-      { key: 'title', label: 'Title', kind: 'text', hint: 'Optional heading above grid' },
-      { key: 'images', label: 'Images', kind: 'repeater', min: 1, max: 8,
+      { key: '_layout', label: 'Layout', kind: 'button_group', options: [
+        { value: '2', label: '2 side-by-side' }, { value: '4', label: '2×2 grid' }, { value: '3', label: '3 across' },
+      ], defaultValue: '2' },
+      { key: 'cells', label: 'Images', kind: 'repeater', min: 2, max: 6, dynamicCount: '_layout',
         itemFields: [
           { key: 'src', label: 'Image', kind: 'image_upload' },
-          { key: 'alt', label: 'Alt text', kind: 'text', hint: 'Describe the image for accessibility' },
           { key: 'caption', label: 'Caption', kind: 'text' },
-          { key: 'credit', label: 'Credit', kind: 'text', hint: 'Photographer / source' },
         ],
-        defaults: [{ src: '', alt: '', caption: '', credit: '' }, { src: '', alt: '', caption: '', credit: '' }],
+        defaults: [{ src: '', caption: '' }, { src: '', caption: '' }],
       },
       { key: 'caption', label: 'Grid caption', kind: 'text' },
-      { key: 'credit', label: 'Grid credit', kind: 'text' },
     ],
     postProcess(data) {
-      const images = (data.images || []).map(c => ({
-        src: c.src || '', alt: c.alt || c.caption || '', caption: c.caption || '', credit: c.credit || '',
+      const count = parseInt(data._layout) || 2;
+      const cells = (data.cells || []).slice(0, count).map(c => ({
+        src: c.src || '', alt: c.caption || '', caption: c.caption || '',
       }));
-      const needed = ({ 'side-by-side': 2, 'feature-left': 3, 'feature-right': 3, 'triptych': 3, 'quad': 4, 'hero-grid': 3, 'mosaic': 5, 'filmstrip': 6 })[data.layout] || 2;
-      while (images.length < needed) images.push({ src: '', alt: '', caption: '', credit: '' });
-      return { layout: data.layout || 'side-by-side', title: data.title || '', images, caption: data.caption || '', credit: data.credit || '' };
+      while (cells.length < count) cells.push({ src: '', alt: '', caption: '' });
+      return { columns: count <= 2 ? 2 : count, cells, caption: data.caption || '' };
     },
   },
 
@@ -1446,49 +1323,6 @@ function renderCreationField(fieldDef, data, onChange) {
       });
       if (!data[key] && options.length) data[key] = typeof options[0] === 'string' ? options[0] : options[0].value;
       wrap.appendChild(group);
-      break;
-    }
-
-    // ── Visual layout grid picker (ImageGrid layouts with SVG thumbnails) ──
-    case 'layout_grid': {
-      const LAYOUT_THUMBS = {
-        'side-by-side': { label: '2 Equal', count: 2, svg: '<rect x="1" y="1" width="17" height="22" rx="2" fill="#e8e4df"/><rect x="20" y="1" width="17" height="22" rx="2" fill="#d4cdc5"/>' },
-        'feature-left': { label: 'Feature Left', count: 3, svg: '<rect x="1" y="1" width="22" height="22" rx="2" fill="#d4cdc5"/><rect x="25" y="1" width="12" height="10" rx="2" fill="#e8e4df"/><rect x="25" y="13" width="12" height="10" rx="2" fill="#e8e4df"/>' },
-        'feature-right': { label: 'Feature Right', count: 3, svg: '<rect x="1" y="1" width="12" height="10" rx="2" fill="#e8e4df"/><rect x="1" y="13" width="12" height="10" rx="2" fill="#e8e4df"/><rect x="15" y="1" width="22" height="22" rx="2" fill="#d4cdc5"/>' },
-        'triptych': { label: '3 Equal', count: 3, svg: '<rect x="1" y="1" width="11" height="22" rx="2" fill="#e8e4df"/><rect x="13.5" y="1" width="11" height="22" rx="2" fill="#d4cdc5"/><rect x="26" y="1" width="11" height="22" rx="2" fill="#e8e4df"/>' },
-        'quad': { label: '2x2 Grid', count: 4, svg: '<rect x="1" y="1" width="17" height="10" rx="2" fill="#e8e4df"/><rect x="20" y="1" width="17" height="10" rx="2" fill="#d4cdc5"/><rect x="1" y="13" width="17" height="10" rx="2" fill="#d4cdc5"/><rect x="20" y="13" width="17" height="10" rx="2" fill="#e8e4df"/>' },
-        'hero-grid': { label: 'Hero + Row', count: 3, svg: '<rect x="1" y="1" width="36" height="13" rx="2" fill="#d4cdc5"/><rect x="1" y="16" width="17" height="7" rx="2" fill="#e8e4df"/><rect x="20" y="16" width="17" height="7" rx="2" fill="#e8e4df"/>' },
-        'mosaic': { label: 'Mosaic', count: 5, svg: '<rect x="1" y="1" width="17" height="13" rx="2" fill="#d4cdc5"/><rect x="20" y="1" width="17" height="8" rx="2" fill="#e8e4df"/><rect x="20" y="11" width="17" height="12" rx="2" fill="#d4cdc5"/><rect x="1" y="16" width="11" height="7" rx="2" fill="#e8e4df"/><rect x="14" y="16" width="4" height="7" rx="2" fill="#d9d0c7"/>' },
-        'filmstrip': { label: 'Film Strip', count: 6, svg: '<rect x="0" y="4" width="8" height="16" rx="1.5" fill="#e8e4df"/><rect x="9" y="2" width="8" height="20" rx="1.5" fill="#d4cdc5"/><rect x="18" y="4" width="8" height="16" rx="1.5" fill="#e8e4df"/><rect x="27" y="2" width="8" height="20" rx="1.5" fill="#d4cdc5"/><rect x="36" y="6" width="3" height="12" rx="1" fill="#e8e4df" opacity=".5"/>' },
-      };
-      const grid = document.createElement('div');
-      grid.className = 'cc-layout-grid';
-      const current = data[key] ?? defaultValue ?? 'side-by-side';
-      const imgCounts = fieldDef.imageCount || {};
-      Object.entries(LAYOUT_THUMBS).forEach(([val, thumb]) => {
-        const card = document.createElement('button');
-        card.type = 'button';
-        card.className = 'cc-layout-card' + (val === current ? ' active' : '');
-        card.innerHTML = `<svg viewBox="0 0 38 24" class="cc-layout-svg">${thumb.svg}</svg><div class="cc-layout-label">${thumb.label}</div><div class="cc-layout-count">${thumb.count} img</div>`;
-        card.addEventListener('click', () => {
-          data[key] = val;
-          grid.querySelectorAll('.cc-layout-card').forEach(c => c.classList.toggle('active', c === card));
-          // Auto-resize images array to match layout's expected count
-          const needed = imgCounts[val] || 2;
-          if (Array.isArray(data.images)) {
-            while (data.images.length < needed) data.images.push({ src: '', alt: '', caption: '', credit: '' });
-          }
-          onChange(key, val);
-        });
-        grid.appendChild(card);
-      });
-      if (!data[key]) data[key] = current;
-      // Initialize images count on first render
-      const initNeeded = imgCounts[current] || 2;
-      if (Array.isArray(data.images) && data.images.length < initNeeded) {
-        while (data.images.length < initNeeded) data.images.push({ src: '', alt: '', caption: '', credit: '' });
-      }
-      wrap.appendChild(grid);
       break;
     }
 
@@ -1859,36 +1693,19 @@ function openCreationCard(type, opts = {}) {
         // Populate form fields from AI response
         if (r && r.data) {
           Object.assign(formData, r.data);
-          // Map nested chartSpec to flat creation card fields for DataScrolly
-          if (r.data.chartSpec && Array.isArray(r.data.chartSpec.data)) {
-            const cs = r.data.chartSpec;
-            formData._chartKind = cs.kind || 'bar';
-            const xf = cs.xField || 'label';
-            const yf = cs.yField || 'value';
-            formData._csvData = cs.data.map(d => `${d[xf]}, ${d[yf]}`).join('\n');
-          }
-          // For Editorial: AI returns content[] directly — reverse-map to _kicker/_heading/_body
-          // so the form fields show the generated content (postProcess will also accept content[] directly)
+          // Editorial: AI returns {content:[...]} but the creation form shows
+          // three flat fields (_kicker, _heading, _body).  Extract the key items
+          // so the user can review/edit them before clicking Create.
+          // postProcess will use data.content directly, so rich items
+          // (pullquotes, separators, etc.) are preserved on Create.
           if (type === 'Editorial' && Array.isArray(r.data.content)) {
-            const c = r.data.content;
-            const kicker = c.find(i => i.kind === 'kicker');
-            const h2 = c.find(i => i.kind === 'h2');
-            const lead = c.find(i => i.kind === 'lead');
-            const ps = c.filter(i => i.kind === 'p' || i.kind === 'dropcap');
-            if (kicker) formData._kicker = kicker.text || '';
-            if (h2)     formData._heading = h2.text || '';
-            const bodyParts = [];
-            if (lead) bodyParts.push(lead.text || '');
-            ps.forEach(p => bodyParts.push(p.html || p.text || ''));
-            formData._body = bodyParts.join('\n\n');
-          }
-          // For Hero: AI returns lines as [{cls,text}] — also set a displayable _linesText
-          // so the repeater shows text values (postProcess auto-assigns cls)
-          if (type === 'Hero' && Array.isArray(r.data.lines)) {
-            // Convert [{cls,text}] → plain strings for the flatten:true repeater display
-            formData.lines = r.data.lines.map(l =>
-              typeof l === 'string' ? l : (l.text || '')
-            );
+            const items = r.data.content;
+            const kickerItem = items.find(c => c.kind === 'kicker');
+            const h2Item     = items.find(c => c.kind === 'h2');
+            const bodyItems  = items.filter(c => c.kind === 'p' || c.kind === 'lead' || c.kind === 'dropcap');
+            formData._kicker  = kickerItem?.text || '';
+            formData._heading = h2Item?.text || '';
+            formData._body    = bodyItems.map(c => c.html || c.text || '').join('\n\n');
           }
           // Re-render fields to show AI-filled values
           fieldsContainer.innerHTML = '';
@@ -1908,14 +1725,6 @@ function openCreationCard(type, opts = {}) {
             }
           }
           toast('Claude filled in the form — review and edit before creating', 'success');
-          // Show DataScrolly quality warnings
-          if (r.quality && r.quality.warnings && r.quality.warnings.length > 0) {
-            setTimeout(() => {
-              r.quality.warnings.slice(0, 2).forEach((w, i) => {
-                setTimeout(() => toast(`💡 ${w}`, r.quality.score < 40 ? 'warning' : 'info'), i * 1500);
-              });
-            }, 1200);
-          }
         }
       } catch (e) {
         toast('AI generation failed: ' + e.message, 'error');
@@ -1931,7 +1740,7 @@ function openCreationCard(type, opts = {}) {
     const skipBtn = document.createElement('button');
     skipBtn.type = 'button';
     skipBtn.className = 'ghost';
-    skipBtn.textContent = 'Add empty — edit in preview';
+    skipBtn.textContent = 'Skip — add empty block';
     skipBtn.addEventListener('click', () => {
       closeModal();
       if (!state.doc) { toast('Please create or select a page first', 'error'); return; }
@@ -1947,8 +1756,6 @@ function openCreationCard(type, opts = {}) {
       setDirty(true);
       renderBlockList();
       renderEditor();
-      softRefreshPreview();
-      toast(`${BLOCK_SCHEMAS[type]?.name || type} added — use Edit mode on the preview to fill it in`, 'success');
     });
 
     const createBtn = document.createElement('button');
@@ -1990,7 +1797,7 @@ function openCreationCard(type, opts = {}) {
       closeModal();
       renderBlockList();
       renderEditor();
-      softRefreshPreview();
+      refreshPreview();
       toast(`${schemaName} created`, 'success');
     });
 
@@ -2071,14 +1878,11 @@ async function getPublicUrl() {
 }
 function setDirty(d) {
   state.dirty = d;
-  // Publish button: enable/disable + pulse dot
+  const s = $('#page-status');
+  s.className = 'status ' + (d ? 'dirty' : 'saved');
+  s.textContent = d ? '● Unsaved changes' : (state.savedVersion ? `Saved · v${state.savedVersion}` : 'Loaded');
   $('#btn-publish').disabled = !d;
-  const dot = $('#publish-dot');
-  if (dot) dot.classList.toggle('active', d);
-  if (d) {
-    backupToLocal();
-    scheduleAutosave();
-  }
+  if (d) backupToLocal();
 }
 
 // ── Local backup (crash recovery) ─────────────────────────────────────────
@@ -2113,53 +1917,38 @@ function clearLocalBackup(id) {
   try { localStorage.removeItem(`scrollycms_backup_${id}`); } catch (e) {}
 }
 
-// ── Save indicator (Webflow-style pill) ──────────────────────────────────
-let _siHideTimer = null;
-function showSaveIndicator(status) {
-  const el = $('#save-indicator');
+// ── Save status indicator ─────────────────────────────────────────────────
+function setSaveStatus(status) {
+  const el = $('#save-status');
   if (!el) return;
-  const icon = el.querySelector('.save-indicator__icon');
-  const text = el.querySelector('.save-indicator__text');
-  clearTimeout(_siHideTimer);
-
-  // Reset
-  el.className = 'save-indicator';
-
+  el.className = 'save-status';
   switch (status) {
     case 'saving':
-      icon.innerHTML = '<span class="spinner"></span>';
-      text.textContent = 'Saving';
-      el.classList.add('saving', 'visible');
+      el.textContent = 'Saving…';
+      el.classList.add('status-saving');
       break;
     case 'saved':
-      icon.innerHTML = '<span class="check"></span>';
-      text.textContent = 'Saved';
-      el.classList.add('saved', 'visible');
-      _siHideTimer = setTimeout(() => el.classList.remove('visible'), 2200);
+      el.textContent = 'Saved ✓';
+      el.classList.add('status-saved');
+      setTimeout(() => { if (el.textContent === 'Saved ✓') el.textContent = ''; }, 3000);
       break;
     case 'error':
-      icon.innerHTML = '<span class="err-icon"></span>';
-      text.textContent = 'Save failed';
-      el.classList.add('error', 'visible');
-      el.onclick = () => { el.onclick = null; runAutosave(); };
+      el.textContent = 'Save failed';
+      el.classList.add('status-error');
       break;
     case 'publishing':
-      icon.innerHTML = '<span class="spinner"></span>';
-      text.textContent = 'Publishing';
-      el.classList.add('publishing', 'visible');
+      el.textContent = 'Publishing…';
+      el.classList.add('status-saving');
       break;
     case 'published':
-      icon.innerHTML = '<span class="check"></span>';
-      text.textContent = 'Published';
-      el.classList.add('published', 'visible');
-      _siHideTimer = setTimeout(() => el.classList.remove('visible'), 2800);
+      el.textContent = 'Published ✓';
+      el.classList.add('status-saved');
+      setTimeout(() => { if (el.textContent === 'Published ✓') el.textContent = ''; }, 3000);
       break;
     default:
-      el.classList.remove('visible');
+      el.textContent = '';
   }
 }
-// Backward compat alias (some code paths still call this)
-function setSaveStatus(s) { showSaveIndicator(s); }
 // ─────────────────────────── API (Supabase-backed) ─────────
 // SB.* functions from supabase-client.js replace the old fetch-based api().
 
@@ -2573,7 +2362,7 @@ function setupTouchDrag(el, idx, listEl, kind) {
           setDirty(true);
           renderBlockList();
           renderEditor();
-          softRefreshPreview();
+          refreshPreview();
         }
         // Sub-item reorder is handled by the caller via a callback
       }
@@ -2711,7 +2500,7 @@ function renderBlockList() {
       setDirty(true);
       renderBlockList();
       renderEditor();
-      softRefreshPreview();
+      refreshPreview();
     });
 
     // Touch drag support
@@ -2774,7 +2563,7 @@ function renderBlockList() {
     setDirty(true);
     renderBlockList();
     renderEditor();
-    softRefreshPreview();
+    refreshPreview();
   });
   ol.appendChild(endZone);
 
@@ -2945,20 +2734,11 @@ function duplicateBlock(idx) {
   setDirty(true);
   renderBlockList();
 }
-function deleteBlock(idx, confirmed) {
+function deleteBlock(idx) {
   const block = state.doc.blocks[idx];
   if (!block) return;
-  if (!confirmed) {
-    // First click: flip button to "Sure?" — next click actually deletes
-    const btn = document.querySelector(`.block-actions [data-act="del"][data-idx="${idx}"]`)
-              || document.querySelector('.block-actions [data-act="del"]');
-    if (btn && !btn.dataset.armed) {
-      btn.dataset.armed = '1';
-      btn.textContent = 'Sure?';
-      setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = 'Delete'; } }, 3000);
-    }
-    return;
-  }
+  const name = block.type + (block.data?.title ? `: ${block.data.title}` : '');
+  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
   if (block.id === state.selectedBlockId) state.selectedBlockId = null;
   state.doc.blocks.splice(idx, 1);
   setDirty(true);
@@ -3062,7 +2842,7 @@ function addBlock(type) { openCreationCard(type); }
 const DIRECT_MODE_DISABLED = new Set([
   'Map2D', 'DataScrolly', 'Scrolly', 'StatRow', 'Timeline',
   'ImageCompare', 'ImageHotspot', 'AccordionBlock', 'ImageGrid',
-  'VizPanel', 'EmbedBlock', 'VideoEmbed',
+  'VizPanel', 'ProgressNav', 'EmbedBlock', 'VideoEmbed',
 ]);
 
 // ─────────────────────────── Claude-powered create / improve ──
@@ -3308,14 +3088,6 @@ function openClaudeModal(opts) {
           renderBlockList();
           if (opts.block.id === state.selectedBlockId) renderEditor();
           toast(aiMode ? `${type} enhanced by Claude` : `${type} updated — text preserved`, 'success');
-          // Show DataScrolly quality warnings if present
-          if (r.quality && r.quality.warnings && r.quality.warnings.length > 0) {
-            setTimeout(() => {
-              r.quality.warnings.slice(0, 2).forEach((w, i) => {
-                setTimeout(() => toast(`💡 ${w}`, 'info'), i * 1500);
-              });
-            }, 800);
-          }
         } else {
           // If no page is loaded yet, auto-create one first
           if (!state.doc) {
@@ -3344,21 +3116,8 @@ function openClaudeModal(opts) {
           renderEditor();
           toast(aiMode ? `${type} block created by Claude` : `${type} block created — text preserved`, 'success');
         }
-        // Show DataScrolly quality warnings if present
-        if (r.quality && r.quality.warnings && r.quality.warnings.length > 0) {
-          setTimeout(() => {
-            const score = r.quality.score;
-            const level = score >= 70 ? 'info' : score >= 40 ? 'warning' : 'error';
-            const prefix = score < 40 ? '⚠️ Data quality issue' : score < 70 ? '💡 Chart tip' : '✅ Chart';
-            toast(`${prefix}: ${r.quality.warnings[0]}`, level === 'info' ? 'success' : level);
-            // Show additional warnings after a delay
-            r.quality.warnings.slice(1, 3).forEach((w, i) => {
-              setTimeout(() => toast(`💡 ${w}`, level === 'error' ? 'error' : 'info'), (i + 1) * 1500);
-            });
-          }, 800);
-        }
         closeModal();
-        softRefreshPreview();
+        refreshPreview();
       } catch (e) {
         spinner.className = 'claude-modal-spinner error';
         spinner.textContent = 'Failed: ' + e.message;
@@ -3402,34 +3161,26 @@ function defaultDataFor(type) {
     case 'Quote': return { text: 'Type the quote here.', attribution: 'Name', role: '', portraitSrc: '', sourceUrl: '', sourceLabel: '' };
     case 'VideoEmbed': return { url: '', caption: '', credit: '' };
     case 'DataScrolly': return {
-      title: 'Chart Title',
-      subtitle: 'Descriptive subtitle with time period',
-      source: 'Data source (year)',
+      title: 'New chart',
+      subtitle: '',
+      source: '[estimated illustrative values]',
       chartSpec: {
-        kind: 'bar',
-        data: [
-          { year: '2000', value: 6.7 }, { year: '2004', value: 14.2 }, { year: '2008', value: 23.1 },
-          { year: '2012', value: 35.1 }, { year: '2016', value: 45.8 }, { year: '2020', value: 59.5 },
-          { year: '2024', value: 67.4 },
-        ],
+        kind: 'line',
+        data: [{ year: 2000, value: 10 }, { year: 2010, value: 25 }, { year: 2020, value: 40 }],
         xField: 'year',
         yField: 'value',
         xLabel: 'Year',
-        yLabel: 'Value (%)',
+        yLabel: 'Value',
       },
       steps: [
-        { badgeKind: 'data', badgeLabel: 'Overview', body: 'The overview of the trend. Replace this with your narrative.', vizState: {} },
-        { badgeKind: 'data', badgeLabel: 'Growth',   body: 'By 2012, the value reached 35.1% — a fivefold increase.', vizState: { highlightX: '2012', annotation: '35.1%' } },
-        { badgeKind: 'explain', badgeLabel: 'Trend',  body: 'The line reveals the acceleration pattern more clearly.', vizState: { chartType: 'line' } },
-        { badgeKind: 'future', badgeLabel: 'Today',   body: 'In 2024, two-thirds of the target is reached.', vizState: { highlightX: '2024', annotation: '67.4%', chartType: 'area' } },
+        { badgeKind: 'data', badgeLabel: 'Start',   body: 'In 2000 the value started at 10.', vizState: { highlightX: 2000, annotation: '10' } },
+        { badgeKind: 'data', badgeLabel: 'Middle',  body: 'By 2010 it had grown to 25.',      vizState: { highlightX: 2010, annotation: '25' } },
+        { badgeKind: 'data', badgeLabel: 'Today',   body: 'In 2020 it reached 40.',           vizState: { highlightX: 2020, annotation: '40' } },
       ],
     };
     case 'Map2D': return { title: '', subtitle: '', source: '', layout: 'behind', tileStyle: 'default', height: '100vh', maxWidth: '100%', initialCenter: [52.52, 13.405], initialZoom: 6, flyDuration: 2, scrollZoom: false, markers: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', name: 'Berlin', popupHtml: '<strong>Berlin</strong>', color: '#c06830' }], routes: [], areas: [], steps: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }], caption: '', credit: 'OpenStreetMap' };
     case 'FullscreenImage': return { imageSrc: '', imageAlt: '', kicker: '', title: 'Title', subtitle: '', body: '', overlayPosition: 'bottom-left', scrimOpacity: 0.45, scrimDirection: 'bottom', kenBurns: true, scrollCue: false, caption: '', credit: '' };
     case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
-    case 'Parallax': return { backgroundSrc: '', backgroundAlt: '', midgroundSrc: '', midgroundAlt: '', foregroundSrc: '', foregroundAlt: '', headline: '', subtitle: '', overlayPosition: 'center', tint: 'dark' };
-    case 'LottieScroll': return { lottieUrl: '', caption: '', layout: 'contained', scrubMode: 'scroll' };
-    case 'ProgressNav': return { mode: 'bar', autoGenerate: true, showPercentage: false, chapters: [] };
     default:          return {};
   }
 }
@@ -3459,7 +3210,7 @@ function renderEditor() {
     <button data-act="del" class="danger" title="Delete block">Delete</button>`;
   toolbar.querySelector('[data-act="claude"]').addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
   toolbar.querySelector('[data-act="dup"]').addEventListener('click', (e) => { e.stopPropagation(); duplicateBlock(idx); });
-  toolbar.querySelector('[data-act="del"]').addEventListener('click', (e) => { e.stopPropagation(); deleteBlock(idx, e.currentTarget.dataset.armed === '1'); });
+  toolbar.querySelector('[data-act="del"]').addEventListener('click', (e) => { e.stopPropagation(); deleteBlock(idx); });
   form.appendChild(toolbar);
 
   if (!schema) {
@@ -3485,7 +3236,7 @@ function renderEditor() {
   };
   const OPEN_GROUPS = new Set(['content', 'media', 'data']);
 
-  const onFieldChange = () => { setDirty(true); hotSwapBlock(state.selectedBlockId); updateBlockSummary(); };
+  const onFieldChange = () => { setDirty(true); refreshPreview(); updateBlockSummary(); };
 
   GROUP_ORDER.forEach(groupKey => {
     const fields = groups[groupKey];
@@ -3562,14 +3313,14 @@ function renderEditor() {
       block.data.bgOpacity = v;
       bgValSpan.textContent = String(v);
       setDirty(true);
-      hotSwapBlock(block.id);
+      refreshPreview();
     });
     bgClear.addEventListener('click', () => {
       delete block.data.bgOpacity;
       bgRange.value = '';
       bgValSpan.textContent = '—';
       setDirty(true);
-      hotSwapBlock(block.id);
+      refreshPreview();
     });
     bgRow.appendChild(bgRange);
     bgRow.appendChild(bgValSpan);
@@ -3813,18 +3564,8 @@ function renderField(field, data, onChange) {
       wrap.appendChild(addBtn);
       break;
     }
-    default: {
-      // Delegate to renderCreationField for kinds it supports (layout_grid, repeater, button_group, image_upload, etc.)
-      const delegated = renderCreationField(field, data, (k, v) => { data[k] = v; onChange(); renderEditor(); });
-      if (delegated) {
-        // Strip the duplicate label — renderCreationField adds its own
-        wrap.innerHTML = '';
-        wrap.appendChild(delegated);
-      } else {
-        wrap.appendChild(document.createTextNode(`Unsupported field kind: ${field.kind}`));
-      }
-      break;
-    }
+    default:
+      wrap.appendChild(document.createTextNode(`Unsupported field kind: ${field.kind}`));
   }
   return wrap;
 }
@@ -4571,14 +4312,13 @@ function getPreviewBlobUrl() {
   const origin = window.location.origin;
   const theme = doc.theme || 'dia';
   const themeLink = theme !== 'dia' ? `<link rel="stylesheet" href="${origin}/themes/${theme}.css">` : '';
-  const veBust = 'v=' + Date.now();
-  const veScript = state.visualEditMode ? `<script src="${origin}/js/visual-edit.js?${veBust}" defer><\/script>` : '';
+  const veScript = state.visualEditMode ? `<script src="${origin}/js/visual-edit.js" defer><\/script>` : '';
   const html = `<!DOCTYPE html>
 <html lang="${doc.lang || 'de'}" data-theme="${theme}">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<link rel="stylesheet" href="${origin}/css/site.css?${veBust}">
+<link rel="stylesheet" href="${origin}/css/site.css">
 ${themeLink}
 <script>window.__PAGE_DATA__ = ${JSON.stringify(doc).replace(/<\//g, '<\\/')};<\/script>
 <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"><\/script>
@@ -4587,76 +4327,22 @@ ${themeLink}
 <body>
 <main id="page-root"></main>
 <script type="module">
-import { render } from '${origin}/js/render.js?${veBust}';
+import { render } from '${origin}/js/render.js';
 render();
 <\/script>
 ${veScript}</body></html>`;
   return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
 }
-// ── Hot-swap: update a single block without reloading the iframe ─────────────
-// Sends the block data to the iframe via postMessage; render.js re-renders just
-// that block in-place.  Scroll position is completely untouched.
-function hotSwapBlock(blockId) {
-  const block = state.doc?.blocks.find(b => b.id === blockId);
-  if (!block) return;
-  const iframe = $('#preview-frame');
-  try {
-    if (!iframe.contentWindow) throw 0;
-    iframe.contentWindow.postMessage({
-      type: 'hot-swap-block',
-      blockId: block.id,
-      blockType: block.type,
-      blockData: { ...block.data },
-    }, '*');
-  } catch (_) {
-    refreshPreview(); // fallback if iframe isn't ready
-  }
-}
-// ── Soft refresh: re-render all blocks without iframe navigation ─────────────
-// Used for structural changes (add / delete / reorder blocks).
-// Scroll position is preserved because we don't navigate the iframe.
-function softRefreshPreview() {
-  const iframe = $('#preview-frame');
-  try {
-    if (!iframe.contentWindow) throw 0;
-    iframe.contentWindow.postMessage({
-      type: 'soft-refresh',
-      doc: JSON.parse(JSON.stringify(state.doc)),
-    }, '*');
-  } catch (_) {
-    refreshPreview(); // fallback
-  }
-}
 function refreshPreview() {
-  // Debounced reload — preserves scroll position across reloads
+  // Debounced reload of the iframe — blob URLs don't support query params
   clearTimeout(refreshPreview._t);
   refreshPreview._t = setTimeout(() => {
     const iframe = $('#preview-frame');
-    // Suppress "Reload site?" dialog from contenteditable changes
-    try { iframe.contentWindow.onbeforeunload = null; } catch (_) {}
-    // Save scroll position before reload
-    let scrollY = 0;
-    try { scrollY = iframe.contentWindow?.scrollY || 0; } catch (_) {}
     // Revoke old blob URL to avoid memory leaks
     if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
     const url = pageUrl();
     iframe._blobUrl = url;
     iframe.src = url;
-    // Restore scroll position after new content loads + renders
-    if (scrollY > 0) {
-      const restore = () => {
-        // Immediate attempt + delayed attempt (wait for render() to finish)
-        try { iframe.contentWindow.scrollTo(0, scrollY); } catch (_) {}
-        setTimeout(() => {
-          try { iframe.contentWindow.scrollTo(0, scrollY); } catch (_) {}
-        }, 300);
-        setTimeout(() => {
-          try { iframe.contentWindow.scrollTo(0, scrollY); } catch (_) {}
-        }, 800);
-        iframe.removeEventListener('load', restore);
-      };
-      iframe.addEventListener('load', restore);
-    }
   }, 400);
 }
 $('#btn-preview').addEventListener('click', () => window.open(pageUrl(), '_blank'));
@@ -4671,37 +4357,8 @@ $('#btn-visual-edit').addEventListener('click', () => {
   state.visualEditMode = !state.visualEditMode;
   $('#btn-visual-edit').classList.toggle('active', state.visualEditMode);
   $('#btn-visual-edit').textContent = state.visualEditMode ? '✏️ Editing' : '✏️ Edit';
-  const iframe = $('#preview-frame');
-  if (state.visualEditMode) {
-    // Enable: inject visual-edit.js into the existing iframe (no navigation)
-    try {
-      const doc = iframe.contentDocument || iframe.contentWindow.document;
-      const old = doc.getElementById('ve-injected');
-      if (old) old.remove();
-      const script = doc.createElement('script');
-      script.id = 've-injected';
-      script.src = window.location.origin + '/js/visual-edit.js?v=' + Date.now();
-      doc.body.appendChild(script);
-    } catch (_) {
-      refreshPreview(); // fallback for cross-origin issues
-    }
-  } else {
-    // Disable: tell visual-edit.js to tear down, then soft-refresh to clean DOM
-    try { iframe.contentWindow.postMessage({ type: 'visual-edit-teardown' }, '*'); } catch (_) {}
-  }
+  refreshPreview();
 });
-
-// ── Sidebar toggle (glass overlay) ──
-const sidebarToggle = $('#btn-sidebar-toggle');
-if (sidebarToggle) {
-  sidebarToggle.addEventListener('click', () => {
-    const blocks = document.querySelector('.blocks');
-    blocks.classList.toggle('hidden');
-    const isHidden = blocks.classList.contains('hidden');
-    sidebarToggle.textContent = isHidden ? '☰' : '✕';
-    sidebarToggle.title = isHidden ? 'Show blocks panel' : 'Hide blocks panel';
-  });
-}
 
 // ── Fullscreen preview toggle ──
 (function initFullscreenPreview() {
@@ -4780,19 +4437,6 @@ window.addEventListener('message', async (evt) => {
         return;
       }
       try {
-        // Show local preview immediately via data URL while upload proceeds
-        const previewFrame = $('#preview-frame');
-        const dataUrl = await new Promise((resolve) => {
-          const reader = new FileReader();
-          reader.onload = () => resolve(reader.result);
-          reader.readAsDataURL(file);
-        });
-        if (previewFrame && previewFrame.contentWindow) {
-          previewFrame.contentWindow.postMessage(
-            { type: 'visual-edit-response', action: 'image-replaced', blockId, field, index, newSrc: dataUrl },
-            '*'
-          );
-        }
         toast('Uploading image…', 'info');
         const r = await SB.uploadFile(file);
         const newSrc = r.url;
@@ -4814,7 +4458,7 @@ window.addEventListener('message', async (evt) => {
         setDirty(true);
         if (block.id === state.selectedBlockId) renderEditor();
         updateBlockSummary();
-        // Update iframe with the permanent remote URL
+        const previewFrame = $('#preview-frame');
         if (previewFrame && previewFrame.contentWindow) {
           previewFrame.contentWindow.postMessage(
             { type: 'visual-edit-response', action: 'image-replaced', blockId, field, index, newSrc },
@@ -4839,11 +4483,6 @@ window.addEventListener('message', async (evt) => {
       renderBlockList();
       renderEditor();
     }
-  }
-
-  // URL field changed — hot-swap the block to re-render it without losing scroll
-  if (action === 'request-refresh') {
-    hotSwapBlock(blockId);
   }
 
   // Insert block at position (from visual-edit hover zones)
@@ -4892,27 +4531,6 @@ $('#btn-settings').addEventListener('click', () => {
     const langSel = document.createElement('select');
     langSel.innerHTML = `<option value="de" ${state.doc.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.doc.lang === 'en' ? 'selected' : ''}>English</option>`;
     body.appendChild(langSel);
-
-    // ── Smooth scroll ──
-    const scrollSep = document.createElement('div');
-    scrollSep.style.cssText = 'margin-top:16px;padding-top:14px;border-top:1px solid #eaeef2;';
-    body.appendChild(scrollSep);
-
-    const scrollRow = document.createElement('label');
-    scrollRow.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;';
-    const scrollChk = document.createElement('input');
-    scrollChk.type = 'checkbox';
-    scrollChk.checked = !!state.doc.smoothScroll;
-    scrollRow.appendChild(scrollChk);
-    const scrollTxt = document.createElement('span');
-    scrollTxt.style.cssText = 'font-size:13px;color:#24292f;';
-    scrollTxt.textContent = 'Smooth scroll';
-    scrollRow.appendChild(scrollTxt);
-    body.appendChild(scrollRow);
-    const scrollHint = document.createElement('div');
-    scrollHint.style.cssText = 'font-size:11px;color:#8c959f;margin-top:3px;line-height:1.45;';
-    scrollHint.textContent = 'Enables CSS smooth scrolling for anchor links and scroll-to actions.';
-    body.appendChild(scrollHint);
 
     // ── Background image ──
     const bgData = state.doc.background || {};
@@ -5007,8 +4625,6 @@ $('#btn-settings').addEventListener('click', () => {
       state.doc.lang = langSel.value;
       if (!state.doc.meta) state.doc.meta = {};
       state.doc.meta.title = titleInp.value.trim();
-      // Smooth scroll
-      state.doc.smoothScroll = scrollChk.checked;
       // Background
       const bgSrc = bgImgInp.value.trim();
       if (bgSrc) {
@@ -5020,7 +4636,7 @@ $('#btn-settings').addEventListener('click', () => {
         delete state.doc.background;
       }
       setDirty(true);
-      softRefreshPreview();
+      refreshPreview();
       closeModal();
       toast('Settings updated — publish to apply', 'success');
     });
@@ -5139,42 +4755,53 @@ function closeModal() {
 function escapeText(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
 function escapeAttr(s) { return String(s ?? '').replace(/"/g, '&quot;'); }
 
-// ─────────────────────────── Autosave (debounced) ──────────────────────────
-// Saves draft to Supabase 2 seconds after the last change. No interval polling.
-// Does NOT publish or create history — just persists so you never lose work.
-let _autosaveDebounce = null;
+// Beforeunload warning
+window.addEventListener('beforeunload', (e) => {
+  if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+});
+
+// ─────────────────────────── Autosave ──────────────────────────
+// Quietly saves to Supabase every 5 seconds when there are unsaved changes.
+// Does NOT publish or create history — just persists the draft so you never lose work.
+let _autosaveTimer = null;
 let _autosaving = false;
 let _autosaveFailCount = 0;
 
-function scheduleAutosave() {
-  clearTimeout(_autosaveDebounce);
-  _autosaveDebounce = setTimeout(runAutosave, 2000);
-}
-
-async function runAutosave() {
-  if (!state.dirty || !state.doc || !state.currentPageId || _autosaving) return;
-  if (_autosaveFailCount >= 3) return;
-  _autosaving = true;
-  showSaveIndicator('saving');
-  try {
-    await SB.autoSave(state.currentPageId, state.doc);
-    clearLocalBackup(state.currentPageId);
-    _autosaveFailCount = 0;
-    showSaveIndicator('saved');
-  } catch (e) {
-    console.error('Autosave failed:', e.message);
-    _autosaveFailCount++;
-    showSaveIndicator('error');
-    if (_autosaveFailCount >= 3) {
-      toast('Autosave paused — changes backed up locally. Check connection.', 'error');
+function startAutosave() {
+  if (_autosaveTimer) return;
+  _autosaveTimer = setInterval(async () => {
+    if (!state.dirty || !state.doc || !state.currentPageId || _autosaving) return;
+    if (_autosaveFailCount >= 3) return; // Stop retrying after 3 failures
+    _autosaving = true;
+    setSaveStatus('saving');
+    try {
+      await SB.autoSave(state.currentPageId, state.doc);
+      clearLocalBackup(state.currentPageId);
+      _autosaveFailCount = 0;
+      setSaveStatus('saved');
+      // Don't clear dirty — dirty means "unpublished changes"
+      // But update status to show autosave happened
+      const s = $('#page-status');
+      s.textContent = '● Autosaved (unpublished)';
+      s.className = 'status dirty';
+    } catch (e) {
+      console.error('Autosave failed:', e.message);
+      _autosaveFailCount++;
+      setSaveStatus('error');
+      const s = $('#page-status');
+      if (_autosaveFailCount >= 3) {
+        s.textContent = '⚠ Autosave disabled — check connection';
+        s.className = 'status dirty';
+        toast('Autosave has failed 3 times. Your changes are backed up locally. Check your connection.', 'error');
+      } else {
+        s.textContent = '⚠ Autosave failed';
+        s.className = 'status dirty';
+      }
+    } finally {
+      _autosaving = false;
     }
-  } finally {
-    _autosaving = false;
-  }
+  }, 5000);
 }
-
-// startAutosave is now a no-op (kept for backward compat with existing calls)
-function startAutosave() {}
 
 // Auth expiry — save locally before showing login prompt
 window.addEventListener('scrollycms:auth-expired', () => {
@@ -5260,8 +4887,8 @@ window._insertBlocks = function(blocks) {
   setDirty(true);
   renderBlockList();
   renderEditor();
-  // Trigger immediate autosave
-  runAutosave();
+  // Auto-save draft
+  saveDraft();
 };
 
 // Kickoff
