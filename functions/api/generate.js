@@ -616,6 +616,60 @@ WRITING RULES for Parallax:
   },
 };
 
+// ── Per-type improve rules (token savings: only send relevant rules) ──
+const IMPROVE_RULES = {
+  _universal: [
+    'Keep all existing fields unless the user explicitly asks to change them',
+    'Every block supports "bgOpacity" (number 0-1) to control page background image visibility. "show background" → bgOpacity 0.3. "hide background" → bgOpacity 0. "strong background" → bgOpacity 0.5-0.8.',
+    'ALWAYS return the complete data object with ALL fields, not just the changed ones',
+  ],
+  ImageGrid: [
+    '"make images smaller" or "smaller layout" → change layout to "editorial" (720px narrow)',
+    '"bigger" or "wider" or "full width" → layout "bleed" or "full"',
+    '"2 grid" or "3 columns" etc → set layout field accordingly',
+    '"remove image 2" or "swap images" → modify images array',
+    '"add caption" or "change credit" → update those fields',
+    '"make the image half size" → layout "editorial" for narrow',
+  ],
+  Scrolly: [
+    '"remove images" → clear imageSrc fields. "add image to step 3" → set imageSrc on that step',
+    '"make images smaller" → imageSize "small" (35%). "bigger" → "large" (65%). "medium" → "medium" (50%). "full width" → "full". Or exact values like "40%".',
+    '"make images shorter" or "less tall" → imageHeight "60vh" or "70vh". "taller" → "100vh".',
+    '"round corners" → imageRadius "12px" or "24px". "sharp" or "no radius" → "0".',
+    '"narrower layout" → reduce maxWidth (e.g. "1100px"). "wider" → increase (e.g. "1600px").',
+  ],
+  Map2D: [
+    '"zoom in" → increase initialZoom or step mapState.zoom by 2. "zoom out" → decrease by 2.',
+    '"focus on [city]" → change initialCenter to that city\'s real coordinates and set initialZoom to 13.',
+    '"add marker at [place]" → add to markers array with real lat/lng, unique id, and add id to relevant step\'s showMarkers.',
+    '"draw route from A to B" → add route. CRITICAL: first point = origin marker [lat,lng], last point = destination marker [lat,lng]. Add 5-8 intermediate waypoints following the real path. Route weight should be 2.',
+    '"dark map" → tileStyle "dark". "watercolor" → "watercolor". "b&w" → "toner". "clean" → "toner-lite".',
+    '"behind layout" or "fullscreen" → layout "behind". "side layout" → "side".',
+    'When editing routes, ALWAYS verify route start/end points match the connected markers\' exact lat/lng coordinates.',
+    '"thinner lines" → reduce route weight (min 1). "thicker" → increase (max 4). "dashed" → dashArray "8,5".',
+  ],
+  DataScrolly: [
+    '"more data" or "add data points" → add more entries to chartSpec.data (minimum 6 total, aim for 8-12).',
+    '"better data" or "use real data" → replace generic values with realistic, specific numbers. Update source field.',
+    '"add step" → add a new step with unique vizState (highlight a different data point, morph chart type, or add filter).',
+    '"bar chart" → chartSpec.kind "bar" and reset chartType overrides. "line chart" → "line". "area" → "area". "scatter" → "scatter".',
+    '"fix labels" or "better labels" → update xLabel and yLabel to be descriptive with units in parentheses.',
+    '"add source" → set a plausible academic/institutional source citation.',
+    'ALWAYS ensure every highlightX in steps matches an xField value in the data, and every number mentioned in step body text exists in the data.',
+  ],
+  FullscreenImage: [
+    '"darker overlay" or "darker" → increase scrimOpacity. "lighter" → decrease.',
+    '"center text" → overlayPosition "center". "top-left" → overlayPosition "top-left".',
+    '"add kicker" → set kicker field. "no animation" → kenBurns false.',
+    '"scroll indicator" or "scroll cue" → scrollCue true. "no scrim" → scrimOpacity 0.',
+  ],
+  AudioPlayer: [
+    '"change color" → update accentColor and waveformColor.',
+    '"add transcript" → set transcript text. "shorter description" → trim description.',
+    '"remove cover" → clear coverSrc. "add cover" → set coverSrc.',
+  ],
+};
+
 function buildSystemPrompt(type, mode, lang, direct) {
   const schema = BLOCK_SCHEMAS[type];
   if (!schema) return null;
@@ -645,7 +699,7 @@ The JSON must match this schema:
 ${schema.description}
 
 Example structure:
-${JSON.stringify(schema.example, null, 2)}
+${JSON.stringify(schema.example)}
 
 ${mode === 'improve' ? 'You are updating an existing block. The current data is provided. Replace ONLY the text content fields with the new text (verbatim). Keep all other fields (images, layout, style, coordinates, etc.) exactly as they are. Return the COMPLETE data object.' : 'Create a new block by placing the provided text into the correct fields. For any non-text fields (images, layout, etc.), use sensible defaults from the example.'}`;
   }
@@ -663,42 +717,16 @@ CRITICAL RULES:
 ${schema.description}
 
 Example output (note: examples may be in German — adapt to the correct language):
-${JSON.stringify(schema.example, null, 2)}
+${JSON.stringify(schema.example)}
 
-${mode === 'improve' ? `You are IMPROVING an existing block. The user's current data is provided — apply their requested changes and return the COMPLETE updated data object.
+${mode === 'improve' ? (() => {
+    const typeRules = IMPROVE_RULES[type] || [];
+    const allRules = [...IMPROVE_RULES._universal, ...typeRules];
+    return `You are IMPROVING an existing block. The user's current data is provided — apply their requested changes and return the COMPLETE updated data object.
 
 IMPROVE RULES:
-- Keep all existing fields unless the user explicitly asks to change them
-- If the user says "make images smaller" or "smaller layout" → change layout to "editorial" (720px narrow)
-- If they say "bigger" or "wider" or "full width" → change layout to "bleed" or "full"
-- If they say "2 grid" or "3 columns" etc → set the layout field accordingly
-- If they say "remove image 2" or "swap images" → modify the images array
-- If they say "add caption" or "change credit" → update those fields
-- If they mention sizing like "make the image half size" → change layout to "editorial" for narrow
-- For Scrolly blocks: if they say "remove images" → clear imageSrc fields. If "add image to step 3" → set imageSrc on that step
-- For Scrolly blocks sizing: "make images smaller" → set imageSize to "small" (35%). "make images bigger" → imageSize "large" (65%). "medium" → "medium" (50%). "full width" → "full". Or use exact values like "40%".
-- For Scrolly blocks: "make images shorter" or "less tall" → set imageHeight to "60vh" or "70vh". "taller" → "100vh".
-- For Scrolly blocks: "round corners" → set imageRadius to "12px" or "24px". "sharp" or "no radius" → "0".
-- For Scrolly blocks: "narrower layout" → reduce maxWidth (e.g. "1100px"). "wider" → increase (e.g. "1600px").
-- For Map2D blocks: "zoom in" → increase initialZoom or step mapState.zoom by 2. "zoom out" → decrease by 2.
-- For Map2D blocks: "focus on [city]" → change initialCenter to that city's real coordinates and set initialZoom to 13.
-- For Map2D blocks: "add marker at [place]" → add to markers array with real lat/lng, unique id, and add id to relevant step's showMarkers.
-- For Map2D blocks: "draw route from A to B" → add route. CRITICAL: first point = origin marker [lat,lng], last point = destination marker [lat,lng]. Add 5-8 intermediate waypoints following the real geographic path. Route weight should be 2.
-- For Map2D blocks: "dark map" → tileStyle "dark". "watercolor" → "watercolor". "b&w" → "toner". "clean" → "toner-lite".
-- For Map2D blocks: "behind layout" or "fullscreen" → layout "behind". "side layout" → "side".
-- For Map2D blocks: when editing routes, ALWAYS verify route start/end points match the connected markers' exact lat/lng coordinates.
-- For Map2D blocks: "thinner lines" → reduce route weight (min 1). "thicker" → increase (max 4). "dashed" → dashArray "8,5".
-- For DataScrolly blocks: "more data" or "add data points" → add more entries to chartSpec.data (minimum 6 total, aim for 8-12).
-- For DataScrolly blocks: "better data" or "use real data" → replace generic values with realistic, specific numbers. Update source field with a plausible citation.
-- For DataScrolly blocks: "add step" → add a new step with a unique vizState (highlight a different data point, morph chart type, or add filter).
-- For DataScrolly blocks: "bar chart" → set chartSpec.kind to "bar" and reset any chartType overrides. "line chart" → kind "line". "area" → kind "area". "scatter" → kind "scatter".
-- For DataScrolly blocks: "fix labels" or "better labels" → update xLabel and yLabel to be descriptive with units in parentheses.
-- For DataScrolly blocks: "add source" → set a plausible academic/institutional source citation.
-- For DataScrolly blocks: ALWAYS ensure every highlightX in steps matches an xField value in the data, and every number mentioned in step body text exists in the data.
-- For FullscreenImage blocks: "darker overlay" or "darker" → increase scrimOpacity. "lighter" → decrease scrimOpacity. "center text" → overlayPosition "center". "add kicker" → set kicker field. "no animation" → kenBurns false. "scroll indicator" or "scroll cue" → scrollCue true. "top-left" → overlayPosition "top-left". "no scrim" → scrimOpacity 0.
-- For AudioPlayer blocks: "change color" → update accentColor and waveformColor. "add transcript" → set transcript text. "shorter description" → trim description. "remove cover" → clear coverSrc. "add cover" → set coverSrc.
-- Universal: every block supports "bgOpacity" (number 0-1) to control the page background image visibility behind this block. "show background" → bgOpacity 0.3. "hide background" → bgOpacity 0. "strong background" → bgOpacity 0.5-0.8.
-- ALWAYS return the complete data object with ALL fields, not just the changed ones` : 'You are creating a NEW block from scratch based on the user prompt. Write in the SAME language the user used.'}`;
+${allRules.map(r => `- ${r}`).join('\n')}`;
+  })() : 'You are creating a NEW block from scratch based on the user prompt. Write in the SAME language the user used.'}`;
 }
 
 function validateBlockData(type, data) {
@@ -885,12 +913,12 @@ export async function onRequest(context) {
   if (direct) {
     // Direct mode: tell the AI this is raw content to structure, not a prompt
     if (mode === 'improve' && currentData) {
-      userMessage = `Current block data:\n${JSON.stringify(currentData, null, 2)}\n\nDIRECT PASTE — replace the text content with exactly this (preserve verbatim, do NOT rewrite):\n${prompt}`;
+      userMessage = `Current block data:\n${JSON.stringify(currentData)}\n\nDIRECT PASTE — replace the text content with exactly this (preserve verbatim, do NOT rewrite):\n${prompt}`;
     } else {
       userMessage = `DIRECT PASTE — structure this text into the block fields. Preserve EVERY word exactly as-is:\n${prompt}`;
     }
   } else if (mode === 'improve' && currentData) {
-    userMessage = `Current block data:\n${JSON.stringify(currentData, null, 2)}\n\nRequested change: ${prompt}`;
+    userMessage = `Current block data:\n${JSON.stringify(currentData)}\n\nRequested change: ${prompt}`;
   }
   if (images && images.length > 0) {
     const isAudio = type === 'AudioPlayer';
