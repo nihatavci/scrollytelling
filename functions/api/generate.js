@@ -755,7 +755,7 @@ function validateBlockData(type, data) {
     VizPanel: ['spec'],
     VideoEmbed: ['src'],
     EmbedBlock: ['html'],
-    ProgressNav: ['items'],
+    ProgressNav: [],
     Separator: [],
     Figure: ['images'],
   };

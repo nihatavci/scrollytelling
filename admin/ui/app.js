@@ -864,11 +864,16 @@ const BLOCK_CREATION_CARDS = {
 
   ProgressNav: {
     headline: 'Progress Navigation',
-    hint: 'Section labels shown as progress dots',
+    hint: 'Reading progress bar fixed at top. Auto-detects ChapterDivider blocks.',
     fields: [
-      { key: 'sections', label: 'Section labels', kind: 'repeater', min: 2, max: 10,
-        itemFields: [{ key: 'label', label: 'Section name', kind: 'text' }],
-        defaults: [{ label: 'Introduction' }, { label: 'Evidence' }, { label: 'Conclusion' }],
+      { key: 'autoGenerate', label: 'Auto-generate from ChapterDividers', kind: 'checkbox', default: true },
+      { key: 'showPercentage', label: 'Show scroll percentage', kind: 'checkbox', default: false },
+      { key: 'chapters', label: 'Manual chapters (leave empty to auto-detect)', kind: 'repeater', min: 0, max: 20,
+        itemFields: [
+          { key: 'label', label: 'Chapter name', kind: 'text' },
+          { key: 'id', label: 'Target element ID (optional)', kind: 'text', placeholder: 'e.g. chapter-2' },
+        ],
+        defaults: [],
       },
     ],
   },
@@ -3014,7 +3019,7 @@ function addBlock(type) { openCreationCard(type); }
 const DIRECT_MODE_DISABLED = new Set([
   'Map2D', 'DataScrolly', 'Scrolly', 'StatRow', 'Timeline',
   'ImageCompare', 'ImageHotspot', 'AccordionBlock', 'ImageGrid',
-  'VizPanel', 'ProgressNav', 'EmbedBlock', 'VideoEmbed',
+  'VizPanel', 'EmbedBlock', 'VideoEmbed',
 ]);
 
 // ─────────────────────────── Claude-powered create / improve ──
@@ -3381,6 +3386,7 @@ function defaultDataFor(type) {
     case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
     case 'Parallax': return { backgroundSrc: '', backgroundAlt: '', midgroundSrc: '', midgroundAlt: '', foregroundSrc: '', foregroundAlt: '', headline: '', subtitle: '', overlayPosition: 'center', tint: 'dark' };
     case 'LottieScroll': return { lottieUrl: '', caption: '', layout: 'contained', scrubMode: 'scroll' };
+    case 'ProgressNav': return { mode: 'bar', autoGenerate: true, showPercentage: false, chapters: [] };
     default:          return {};
   }
 }
