@@ -432,6 +432,7 @@ main.editor { display: none; }
 .block-actions button.enhance-btn:hover { background: #ede8ff; }
 .block-actions button.danger { color: var(--spectrum-red); border-color: rgba(250,61,29,.2); }
 .block-actions button.danger:hover { background: rgba(250,61,29,.06); }
+.block-actions button.danger[data-armed="1"] { background: var(--spectrum-red); color: #fff; border-color: var(--spectrum-red); font-weight: 600; }
 /* (block-ctrl moved to .block-actions inside accordion body) */
 
 /* Drag handle */
@@ -1987,4 +1988,92 @@ main.editor { display: none; }
   .parallax__overlay { padding: 1.5rem; }
   .parallax__headline { font-size: clamp(1.5rem, 7vw, 2.5rem); }
   .parallax__subtitle { font-size: clamp(0.9rem, 3.5vw, 1.2rem); }
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   LottieScroll block
+───────────────────────────────────────────────────────────────── */
+.lottie-scroll {
+  padding: var(--space-10, 4rem) var(--space-4, 1rem);
+  width: 100%;
+  box-sizing: border-box;
+}
+.lottie-scroll--fullscreen {
+  padding: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.lottie-wrap {
+  width: 100%;
+  max-width: var(--content-width, 900px);
+  margin: 0 auto;
+}
+.lottie-scroll--fullscreen .lottie-wrap {
+  max-width: 100%;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.lottie-canvas {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: transparent;
+  border-radius: var(--radius-lg, 12px);
+  overflow: hidden;
+  position: relative;
+}
+.lottie-scroll--fullscreen .lottie-canvas {
+  flex: 1;
+  aspect-ratio: unset;
+  border-radius: 0;
+}
+/* Ensure lottie-web SVG fills the container */
+.lottie-canvas > svg {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+/* Placeholder state */
+.lottie-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  min-height: 240px;
+  color: var(--text-3, #999);
+  background: linear-gradient(135deg, #f0f0f8 0%, #e8e8f4 100%);
+  border-radius: var(--radius-lg, 12px);
+  border: 2px dashed var(--border, #ddd);
+}
+.lottie-placeholder__icon {
+  opacity: 0.35;
+}
+.lottie-placeholder__title {
+  font: 600 0.9rem/1 var(--font-sans, sans-serif);
+  color: var(--text-2, #777);
+  letter-spacing: -0.01em;
+}
+.lottie-placeholder__hint {
+  font: 400 0.75rem/1.4 var(--font-sans, sans-serif);
+  color: var(--text-3, #999);
+  text-align: center;
+  max-width: 260px;
+}
+/* Caption */
+.lottie-cap {
+  font-size: var(--text-sm, 0.875rem);
+  color: var(--text-2, #666);
+  text-align: center;
+  margin-top: var(--space-3, 0.75rem);
+  font-style: italic;
+  line-height: 1.5;
+}
+/* Mobile */
+@media (max-width: 768px) {
+  .lottie-scroll { padding: 2rem 1rem; }
+  .lottie-scroll--fullscreen { min-height: 70vh; }
+  .lottie-scroll--fullscreen .lottie-canvas { flex: unset; height: 70vh; aspect-ratio: unset; }
 }

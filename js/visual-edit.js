@@ -119,6 +119,8 @@
     '.parallax__headline--ghost': { field: 'headline',    type: 'text' },
     '.parallax__subtitle':      { field: 'subtitle',      type: 'text' },
     '.parallax__subtitle--ghost': { field: 'subtitle',    type: 'text' },
+    // LottieScroll
+    '.lottie-cap':                              { field: 'caption',  type: 'text' },
     // VizPanel
     '.viz-title':                               { field: 'initialTitle', type: 'text' },
     '.viz-sub':                                 { field: 'initialSub',   type: 'text' },

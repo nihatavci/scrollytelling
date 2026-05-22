@@ -1286,6 +1286,118 @@ function renderParallax(d) {
   return sec;
 }
 
+// ─────────────────────────── LottieScroll ────────────────────────────────────
+// Scroll-driven Lottie JSON animation.
+// Lazy-loads lottie-web from CDN the first time a LottieScroll block renders.
+// scrubMode: 'scroll'  — animation frame tied to scroll progress (Webflow style)
+// scrubMode: 'autoplay'— plays on loop when in view
+
+var _lottieWebPromise = null;
+function loadLottieWeb() {
+  if (window.lottie) return Promise.resolve();
+  if (_lottieWebPromise) return _lottieWebPromise;
+  _lottieWebPromise = new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdn.jsdelivr.net/npm/lottie-web@5.12.2/build/player/lottie_light.min.js';
+    s.crossOrigin = 'anonymous';
+    s.onload = resolve;
+    s.onerror = function() {
+      _lottieWebPromise = null; // allow retry
+      reject(new Error('[LottieScroll] Failed to load lottie-web CDN'));
+    };
+    document.head.appendChild(s);
+  });
+  return _lottieWebPromise;
+}
+
+function renderLottieScroll(d) {
+  var layout = d.layout || 'contained';
+  var scrubMode = d.scrubMode || 'scroll';
+
+  var sec = el('section', { class: 'lottie-scroll lottie-scroll--' + layout });
+  var wrap = el('div', { class: 'lottie-wrap' });
+  var canvas = el('div', { class: 'lottie-canvas' });
+  wrap.appendChild(canvas);
+  if (d.caption) wrap.appendChild(el('p', { class: 'lottie-cap' }, d.caption));
+  sec.appendChild(wrap);
+
+  if (!d.lottieUrl) {
+    // ── Placeholder ──
+    var ph = el('div', { class: 'lottie-placeholder' });
+    var icon = el('div', { class: 'lottie-placeholder__icon' });
+    icon.innerHTML = '<svg width="52" height="52" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><circle cx="12" cy="12" r="9"/><path d="M9.5 8.5l6 3.5-6 3.5V8.5z" fill="currentColor" stroke="none" opacity=".6"/><path d="M3 12h2M19 12h2M12 3v2M12 19v2" stroke-width="1.5" stroke-linecap="round"/></svg>';
+    ph.appendChild(icon);
+    ph.appendChild(el('div', { class: 'lottie-placeholder__title' }, 'Lottie Animation'));
+    ph.appendChild(el('div', { class: 'lottie-placeholder__hint' }, 'Paste a Lottie JSON URL to add a scroll-driven animation'));
+    canvas.appendChild(ph);
+    return sec;
+  }
+
+  // ── Init animation after CDN loads ──
+  loadLottieWeb().then(function() {
+    var anim = window.lottie.loadAnimation({
+      container: canvas,
+      renderer: 'svg',
+      loop: scrubMode === 'autoplay',
+      autoplay: false,
+      path: d.lottieUrl,
+    });
+
+    if (scrubMode === 'scroll') {
+      // Webflow-style scroll scrub: frame = f(scroll progress)
+      var active = false;
+      var rafId;
+
+      function scrubFrame() {
+        var rect = sec.getBoundingClientRect();
+        var vh = window.innerHeight;
+        var elH = rect.height;
+        // progress 0 → element bottom just enters from below
+        // progress 1 → element top has scrolled fully past the top
+        var total = vh + elH;
+        var gone  = vh - rect.top;
+        var progress = Math.max(0, Math.min(1, gone / total));
+        var frame = Math.floor(progress * (anim.totalFrames - 1));
+        anim.goToAndStop(frame, true);
+        if (active) rafId = requestAnimationFrame(scrubFrame);
+      }
+
+      var obs = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting && !active) {
+            active = true;
+            rafId = requestAnimationFrame(scrubFrame);
+          } else if (!e.isIntersecting && active) {
+            active = false;
+            cancelAnimationFrame(rafId);
+          }
+        });
+      }, { rootMargin: '20% 0px' });  // start slightly before entering view
+
+      anim.addEventListener('DOMLoaded', function() {
+        requestAnimationFrame(function() { obs.observe(sec); });
+      });
+
+    } else {
+      // Autoplay mode: play on loop while in view, pause when out
+      var obsAuto = new IntersectionObserver(function(entries) {
+        entries.forEach(function(e) {
+          if (e.isIntersecting) anim.play(); else anim.pause();
+        });
+      }, { rootMargin: '20% 0px' });
+
+      anim.addEventListener('DOMLoaded', function() {
+        requestAnimationFrame(function() { obsAuto.observe(sec); });
+      });
+    }
+  }).catch(function(err) {
+    console.warn(err.message);
+    canvas.innerHTML = '<p style="padding:1rem;color:#999;font-size:.875rem;">Animation could not load — check the Lottie JSON URL.</p>';
+  });
+
+  return sec;
+}
+
 const BLOCK_RENDERERS = {
   Hero:           renderHero,
   VizPanel:       renderVizPanel,
@@ -1310,6 +1422,7 @@ const BLOCK_RENDERERS = {
   FullscreenImage: renderFullscreenImage,
   AudioPlayer:     renderAudioPlayer,
   Parallax:        renderParallax,
+  LottieScroll:    renderLottieScroll,
 };
 
 // Resolve which content file to load based on the current URL path.

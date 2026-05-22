@@ -144,6 +144,19 @@ const BLOCK_SCHEMAS = {
       { key: 'credit',           label: 'Credit',             kind: 'text', group: 'meta', inline: true },
     ]
   },
+  LottieScroll: {
+    name: 'Lottie',
+    description: 'Scroll-driven vector animation — Lottie JSON file scrubbed by scroll position. Fluid motion graphics that react to the reader\'s pace.',
+    fields: [
+      { key: 'lottieUrl', label: 'Lottie JSON URL', kind: 'text', group: 'media', hint: 'Paste a URL to a .json Lottie file (LottieFiles, CDN, self-hosted, etc.)' },
+      { key: 'caption', label: 'Caption (optional)', kind: 'textarea', group: 'meta' },
+      { key: 'layout', label: 'Layout', kind: 'select', group: 'layout',
+        options: ['contained', 'fullscreen'] },
+      { key: 'scrubMode', label: 'Play mode', kind: 'select', group: 'layout',
+        options: ['scroll', 'autoplay'],
+        hint: '<b>scroll</b> — animation driven by scroll position (Webflow style). <b>autoplay</b> — loops while in view.' },
+    ]
+  },
   Parallax: {
     name: 'Depth',
     description: 'Layered depth parallax — 2-3 images shift at different scroll speeds. Cinematic immersion for chapter openers.',
@@ -350,7 +363,7 @@ const BLOCK_ICONS = {
   DataScrolly: '\u{1F4C8}', FullBleed: '\u{1F3AC}', ImageCompare: '\u{2696}\u{FE0F}',
   ImageHotspot: '\u{1F4CD}', AccordionBlock: '\u{1F4C2}', ProgressNav: '\u{1F4CD}',
   EmbedBlock: '\u{1F9E9}', ImageGrid: '\u{1F50D}', Map2D: '\u{1F9ED}',
-  FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}', Parallax: '🏔️',
+  FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}', Parallax: '🏔️', LottieScroll: '✨',
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -423,7 +436,7 @@ const PALETTE_CATEGORIES = [
   {
     label: 'Immersive Moments',
     hint: 'Full-viewport scenes that stop the reader',
-    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer', 'Parallax'],
+    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer', 'Parallax', 'LottieScroll'],
   },
   {
     label: 'Evidence & Proof',
@@ -649,6 +662,20 @@ const BLOCK_PREVIEWS = {
       <div style="position:absolute;bottom:8px;left:10px;right:10px;z-index:3;text-align:center;">
         <div style="font:700 13px 'DM Sans',sans-serif;color:#fff;line-height:1.1;letter-spacing:-.02em;">Layered Depth</div>
         <div style="font:400 6.5px 'DM Sans',sans-serif;color:rgba(255,255,255,.65);margin-top:3px;">3 images · CSS parallax · 60fps</div>
+      </div>
+    </div>`,
+  LottieScroll: `
+    <div style="border-radius:6px;height:70px;position:relative;overflow:hidden;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);">
+      <div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;">
+        <svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <circle cx="18" cy="18" r="14" stroke="rgba(255,255,255,.18)" stroke-width="1.5"/>
+          <path d="M14 12.5l10 5.5-10 5.5V12.5z" fill="rgba(255,255,255,.55)"/>
+          <circle cx="18" cy="18" r="8" stroke="rgba(99,102,241,.5)" stroke-width="1" stroke-dasharray="3 2"/>
+        </svg>
+      </div>
+      <div style="position:absolute;bottom:7px;left:0;right:0;text-align:center;">
+        <div style="font:700 10px 'DM Sans',sans-serif;color:rgba(255,255,255,.85);letter-spacing:-.01em;">Lottie Animation</div>
+        <div style="font:400 6px 'DM Sans',sans-serif;color:rgba(255,255,255,.45);margin-top:2px;">scroll-driven · JSON vector · lottie-web</div>
       </div>
     </div>`,
   ImageCompare: `
@@ -1038,6 +1065,20 @@ const BLOCK_CREATION_CARDS = {
       { key: 'headline', label: 'Headline', kind: 'text', placeholder: 'Chapter title or dramatic statement' },
       { key: 'tint', label: 'Tint', kind: 'select',
         options: ['dark', 'light', 'none'], defaultValue: 'dark' },
+    ],
+  },
+
+  LottieScroll: {
+    headline: 'Lottie Animation',
+    hint: 'Scroll-driven vector animation from a Lottie JSON file',
+    fields: [
+      { key: 'lottieUrl', label: 'Lottie JSON URL', kind: 'text', required: true,
+        placeholder: 'https://assets.lottiefiles.com/packages/lf20_….json',
+        hint: 'Paste any .json Lottie URL — from LottieFiles, your CDN, or self-hosted.' },
+      { key: 'layout', label: 'Layout', kind: 'select',
+        options: ['contained', 'fullscreen'], defaultValue: 'contained' },
+      { key: 'scrubMode', label: 'Play mode', kind: 'select',
+        options: ['scroll', 'autoplay'], defaultValue: 'scroll' },
     ],
   },
 
@@ -2856,11 +2897,20 @@ function duplicateBlock(idx) {
   setDirty(true);
   renderBlockList();
 }
-function deleteBlock(idx) {
+function deleteBlock(idx, confirmed) {
   const block = state.doc.blocks[idx];
   if (!block) return;
-  const name = block.type + (block.data?.title ? `: ${block.data.title}` : '');
-  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
+  if (!confirmed) {
+    // First click: flip button to "Sure?" — next click actually deletes
+    const btn = document.querySelector(`.block-actions [data-act="del"][data-idx="${idx}"]`)
+              || document.querySelector('.block-actions [data-act="del"]');
+    if (btn && !btn.dataset.armed) {
+      btn.dataset.armed = '1';
+      btn.textContent = 'Sure?';
+      setTimeout(() => { if (btn.isConnected) { delete btn.dataset.armed; btn.textContent = 'Delete'; } }, 3000);
+    }
+    return;
+  }
   if (block.id === state.selectedBlockId) state.selectedBlockId = null;
   state.doc.blocks.splice(idx, 1);
   setDirty(true);
@@ -3330,6 +3380,7 @@ function defaultDataFor(type) {
     case 'FullscreenImage': return { imageSrc: '', imageAlt: '', kicker: '', title: 'Title', subtitle: '', body: '', overlayPosition: 'bottom-left', scrimOpacity: 0.45, scrimDirection: 'bottom', kenBurns: true, scrollCue: false, caption: '', credit: '' };
     case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
     case 'Parallax': return { backgroundSrc: '', backgroundAlt: '', midgroundSrc: '', midgroundAlt: '', foregroundSrc: '', foregroundAlt: '', headline: '', subtitle: '', overlayPosition: 'center', tint: 'dark' };
+    case 'LottieScroll': return { lottieUrl: '', caption: '', layout: 'contained', scrubMode: 'scroll' };
     default:          return {};
   }
 }
@@ -3359,7 +3410,7 @@ function renderEditor() {
     <button data-act="del" class="danger" title="Delete block">Delete</button>`;
   toolbar.querySelector('[data-act="claude"]').addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
   toolbar.querySelector('[data-act="dup"]').addEventListener('click', (e) => { e.stopPropagation(); duplicateBlock(idx); });
-  toolbar.querySelector('[data-act="del"]').addEventListener('click', (e) => { e.stopPropagation(); deleteBlock(idx); });
+  toolbar.querySelector('[data-act="del"]').addEventListener('click', (e) => { e.stopPropagation(); deleteBlock(idx, e.currentTarget.dataset.armed === '1'); });
   form.appendChild(toolbar);
 
   if (!schema) {
