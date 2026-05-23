@@ -1,6 +1,7 @@
 // functions/api/generate.js
-// AI content generation via Cloudflare Workers AI
-// No API key needed — uses the CF account's Workers AI binding.
+// AI content generation — Cloudflare Workers AI (default) or DeepSeek API.
+// Llama 3.3 70B uses the CF AI binding (no key needed).
+// DeepSeek V4 Pro uses api.deepseek.com — requires DEEPSEEK_API_KEY worker secret.
 
 const DEFAULT_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
@@ -8,8 +9,11 @@ const DEFAULT_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 // Only these are accepted — prevents prompt-injection via the model field.
 const ALLOWED_MODELS = new Set([
   '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
-  '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
+  'deepseek-v4-pro',
 ]);
+
+// Models that call the DeepSeek external API instead of CF Workers AI.
+const DEEPSEEK_API_MODELS = new Set(['deepseek-v4-pro']);
 
 // ── Rate Limiting (per-isolate in-memory) ──
 const RATE_LIMIT = { maxRequests: 20, windowMs: 60_000 };
@@ -879,12 +883,6 @@ export async function onRequest(context) {
     });
   }
 
-  if (!env.AI) {
-    return new Response(JSON.stringify({ error: 'Workers AI not configured. Redeploy with AI binding in wrangler.toml.' }), {
-      status: 500, headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return new Response(JSON.stringify({ error: 'Not authenticated' }), {
@@ -938,18 +936,54 @@ export async function onRequest(context) {
   try {
     // DataScrolly and Map2D need more tokens for complex structured data
     const maxTokens = (type === 'DataScrolly' || type === 'Map2D') ? 6144 : 4096;
-    const aiResponse = await env.AI.run(model, {
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: userMessage },
-      ],
-      max_tokens: maxTokens,
-      temperature: 0.7,
-    });
+    // ── Two-path AI dispatch ──
+    let raw;
+    if (DEEPSEEK_API_MODELS.has(model)) {
+      // DeepSeek external API (OpenAI-compatible)
+      if (!env.DEEPSEEK_API_KEY) {
+        return new Response(JSON.stringify({ error: 'DeepSeek API key not configured. Add DEEPSEEK_API_KEY as a Worker secret in the Cloudflare dashboard.' }), {
+          status: 503, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      const dsRes = await fetch('https://api.deepseek.com/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${env.DEEPSEEK_API_KEY}` },
+        body: JSON.stringify({
+          model,
+          messages: [
+            { role: 'system', content: systemPrompt },
+            { role: 'user', content: userMessage },
+          ],
+          max_tokens: maxTokens,
+          temperature: 0.7,
+        }),
+      });
+      if (!dsRes.ok) {
+        const errText = await dsRes.text();
+        throw new Error(`DeepSeek API error ${dsRes.status}: ${errText.slice(0, 200)}`);
+      }
+      const dsJson = await dsRes.json();
+      raw = dsJson.choices?.[0]?.message?.content ?? '';
+    } else {
+      // Cloudflare Workers AI
+      if (!env.AI) {
+        return new Response(JSON.stringify({ error: 'Workers AI not configured. Redeploy with AI binding in wrangler.toml.' }), {
+          status: 500, headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      const aiResponse = await env.AI.run(model, {
+        messages: [
+          { role: 'system', content: systemPrompt },
+          { role: 'user', content: userMessage },
+        ],
+        max_tokens: maxTokens,
+        temperature: 0.7,
+      });
+      raw = aiResponse?.response ?? aiResponse;
+    }
 
-    // Workers AI response: { response: object|string } or plain string
+    // Parse raw response → data object
     let data;
-    const raw = aiResponse?.response ?? aiResponse;
 
     if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) {
       data = raw;

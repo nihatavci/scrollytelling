@@ -4627,14 +4627,14 @@ $('#btn-settings').addEventListener('click', () => {
     aiModelSel.style.cssText = 'width:100%;margin-bottom:4px;';
     aiModelSel.innerHTML = `
       <option value="@cf/meta/llama-3.3-70b-instruct-fp8-fast">Llama 3.3 70B — fast, default</option>
-      <option value="@cf/deepseek-ai/deepseek-r1-distill-qwen-32b">DeepSeek R1 (32B) — slower, stronger reasoning</option>
+      <option value="deepseek-v4-pro">DeepSeek V4 Pro — strongest, external API</option>
     `;
     const savedModel = localStorage.getItem('scrollycms_ai_model') || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
     aiModelSel.value = savedModel;
     body.appendChild(aiModelSel);
     const aiModelHint = document.createElement('div');
     aiModelHint.style.cssText = 'font-size:11px;color:#8c959f;margin-bottom:4px;line-height:1.5;';
-    aiModelHint.textContent = 'Applies to all pages. DeepSeek R1 uses chain-of-thought reasoning — better JSON accuracy, ~2× slower.';
+    aiModelHint.textContent = 'Applies to all pages. DeepSeek V4 Pro is a 1M-context model via the DeepSeek API — requires DEEPSEEK_API_KEY worker secret.';
     body.appendChild(aiModelHint);
 
     const actions = document.createElement('div');
