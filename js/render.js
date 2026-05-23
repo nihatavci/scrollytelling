@@ -472,6 +472,31 @@ const COMPONENT_CSS = `
   .ig-cell--with-text .ig-cell-media{flex:0 0 auto;aspect-ratio:16/9!important}
   .ig-text-panel{padding:1rem 1.25rem}
 }
+/* ── ImageGrid: scroll-fade mode ── */
+.ig--scroll-fade{display:grid;grid-template-columns:var(--ig-sf-col1,50%) var(--ig-sf-col2,50%);align-items:start;max-width:1100px;margin:4.5rem auto;padding:0 2rem;gap:0}
+.ig-sf-sticky{position:sticky;top:0;height:100vh;display:flex;align-items:center;overflow:hidden}
+.ig-sf-sticky-inner{position:relative;width:100%;height:100%}
+.ig-sf-media,.ig-sf-text-item{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;opacity:0;transform:translateY(6px);transition:opacity .45s ease,transform .45s ease;pointer-events:none}
+.ig-sf-media.is-active,.ig-sf-text-item.is-active{opacity:1;transform:none;pointer-events:auto}
+.ig-sf-media img{width:100%;height:100%;object-fit:cover;border-radius:8px}
+.ig-sf-text-item{flex-direction:column;align-items:flex-start;justify-content:center;padding:2rem 3rem 2rem 2rem}
+.ig-sf-panels{display:flex;flex-direction:column}
+.ig-sf-panel{min-height:75vh;display:flex;align-items:center;padding:2rem 2rem 2rem 3rem}
+.ig-sf-panel.sf-media-panel{padding:2rem}
+.ig-sf-panel-card{opacity:0;transform:translateY(6px);transition:opacity .45s ease,transform .45s ease}
+.ig-sf-panel.is-active .ig-sf-panel-card{opacity:1;transform:none}
+.ig-sf-title{font-family:var(--font-display);font-size:clamp(1.3rem,2.5vw,2rem);font-weight:600;color:var(--ink-black);line-height:1.2;margin:0 0 .75rem;letter-spacing:-.02em}
+.ig-sf-body{font-family:var(--font-body);font-size:1rem;color:var(--graphite,#444);line-height:1.65;margin:0 0 1rem}
+.ig-sf-cta{display:inline-block;font-family:var(--font-body);font-size:.9rem;font-weight:600;color:var(--ink-black);border:1.5px solid currentColor;padding:.5rem 1.25rem;border-radius:3px;text-decoration:none;transition:background .18s,color .18s}
+.ig-sf-cta:hover{background:var(--ink-black);color:#fff}
+@media(max-width:700px){
+  .ig--scroll-fade{grid-template-columns:1fr;grid-template-rows:auto auto}
+  .ig-sf-sticky{position:relative;height:60vw;min-height:220px}
+  .ig-sf-media,.ig-sf-text-item{position:relative;inset:auto;width:100%;height:auto;opacity:1!important;transform:none!important;transition:none}
+  .ig-sf-media:not(.is-active),.ig-sf-text-item:not(.is-active){display:none}
+  .ig-sf-panel{min-height:50vh;padding:1.5rem}
+  .ig-sf-panel-card{opacity:1;transform:none;transition:none}
+}
 
 /* ── FullBleed (viewport media + text overlay) ── */
 .fullbleed{position:relative;z-index:2;width:100%;overflow:hidden;background:#000}
