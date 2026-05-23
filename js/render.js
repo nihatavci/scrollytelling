@@ -469,6 +469,7 @@ const COMPONENT_CSS = `
 .ig-text-cta:hover{background:var(--ink-black);color:#fff}
 @media(max-width:700px){
   .ig-cell--with-text,.ig-cell--text-left,.ig-cell--text-right{flex-direction:column!important}
+  .ig-cell--text-top{flex-direction:column-reverse!important}
   .ig-cell--with-text .ig-cell-media{flex:0 0 auto;aspect-ratio:16/9!important}
   .ig-text-panel{padding:1rem 1.25rem}
 }
@@ -2725,7 +2726,7 @@ function renderScrollFadeGrid(d) {
       const card = el('div', { class: 'ig-sf-panel-card' });
       if (img.title) card.appendChild(el('h3', { class: 'ig-sf-title' }, img.title));
       if (img.body)  card.appendChild(el('p',  { class: 'ig-sf-body' }, img.body));
-      if (img.cta)   card.appendChild(el('a',  { class: 'ig-sf-cta', href: img.cta.url || '#' }, img.cta.label || 'Read more'));
+      if (img.cta && typeof img.cta === 'object')   card.appendChild(el('a',  { class: 'ig-sf-cta', href: sanitizeUrl(img.cta.url) }, img.cta.label || 'Read more'));
       panel.appendChild(card);
       panelsCol.appendChild(panel);
 
@@ -2737,7 +2738,7 @@ function renderScrollFadeGrid(d) {
       });
       if (img.title) textItem.appendChild(el('h3', { class: 'ig-sf-title' }, img.title));
       if (img.body)  textItem.appendChild(el('p',  { class: 'ig-sf-body' }, img.body));
-      if (img.cta)   textItem.appendChild(el('a',  { class: 'ig-sf-cta', href: img.cta.url || '#' }, img.cta.label || 'Read more'));
+      if (img.cta && typeof img.cta === 'object')   textItem.appendChild(el('a',  { class: 'ig-sf-cta', href: sanitizeUrl(img.cta.url) }, img.cta.label || 'Read more'));
       stickyInner.appendChild(textItem);
 
       // ── Scrolling side: images ──
@@ -2772,8 +2773,8 @@ function renderScrollFadeGrid(d) {
     const panels = panelsCol.querySelectorAll('.ig-sf-panel');
 
     const activate = (idx) => {
-      stickyItems.forEach(item => item.classList.toggle('is-active', parseInt(item.dataset.sfIdx) === idx));
-      panels.forEach(p => p.classList.toggle('is-active', parseInt(p.dataset.sfIdx) === idx));
+      stickyItems.forEach(item => item.classList.toggle('is-active', Number(item.dataset.sfIdx) === idx));
+      panels.forEach(p => p.classList.toggle('is-active', Number(p.dataset.sfIdx) === idx));
     };
 
     const obs = new IntersectionObserver((entries) => {
@@ -2781,7 +2782,7 @@ function renderScrollFadeGrid(d) {
       if (!visible.length) return;
       // When multiple panels are visible, activate the topmost one
       visible.sort((a, b) => a.target.getBoundingClientRect().top - b.target.getBoundingClientRect().top);
-      activate(parseInt(visible[0].target.dataset.sfIdx));
+      activate(Number(visible[0].target.dataset.sfIdx));
     }, { rootMargin: '-25% 0px -25% 0px', threshold: 0 });
 
     panels.forEach(p => obs.observe(p));
@@ -2905,7 +2906,7 @@ function renderImageGrid(d) {
       const panel = el('div', { class: 'ig-text-panel' });
       if (img.title) panel.appendChild(el('h3', { class: 'ig-text-title' }, img.title));
       if (img.body)  panel.appendChild(el('p',  { class: 'ig-text-body' }, img.body));
-      if (img.cta)   panel.appendChild(el('a',  { class: 'ig-text-cta', href: img.cta.url || '#' }, img.cta.label || 'Read more'));
+      if (img.cta && typeof img.cta === 'object')   panel.appendChild(el('a',  { class: 'ig-text-cta', href: sanitizeUrl(img.cta.url) }, img.cta.label || 'Read more'));
       cell.appendChild(panel);
     }
 
@@ -3113,4 +3114,10 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
   }[c]));
+}
+function sanitizeUrl(url) {
+  if (!url) return '#';
+  const s = String(url).trim().toLowerCase();
+  if (s.startsWith('javascript:') || s.startsWith('data:')) return '#';
+  return url;
 }

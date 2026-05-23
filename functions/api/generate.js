@@ -1038,7 +1038,7 @@ export async function onRequest(context) {
         const fixed = jsonStr
           .replace(/(?<=:\s*"[^"]*)\n/g, '\\n')   // newlines inside "value" strings
           .replace(/,\s*([}\]])/g, '$1')            // trailing commas
-          .replace(/'/g, "'");                       // smart quotes → plain
+          .replace(/['']/g, "'").replace(/[""]/g, '"'); // smart quotes → plain
         try {
           data = JSON.parse(fixed);
         } catch (e2) {
