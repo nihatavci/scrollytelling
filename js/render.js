@@ -2669,8 +2669,131 @@ function renderEmbed(d) {
   return sec;
 }
 
+// ───────── ImageGrid scroll-fade mode ─────────
+function renderScrollFadeGrid(d) {
+  const images = d.images || [];
+  const stickyPanel = d.stickyPanel || 'media'; // 'media' → left col sticky, 'text' → left col sticky with text
+  const imageSize = d.imageSize || 'medium';
+  const sizeMap = { small: '35%', medium: '50%', large: '65%' };
+  const mediaW = sizeMap[imageSize] || '50%';
+  const textW = `${100 - parseFloat(mediaW)}%`;
+  // col1 = sticky (left), col2 = scrolling panels (right)
+  // stickyPanel:'media' → col1=media width, col2=text width
+  // stickyPanel:'text'  → col1=text width,  col2=media width
+  const col1W = stickyPanel === 'media' ? mediaW : textW;
+  const col2W = stickyPanel === 'media' ? textW   : mediaW;
+
+  const sec = el('section', { class: 'ig ig--scroll-fade' });
+  sec.style.setProperty('--ig-sf-col1', col1W);
+  sec.style.setProperty('--ig-sf-col2', col2W);
+
+  if (d.title) sec.appendChild(el('h3', { class: 'ig-title' }, d.title));
+
+  // Left column: sticky — all items absolutely layered, cross-fade on scroll
+  const stickyCol   = el('div', { class: 'ig-sf-sticky' });
+  const stickyInner = el('div', { class: 'ig-sf-sticky-inner' });
+  stickyCol.appendChild(stickyInner);
+
+  // Right column: scrolling panels — one panel per item is the scroll trigger
+  const panelsCol = el('div', { class: 'ig-sf-panels' });
+
+  images.forEach((img, i) => {
+    const isFirst = i === 0;
+    const src = img.src || img.url || '';
+
+    if (stickyPanel === 'media') {
+      // ── Sticky side: images ──
+      const mediaDiv = el('div', {
+        class: 'ig-sf-media' + (isFirst ? ' is-active' : ''),
+        'data-sf-idx': i,
+      });
+      if (src) {
+        mediaDiv.appendChild(el('img', {
+          src,
+          alt: img.alt || img.caption || '',
+          loading: i < 2 ? 'eager' : 'lazy',
+        }));
+      }
+      stickyInner.appendChild(mediaDiv);
+
+      // ── Scrolling side: text panels ──
+      const panel = el('div', {
+        class: 'ig-sf-panel' + (isFirst ? ' is-active' : ''),
+        'data-sf-idx': i,
+      });
+      const card = el('div', { class: 'ig-sf-panel-card' });
+      if (img.title) card.appendChild(el('h3', { class: 'ig-sf-title' }, img.title));
+      if (img.body)  card.appendChild(el('p',  { class: 'ig-sf-body' }, img.body));
+      if (img.cta)   card.appendChild(el('a',  { class: 'ig-sf-cta', href: img.cta.url || '#' }, img.cta.label || 'Read more'));
+      panel.appendChild(card);
+      panelsCol.appendChild(panel);
+
+    } else {
+      // ── Sticky side: text ──
+      const textItem = el('div', {
+        class: 'ig-sf-text-item' + (isFirst ? ' is-active' : ''),
+        'data-sf-idx': i,
+      });
+      if (img.title) textItem.appendChild(el('h3', { class: 'ig-sf-title' }, img.title));
+      if (img.body)  textItem.appendChild(el('p',  { class: 'ig-sf-body' }, img.body));
+      if (img.cta)   textItem.appendChild(el('a',  { class: 'ig-sf-cta', href: img.cta.url || '#' }, img.cta.label || 'Read more'));
+      stickyInner.appendChild(textItem);
+
+      // ── Scrolling side: images ──
+      const panel = el('div', {
+        class: 'ig-sf-panel sf-media-panel' + (isFirst ? ' is-active' : ''),
+        'data-sf-idx': i,
+      });
+      const card = el('div', { class: 'ig-sf-panel-card' });
+      if (src) {
+        card.appendChild(el('img', {
+          src,
+          alt: img.alt || img.caption || '',
+          loading: i < 2 ? 'eager' : 'lazy',
+          style: 'width:100%;border-radius:8px;display:block',
+        }));
+      }
+      if (img.caption) card.appendChild(el('div', { class: 'ig-cell-cap' }, img.caption));
+      panel.appendChild(card);
+      panelsCol.appendChild(panel);
+    }
+  });
+
+  sec.appendChild(stickyCol);
+  sec.appendChild(panelsCol);
+
+  if (d.caption) sec.appendChild(el('p', { class: 'ig-caption' }, d.caption));
+  if (d.credit)  sec.appendChild(el('p', { class: 'ig-credit' }, d.credit));
+
+  // IntersectionObserver: when a panel enters the middle 50% of viewport, activate its sticky item
+  requestAnimationFrame(() => {
+    const stickyItems = stickyInner.querySelectorAll('[data-sf-idx]');
+    const panels = panelsCol.querySelectorAll('.ig-sf-panel');
+
+    const activate = (idx) => {
+      stickyItems.forEach(el => el.classList.toggle('is-active', parseInt(el.dataset.sfIdx) === idx));
+      panels.forEach(p => p.classList.toggle('is-active', parseInt(p.dataset.sfIdx) === idx));
+    };
+
+    const obs = new IntersectionObserver((entries) => {
+      const visible = entries.filter(e => e.isIntersecting);
+      if (!visible.length) return;
+      // When multiple panels are visible, activate the topmost one
+      visible.sort((a, b) => a.target.getBoundingClientRect().top - b.target.getBoundingClientRect().top);
+      activate(parseInt(visible[0].target.dataset.sfIdx));
+    }, { rootMargin: '-25% 0px -25% 0px', threshold: 0 });
+
+    panels.forEach(p => obs.observe(p));
+  });
+
+  return sec;
+}
+
 // ───────── ImageGrid (named layout presets) ─────────
 function renderImageGrid(d) {
+  // Scroll-fade mode: two-column sticky+cross-fade layout — delegate entirely
+  if ((d.mode || 'grid') === 'scroll-fade') return renderScrollFadeGrid(d);
+
   const PRESETS = ['side-by-side','feature-left','feature-right','triptych','quad','hero-grid','mosaic','filmstrip'];
 
   const sec = el('section', { class: 'ig' });
