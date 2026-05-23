@@ -2703,6 +2703,7 @@ function renderScrollFadeGrid(d) {
 
     if (stickyPanel === 'media') {
       // ── Sticky side: images ──
+      // NOTE: img.caption is intentionally omitted here — use img.body for scroll-fade descriptions.
       const mediaDiv = el('div', {
         class: 'ig-sf-media' + (isFirst ? ' is-active' : ''),
         'data-sf-idx': i,
@@ -2771,7 +2772,7 @@ function renderScrollFadeGrid(d) {
     const panels = panelsCol.querySelectorAll('.ig-sf-panel');
 
     const activate = (idx) => {
-      stickyItems.forEach(el => el.classList.toggle('is-active', parseInt(el.dataset.sfIdx) === idx));
+      stickyItems.forEach(item => item.classList.toggle('is-active', parseInt(item.dataset.sfIdx) === idx));
       panels.forEach(p => p.classList.toggle('is-active', parseInt(p.dataset.sfIdx) === idx));
     };
 
