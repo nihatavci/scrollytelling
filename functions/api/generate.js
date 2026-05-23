@@ -1,8 +1,15 @@
 // functions/api/generate.js
-// AI content generation via Cloudflare Workers AI (Llama 3.3 70B)
+// AI content generation via Cloudflare Workers AI
 // No API key needed — uses the CF account's Workers AI binding.
 
-const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+const DEFAULT_MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+
+// Models the user can select in ⚙ Settings → AI Model.
+// Only these are accepted — prevents prompt-injection via the model field.
+const ALLOWED_MODELS = new Set([
+  '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  '@cf/deepseek-ai/deepseek-r1-distill-qwen-32b',
+]);
 
 // ── Rate Limiting (per-isolate in-memory) ──
 const RATE_LIMIT = { maxRequests: 20, windowMs: 60_000 };
@@ -894,7 +901,8 @@ export async function onRequest(context) {
     });
   }
 
-  const { type, prompt, images, currentData, mode, lang, direct } = body;
+  const { type, prompt, images, currentData, mode, lang, direct, model: requestedModel } = body;
+  const model = (requestedModel && ALLOWED_MODELS.has(requestedModel)) ? requestedModel : DEFAULT_MODEL;
 
   if (!type || !prompt) {
     return new Response(JSON.stringify({ error: 'Missing type or prompt' }), {
@@ -930,7 +938,7 @@ export async function onRequest(context) {
   try {
     // DataScrolly and Map2D need more tokens for complex structured data
     const maxTokens = (type === 'DataScrolly' || type === 'Map2D') ? 6144 : 4096;
-    const aiResponse = await env.AI.run(MODEL, {
+    const aiResponse = await env.AI.run(model, {
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: userMessage },

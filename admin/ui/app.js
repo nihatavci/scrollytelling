@@ -4613,6 +4613,30 @@ $('#btn-settings').addEventListener('click', () => {
     body.appendChild(bgOpInp);
     body.appendChild(bgOpVal);
 
+    // ── AI Model (workspace-level, stored in localStorage) ──
+    const aiDivider = document.createElement('div');
+    aiDivider.style.cssText = 'margin:18px 0 10px;border-top:1px solid #e6eaef;padding-top:14px;';
+    aiDivider.innerHTML = '<span style="font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:#8c959f;">AI Model</span>';
+    body.appendChild(aiDivider);
+
+    const aiModelLabel = document.createElement('label');
+    aiModelLabel.className = 'field-label';
+    aiModelLabel.textContent = 'Model used for all ✨ Generate actions';
+    body.appendChild(aiModelLabel);
+    const aiModelSel = document.createElement('select');
+    aiModelSel.style.cssText = 'width:100%;margin-bottom:4px;';
+    aiModelSel.innerHTML = `
+      <option value="@cf/meta/llama-3.3-70b-instruct-fp8-fast">Llama 3.3 70B — fast, default</option>
+      <option value="@cf/deepseek-ai/deepseek-r1-distill-qwen-32b">DeepSeek R1 (32B) — slower, stronger reasoning</option>
+    `;
+    const savedModel = localStorage.getItem('scrollycms_ai_model') || '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
+    aiModelSel.value = savedModel;
+    body.appendChild(aiModelSel);
+    const aiModelHint = document.createElement('div');
+    aiModelHint.style.cssText = 'font-size:11px;color:#8c959f;margin-bottom:4px;line-height:1.5;';
+    aiModelHint.textContent = 'Applies to all pages. DeepSeek R1 uses chain-of-thought reasoning — better JSON accuracy, ~2× slower.';
+    body.appendChild(aiModelHint);
+
     const actions = document.createElement('div');
     actions.style.cssText = 'margin-top:16px;display:flex;gap:8px;justify-content:flex-end;';
     const cancel = document.createElement('button');
@@ -4621,6 +4645,8 @@ $('#btn-settings').addEventListener('click', () => {
     const save = document.createElement('button');
     save.className = 'primary'; save.textContent = 'Apply';
     save.addEventListener('click', () => {
+      // Save AI model preference (workspace-level, not page-level)
+      localStorage.setItem('scrollycms_ai_model', aiModelSel.value);
       state.doc.theme = themeSel.value;
       state.doc.lang = langSel.value;
       if (!state.doc.meta) state.doc.meta = {};

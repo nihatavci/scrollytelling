@@ -471,6 +471,9 @@
 
         const payload = { type, prompt, images, currentData, mode, pageId, lang };
         if (direct) payload.direct = true;
+        // Forward the workspace AI model preference (set in ⚙ Settings → AI Model)
+        const preferredModel = localStorage.getItem('scrollycms_ai_model');
+        if (preferredModel) payload.model = preferredModel;
 
         const res = await fetch('/api/generate', {
           method: 'POST',
