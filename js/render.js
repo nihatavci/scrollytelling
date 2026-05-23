@@ -452,6 +452,26 @@ const COMPONENT_CSS = `
   .ig-grid.ig-filmstrip{grid-template-columns:repeat(var(--ig-film-count,4),75vw)}
   .ig-grid:not(.ig-mosaic):not(.ig-filmstrip) .ig-cell-media{aspect-ratio:auto}
 }
+/* ── ImageGrid: text panels (grid mode) ── */
+.ig-cell--with-text{overflow:visible;flex-direction:row;align-items:stretch}
+.ig-cell--text-right{flex-direction:row}
+.ig-cell--text-left{flex-direction:row-reverse}
+.ig-cell--text-top{flex-direction:column-reverse}
+.ig-cell--text-bottom{flex-direction:column}
+.ig-cell--full-width{grid-column:1/-1!important}
+.ig-cell--with-text .ig-cell-media{flex:0 0 55%;min-height:0;aspect-ratio:unset!important}
+.ig-cell--with-text .ig-cell-media img{height:100%}
+.ig-cell--text-top .ig-cell-media,.ig-cell--text-bottom .ig-cell-media{flex:0 0 auto;aspect-ratio:16/9!important}
+.ig-text-panel{flex:1 1 45%;display:flex;flex-direction:column;justify-content:center;padding:1.5rem 1.75rem;gap:.75rem;min-width:0}
+.ig-text-title{font-family:var(--font-display);font-size:clamp(1.1rem,2vw,1.5rem);font-weight:600;color:var(--ink-black);line-height:1.2;margin:0;letter-spacing:-.02em}
+.ig-text-body{font-family:var(--font-body);font-size:.95rem;color:var(--graphite,#444);line-height:1.6;margin:0}
+.ig-text-cta{display:inline-block;font-family:var(--font-body);font-size:.85rem;font-weight:600;color:var(--ink-black);border:1.5px solid currentColor;padding:.45rem 1.1rem;border-radius:3px;text-decoration:none;transition:background .18s,color .18s;align-self:flex-start}
+.ig-text-cta:hover{background:var(--ink-black);color:#fff}
+@media(max-width:700px){
+  .ig-cell--with-text,.ig-cell--text-left,.ig-cell--text-right{flex-direction:column!important}
+  .ig-cell--with-text .ig-cell-media{flex:0 0 auto;aspect-ratio:16/9!important}
+  .ig-text-panel{padding:1rem 1.25rem}
+}
 
 /* ── FullBleed (viewport media + text overlay) ── */
 .fullbleed{position:relative;z-index:2;width:100%;overflow:hidden;background:#000}
