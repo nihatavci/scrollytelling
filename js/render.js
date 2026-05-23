@@ -202,17 +202,21 @@ const COMPONENT_CSS = `
 
 /* ── Scrolly (sticky image left, text cards right) ── */
 /* All sizes driven by --scrolly-img-w and --scrolly-img-h custom props set by renderer */
-.scrolly{display:grid;grid-template-columns:var(--scrolly-img-w,1fr) var(--scrolly-card-w,minmax(400px,560px));gap:0;max-width:var(--scrolly-max-w,1400px);margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
+.scrolly{display:grid;grid-template-columns:var(--scrolly-img-w,1fr) 10px var(--scrolly-card-w,minmax(400px,560px));gap:0;max-width:var(--scrolly-max-w,1400px);margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
 .scrolly__sticky{position:sticky;top:0;height:var(--scrolly-img-h,100vh);display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:var(--scrolly-img-radius,0)}
 .scrolly__images{position:relative;width:100%;height:100%}
 .scrolly__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s ease;border-radius:var(--scrolly-img-radius,0)}
 .scrolly__img.active{opacity:1}
 .scrolly__img-ph{display:flex;align-items:center;justify-content:center;background:var(--fog,#f0f0f0);color:var(--graphite,#666)}
 .scrolly__ph-label{font-family:var(--font-display);font-size:clamp(1.2rem,3vw,2rem);font-weight:300;letter-spacing:-.02em;opacity:.4;text-align:center;padding:2rem}
+/* ── Drag-to-resize handle ── */
+.scrolly__resize-handle{position:sticky;top:0;height:var(--scrolly-img-h,100vh);cursor:col-resize;display:flex;align-items:center;justify-content:center;z-index:4;-webkit-user-select:none;user-select:none;touch-action:none}
+.scrolly__resize-grip{width:3px;height:44px;background:rgba(128,128,128,.18);border-radius:3px;transition:background .2s,height .2s,width .2s}
+.scrolly__resize-handle:hover .scrolly__resize-grip,.scrolly__resize-handle.dragging .scrolly__resize-grip{background:rgba(128,128,128,.48);height:64px;width:4px}
 .scrolly__steps{padding:30vh 0;display:flex;flex-direction:column}
-.step{min-height:100vh;display:flex;align-items:center;padding:1.5rem 0 1.5rem 3rem}
-.step:first-child{padding-top:15vh}.step:last-child{margin-bottom:30vh}
-.sc{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.6rem 1.8rem;border:none;max-width:560px;box-shadow:var(--shadow-card);opacity:.35;transition:opacity .4s,box-shadow .4s,transform .4s;transform:translateY(8px)}
+.step{min-height:100vh;display:flex;align-items:center;padding:1.5rem 0 1.5rem 2rem}
+.step:first-child{padding-top:10vh}.step:last-child{margin-bottom:30vh}
+.sc{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.6rem 1.8rem;border:none;max-width:560px;width:100%;box-shadow:var(--shadow-card);opacity:.35;transition:opacity .4s,box-shadow .4s,transform .4s;transform:translateY(8px)}
 .step.is-active .sc{opacity:1;box-shadow:rgba(0,0,0,.15) 0 4px 24px;transform:translateY(0)}
 .step-body{font-family:var(--font-body);font-size:1rem;line-height:1.6;font-weight:400}
 .step-body img{display:none}
@@ -220,11 +224,13 @@ const COMPONENT_CSS = `
 /* Scrolly without images: full-width text cards, no sticky */
 .scrolly--no-images{display:block;max-width:720px}
 .scrolly--no-images .scrolly__sticky{display:none}
+.scrolly--no-images .scrolly__resize-handle{display:none}
 .scrolly--no-images .step{padding-left:0;min-height:auto;padding:2rem 0}
 .scrolly--no-images .sc{max-width:100%;opacity:1;transform:none}
 @media(max-width:900px){
   .scrolly{display:block;padding:0;margin:3rem auto}
   .scrolly__sticky{position:sticky;top:0;height:100vh;z-index:1;border-radius:0}
+  .scrolly__resize-handle{display:none}
   .scrolly__steps{position:relative;z-index:2;margin-top:-100vh;pointer-events:none}
   .step{padding:0 1rem;min-height:90vh;display:flex;align-items:flex-end;padding-bottom:2.5rem}
   .step:first-child{min-height:100vh;padding-top:55vh}
@@ -1961,6 +1967,42 @@ function renderScrolly(d) {
   stickyWrap.appendChild(imgContainer);
   // Always show the image container (placeholders visible for steps without images)
   section.appendChild(stickyWrap);
+
+  // ── Drag-to-resize handle (between image panel and steps) ──
+  const handle = el('div', { class: 'scrolly__resize-handle', title: 'Drag to resize image panel' });
+  handle.appendChild(el('div', { class: 'scrolly__resize-grip' }));
+  section.appendChild(handle);
+  {
+    let active = false;
+    const onStart = (e) => {
+      active = true;
+      handle.classList.add('dragging');
+      document.body.style.cursor = 'col-resize';
+      document.body.style.userSelect = 'none';
+      e.preventDefault();
+    };
+    const onMove = (e) => {
+      if (!active) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const rect = section.getBoundingClientRect();
+      // Clamp between 20% and 78% of total section width
+      const pct = Math.min(78, Math.max(20, ((clientX - rect.left) / rect.width) * 100));
+      section.style.setProperty('--scrolly-img-w', pct + '%');
+    };
+    const onEnd = () => {
+      if (!active) return;
+      active = false;
+      handle.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+    handle.addEventListener('mousedown', onStart);
+    handle.addEventListener('touchstart', onStart, { passive: false });
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+  }
 
   // ── Scrolling text cards (right on desktop) ──
   const steps = el('div', { class: 'scrolly__steps', id: d.stepsId || '' });
