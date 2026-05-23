@@ -2702,9 +2702,24 @@ function renderImageGrid(d) {
     grid.style.setProperty('--ig-film-count', n);
   }
 
+  const blockTextSide = d.textSide || 'right';
+
   // Build cells — always creates an <img> (with placeholder fallback) so visual-edit can target it
-  function buildCell(img, i) {
-    const cell = el('div', { class: 'ig-cell' });
+  // blockTextSide: 'left'|'right'|'top'|'bottom'|'alternate' — block-level default, per-item img.textSide overrides
+  function buildCell(img, i, blockTextSide) {
+    const hasText = !!(img.title || img.body || img.cta);
+    let textSide;
+    if (img.textSide) {
+      textSide = img.textSide;
+    } else if (blockTextSide === 'alternate') {
+      textSide = i % 2 === 0 ? 'right' : 'left';
+    } else {
+      textSide = blockTextSide || 'right';
+    }
+    const cellCls = ['ig-cell'];
+    if (hasText) cellCls.push('ig-cell--with-text', 'ig-cell--text-' + textSide);
+    if (img.fullWidth) cellCls.push('ig-cell--full-width');
+    const cell = el('div', { class: cellCls.join(' ') });
     const media = el('div', { class: 'ig-cell-media' });
     const src = img.src || img.url || '';
 
@@ -2734,22 +2749,30 @@ function renderImageGrid(d) {
     cell.appendChild(media);
 
     if (img.caption) cell.appendChild(el('div', { class: 'ig-cell-cap' }, img.caption));
-    if (img.credit) cell.appendChild(el('div', { class: 'ig-cell-credit' }, img.credit));
+    if (img.credit)  cell.appendChild(el('div', { class: 'ig-cell-credit' }, img.credit));
     if (img.description) cell.appendChild(el('div', { class: 'ig-cell-desc' }, img.description));
+
+    if (hasText) {
+      const panel = el('div', { class: 'ig-text-panel' });
+      if (img.title) panel.appendChild(el('h3', { class: 'ig-text-title' }, img.title));
+      if (img.body)  panel.appendChild(el('p',  { class: 'ig-text-body' }, img.body));
+      if (img.cta)   panel.appendChild(el('a',  { class: 'ig-text-cta', href: img.cta.url || '#' }, img.cta.label || 'Read more'));
+      cell.appendChild(panel);
+    }
 
     return cell;
   }
 
   if (isHeroGrid && n > 1) {
     // First image as hero
-    grid.appendChild(buildCell(images[0], 0));
+    grid.appendChild(buildCell(images[0], 0, blockTextSide));
     // Remaining images in a sub-row
     const row = el('div', { class: 'ig-grid ig-hero-grid-row' });
     row.style.setProperty('--ig-hero-cols', Math.min(n - 1, 4));
-    for (let i = 1; i < n; i++) row.appendChild(buildCell(images[i], i));
+    for (let i = 1; i < n; i++) row.appendChild(buildCell(images[i], i, blockTextSide));
     grid.appendChild(row);
   } else {
-    images.forEach((img, i) => grid.appendChild(buildCell(img, i)));
+    images.forEach((img, i) => grid.appendChild(buildCell(img, i, blockTextSide)));
   }
 
   sec.appendChild(grid);
