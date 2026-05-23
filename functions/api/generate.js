@@ -383,35 +383,61 @@ For Datawrapper, always use aspectRatio "auto" — Datawrapper sends its own hei
   ImageGrid: {
     example: {
       layout: 'wide',
-      title: '',
+      mode: 'scroll-fade',
+      stickyPanel: 'media',
+      title: 'A Century of Printing',
       images: [
-        { src: 'https://example.com/photo1.jpg', alt: 'Newsroom in the 1920s', caption: 'The FAZ newsroom, circa 1924' },
-        { src: 'https://example.com/photo2.jpg', alt: 'Modern digital newsroom', caption: 'A digital-first newsroom in 2024' },
-        { src: 'https://example.com/photo3.jpg', alt: 'Printing press', caption: 'Rotary press at the Berliner Tageblatt' }
+        {
+          src: 'https://example.com/photo1.jpg',
+          alt: 'Newsroom in the 1920s',
+          title: 'The Age of Lead Type',
+          body: 'Before digital tools, compositors arranged individual metal characters by hand — a painstaking craft that defined journalism for a century.',
+          cta: { label: 'Learn more', url: '#lead-type' },
+        },
+        {
+          src: 'https://example.com/photo2.jpg',
+          alt: 'Modern digital newsroom',
+          title: 'The Digital Revolution',
+          body: 'Desktop publishing transformed the newsroom overnight. What once took a team of specialists could now be done by a single editor.',
+        },
+        {
+          src: 'https://example.com/photo3.jpg',
+          alt: 'Printing press',
+          title: 'Print Endures',
+          body: 'Despite every prediction of its demise, the printed newspaper remains a daily ritual for millions.',
+        },
       ],
       caption: 'Photos: Bundesarchiv, DPA',
-      credit: ''
+      credit: '',
     },
-    description: `Smart image grid with auto-layout. Detects the number of images and picks the best grid arrangement automatically. Supports natural language layout hints.
+    description: `Smart image grid with auto-layout, optional per-item rich text, and a scroll-fade storytelling mode.
 
-Fields:
+Block-level fields:
 - layout (string): controls width and arrangement. Accepts natural language:
   - Width: "editorial" (narrow 720px), "wide" (1100px, default), "full" (edge-to-edge), "bleed" (beyond container)
   - Arrangement: "2 grid" (2 columns), "3 columns", "masonry", "row" (single horizontal strip), "stack" (vertical)
   - Or combine: "wide 3 grid", "bleed masonry", "editorial 2 columns"
   - If empty, auto-detects best layout from image count (1=hero, 2=side-by-side, 3=1big+2small, 4=2x2, 5=reuters, 6=3x2)
+- mode (string, optional): "grid" (default, static layout) | "scroll-fade" (sticky panel + cross-fade sequence)
+- textSide (string, optional): "right" (default) | "left" | "alternate" (zig-zag) — which side text panels appear in grid mode
+- stickyPanel (string, optional): "media" (default) | "text" — which column is sticky in scroll-fade mode
+- imageSize (string, optional): "small" (35%) | "medium" (50%, default) | "large" (65%) — column proportions in scroll-fade mode
 - title (string, optional): heading above the grid
-- images (array): each image has:
-  - src (string): image URL
-  - alt (string): accessibility description
-  - caption (string, optional): hover caption overlay
-  - span (number, optional): set to 2 to make image span two columns
-  - wide (boolean, optional): same as span:2
-  - tall (boolean, optional): span two rows
 - caption (string, optional): overall caption below the grid
 - credit (string, optional): photo credit line
 
-The user may paste raw image URLs — put each URL as a src in the images array. Generate meaningful alt text and captions.`,
+Per-image fields in images[]:
+- src (string): image URL
+- alt (string): accessibility description
+- caption (string, optional): caption below image (grid mode)
+- title (string, optional): bold heading for this item's text panel
+- body (string, optional): 1–3 sentences of editorial text
+- cta (object, optional): { label: "Read more", url: "#" } — call-to-action button
+- textSide (string, optional): per-item override of block textSide — "left" | "right" | "top" | "bottom"
+- fullWidth (boolean, optional): span both grid columns — useful for editorial break items
+
+The user may paste raw image URLs — put each URL as a src in the images array. Generate meaningful alt text and captions.
+In scroll-fade mode every item should have title + body for the storytelling effect to work well.`,
   },
 
   Map2D: {
@@ -641,6 +667,13 @@ const IMPROVE_RULES = {
     '"remove image 2" or "swap images" → modify images array',
     '"add caption" or "change credit" → update those fields',
     '"make the image half size" → layout "editorial" for narrow',
+    '"add text to images" or "add descriptions" → add title + body to each item in images[]',
+    '"scroll mode" or "make it scrolly" or "scroll-fade" → set mode:"scroll-fade", stickyPanel:"media", ensure every item has title+body',
+    '"flip sticky" or "sticky text" → toggle stickyPanel between "media" and "text"',
+    '"alternate" or "zig-zag" → set textSide:"alternate" on the block',
+    '"text on left" → set textSide:"left" on the block',
+    '"text on right" → set textSide:"right" on the block',
+    '"grid mode" or "static layout" → set mode:"grid"',
   ],
   Scrolly: [
     '"remove images" → clear imageSrc fields. "add image to step 3" → set imageSrc on that step',
