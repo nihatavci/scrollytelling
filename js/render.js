@@ -203,16 +203,25 @@ const COMPONENT_CSS = `
 /* ── Scrolly (sticky image left, text cards right) ── */
 /* All sizes driven by --scrolly-img-w and --scrolly-img-h custom props set by renderer */
 .scrolly{display:grid;grid-template-columns:var(--scrolly-img-w,1fr) 10px var(--scrolly-card-w,minmax(400px,560px));gap:0;max-width:var(--scrolly-max-w,1400px);margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
-.scrolly__sticky{position:sticky;top:0;height:var(--scrolly-img-h,100vh);display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:var(--scrolly-img-radius,0)}
+/* top: centers sticky panel vertically when imageHeight < 100vh */
+.scrolly__sticky{position:sticky;top:max(0px,calc(50vh - var(--scrolly-img-h,100vh) / 2));height:var(--scrolly-img-h,100vh);display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:var(--scrolly-img-radius,0)}
 .scrolly__images{position:relative;width:100%;height:100%}
 .scrolly__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s ease;border-radius:var(--scrolly-img-radius,0)}
 .scrolly__img.active{opacity:1}
 .scrolly__img-ph{display:flex;align-items:center;justify-content:center;background:var(--fog,#f0f0f0);color:var(--graphite,#666)}
 .scrolly__ph-label{font-family:var(--font-display);font-size:clamp(1.2rem,3vw,2rem);font-weight:300;letter-spacing:-.02em;opacity:.4;text-align:center;padding:2rem}
 /* ── Drag-to-resize handle ── */
-.scrolly__resize-handle{position:sticky;top:0;height:var(--scrolly-img-h,100vh);cursor:col-resize;display:flex;align-items:center;justify-content:center;z-index:4;-webkit-user-select:none;user-select:none;touch-action:none}
+.scrolly__resize-handle{position:sticky;top:max(0px,calc(50vh - var(--scrolly-img-h,100vh) / 2));height:var(--scrolly-img-h,100vh);cursor:col-resize;display:flex;align-items:center;justify-content:center;z-index:4;-webkit-user-select:none;user-select:none;touch-action:none}
 .scrolly__resize-grip{width:3px;height:44px;background:rgba(128,128,128,.18);border-radius:3px;transition:background .2s,height .2s,width .2s}
 .scrolly__resize-handle:hover .scrolly__resize-grip,.scrolly__resize-handle.dragging .scrolly__resize-grip{background:rgba(128,128,128,.48);height:64px;width:4px}
+/* ── Snap guide lines (visible during drag) ── */
+.scrolly__guides{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .12s;z-index:10;overflow:hidden}
+.scrolly__guides.active{opacity:1}
+.scrolly__guide{position:absolute;top:0;bottom:0;width:1px;transform:translateX(-50%);background:rgba(99,102,241,.22)}
+.scrolly__guide--major{background:rgba(99,102,241,.4)}
+.scrolly__guide-label{position:absolute;top:18px;left:6px;font-size:9px;font-weight:700;color:rgba(99,102,241,.75);font-family:monospace;letter-spacing:.06em;background:rgba(255,255,255,.88);padding:2px 6px;border-radius:3px;white-space:nowrap}
+.scrolly__guide.snapped{background:rgba(99,102,241,.9)!important;width:2px}
+.scrolly__guide.snapped .scrolly__guide-label{background:rgba(99,102,241,1);color:#fff}
 .scrolly__steps{padding:30vh 0;display:flex;flex-direction:column}
 .step{min-height:100vh;display:flex;align-items:center;padding:1.5rem 0 1.5rem 2rem}
 .step:first-child{padding-top:10vh}.step:last-child{margin-bottom:30vh}
@@ -1968,6 +1977,29 @@ function renderScrolly(d) {
   // Always show the image container (placeholders visible for steps without images)
   section.appendChild(stickyWrap);
 
+  // ── Snap guide lines overlay (shown during drag) ──
+  const SNAP_GUIDES = [
+    [25,   '25%',  false],
+    [33.3, '1/3',  true ],
+    [40,   '40%',  false],
+    [50,   '50%',  true ],
+    [60,   '60%',  false],
+    [66.7, '2/3',  true ],
+    [75,   '75%',  false],
+  ];
+  const SNAP_THRESHOLD = 1.8; // % of section width to trigger snap
+  const guidesEl = el('div', { class: 'scrolly__guides' });
+  SNAP_GUIDES.forEach(([pct, label, major]) => {
+    const line = el('div', {
+      class: 'scrolly__guide' + (major ? ' scrolly__guide--major' : ''),
+      'data-pct': String(pct),
+      style: `left:${pct}%`,
+    });
+    line.appendChild(el('div', { class: 'scrolly__guide-label' }, label));
+    guidesEl.appendChild(line);
+  });
+  section.appendChild(guidesEl);
+
   // ── Drag-to-resize handle (between image panel and steps) ──
   const handle = el('div', { class: 'scrolly__resize-handle', title: 'Drag to resize image panel' });
   handle.appendChild(el('div', { class: 'scrolly__resize-grip' }));
@@ -1977,6 +2009,7 @@ function renderScrolly(d) {
     const onStart = (e) => {
       active = true;
       handle.classList.add('dragging');
+      guidesEl.classList.add('active');
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
       e.preventDefault();
@@ -1985,14 +2018,24 @@ function renderScrolly(d) {
       if (!active) return;
       const clientX = e.touches ? e.touches[0].clientX : e.clientX;
       const rect = section.getBoundingClientRect();
-      // Clamp between 20% and 78% of total section width
-      const pct = Math.min(78, Math.max(20, ((clientX - rect.left) / rect.width) * 100));
+      let pct = Math.min(78, Math.max(20, ((clientX - rect.left) / rect.width) * 100));
+      // Snap to nearest guide if within threshold
+      let snapped = null;
+      for (const [snapPct] of SNAP_GUIDES) {
+        if (Math.abs(pct - snapPct) < SNAP_THRESHOLD) { pct = snapPct; snapped = snapPct; break; }
+      }
+      // Highlight snapped guide
+      guidesEl.querySelectorAll('.scrolly__guide').forEach(g => {
+        g.classList.toggle('snapped', snapped !== null && +g.dataset.pct === snapped);
+      });
       section.style.setProperty('--scrolly-img-w', pct + '%');
     };
     const onEnd = () => {
       if (!active) return;
       active = false;
       handle.classList.remove('dragging');
+      guidesEl.classList.remove('active');
+      guidesEl.querySelectorAll('.scrolly__guide').forEach(g => g.classList.remove('snapped'));
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
     };
