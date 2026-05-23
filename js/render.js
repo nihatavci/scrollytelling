@@ -202,7 +202,7 @@ const COMPONENT_CSS = `
 
 /* ── Scrolly (sticky image left, text cards right) ── */
 /* All sizes driven by --scrolly-img-w and --scrolly-img-h custom props set by renderer */
-.scrolly{display:grid;grid-template-columns:var(--scrolly-img-w,1fr) var(--scrolly-card-w,minmax(320px,420px));gap:0;max-width:var(--scrolly-max-w,1400px);margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
+.scrolly{display:grid;grid-template-columns:var(--scrolly-img-w,1fr) var(--scrolly-card-w,minmax(400px,560px));gap:0;max-width:var(--scrolly-max-w,1400px);margin:4.5rem auto;padding:0 2rem;position:relative;z-index:3}
 .scrolly__sticky{position:sticky;top:0;height:var(--scrolly-img-h,100vh);display:flex;align-items:center;justify-content:center;overflow:hidden;border-radius:var(--scrolly-img-radius,0)}
 .scrolly__images{position:relative;width:100%;height:100%}
 .scrolly__img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity .6s ease;border-radius:var(--scrolly-img-radius,0)}
@@ -212,7 +212,7 @@ const COMPONENT_CSS = `
 .scrolly__steps{padding:30vh 0;display:flex;flex-direction:column}
 .step{min-height:100vh;display:flex;align-items:center;padding:1.5rem 0 1.5rem 3rem}
 .step:first-child{padding-top:15vh}.step:last-child{margin-bottom:30vh}
-.sc{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.6rem 1.8rem;border:none;max-width:420px;box-shadow:var(--shadow-card);opacity:.35;transition:opacity .4s,box-shadow .4s,transform .4s;transform:translateY(8px)}
+.sc{background:var(--card);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);border-radius:var(--radius-card);padding:1.6rem 1.8rem;border:none;max-width:560px;box-shadow:var(--shadow-card);opacity:.35;transition:opacity .4s,box-shadow .4s,transform .4s;transform:translateY(8px)}
 .step.is-active .sc{opacity:1;box-shadow:rgba(0,0,0,.15) 0 4px 24px;transform:translateY(0)}
 .step-body{font-family:var(--font-body);font-size:1rem;line-height:1.6;font-weight:400}
 .step-body img{display:none}
