@@ -4707,35 +4707,79 @@ $('#btn-history').addEventListener('click', async () => {
         body.innerHTML = '<p style="color:#666;text-align:center;padding:2rem 0;">No history yet.<br><span style="font-size:12px;">Publishing creates snapshots automatically.</span></p>';
         return;
       }
+
+      let restoredId = null;
+
       const list = document.createElement('div');
       list.style.cssText = 'display:flex;flex-direction:column;gap:8px;';
-      snapshots.forEach((s, i) => {
-        const { relative, absolute } = formatHistoryDate(s.ts);
-        const row = document.createElement('div');
-        row.className = 'history-row';
-        row.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;background:#f9f9f9;border-radius:8px;gap:12px;';
-        row.innerHTML = `
-          <div style="flex:1;min-width:0;">
-            <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
-              <span style="font-weight:600;font-size:13px;color:#111;">v${s.version || '?'}</span>
-              <span style="font-size:11px;color:#888;background:#eee;padding:1px 7px;border-radius:4px;">${relative}</span>
-              ${i === 0 ? '<span style="font-size:10px;color:#0969da;background:#ddf4ff;padding:1px 6px;border-radius:4px;font-weight:500;">latest</span>' : ''}
+
+      const renderHistoryList = () => {
+        list.innerHTML = '';
+        // Restored item floats to top, rest stay in original order
+        const sorted = restoredId
+          ? [...snapshots].sort((a, b) => (a.id === restoredId ? -1 : b.id === restoredId ? 1 : 0))
+          : snapshots;
+
+        sorted.forEach((s, i) => {
+          const { relative, absolute } = formatHistoryDate(s.ts);
+          const isRestored = s.id === restoredId;
+          const isLatest = !restoredId && i === 0;
+
+          const row = document.createElement('div');
+          row.style.cssText = [
+            'display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-radius:8px;gap:12px;transition:background .15s,opacity .15s;',
+            isRestored
+              ? 'background:#f0fdf4;border:1px solid #bbf7d0;cursor:default;'
+              : 'background:#f9f9f9;border:1px solid transparent;cursor:pointer;',
+          ].join('');
+
+          if (!isRestored) {
+            row.addEventListener('mouseenter', () => { row.style.background = '#f0f0f0'; });
+            row.addEventListener('mouseleave', () => { row.style.background = '#f9f9f9'; });
+          }
+
+          row.innerHTML = `
+            <div style="flex:1;min-width:0;">
+              <div style="display:flex;align-items:center;gap:8px;margin-bottom:2px;">
+                <span style="font-weight:600;font-size:13px;color:#111;">v${s.version || '?'}</span>
+                <span style="font-size:11px;color:#888;background:#eee;padding:1px 7px;border-radius:4px;">${relative}</span>
+                ${isRestored ? '<span style="font-size:10px;color:#16a34a;background:#dcfce7;padding:2px 7px;border-radius:4px;font-weight:600;">✓ Restored</span>' : ''}
+                ${isLatest ? '<span style="font-size:10px;color:#0969da;background:#ddf4ff;padding:1px 6px;border-radius:4px;font-weight:500;">latest</span>' : ''}
+              </div>
+              <div style="font-size:11px;color:#666;">${absolute} · ${s.blockCount} block${s.blockCount !== 1 ? 's' : ''}</div>
             </div>
-            <div style="font-size:11px;color:#666;">${absolute} · ${s.blockCount} block${s.blockCount !== 1 ? 's' : ''}</div>
-          </div>
-          <button class="small" style="flex-shrink:0;">Restore</button>`;
-        row.querySelector('button').addEventListener('click', async (e) => {
-          e.stopPropagation();
-          try {
-            const r = await SB.restoreSnapshot(state.currentPageId, s.id);
-            toast(`Restored to v${s.version}`, 'success');
-            closeModal();
-            await loadPage(state.currentPageId);
-            refreshPreview();
-          } catch (err) { toast('Restore failed: ' + err.message, 'error'); }
+            ${!isRestored ? '<span style="font-size:11px;color:#aaa;flex-shrink:0;">Restore →</span>' : ''}`;
+
+          if (!isRestored) {
+            row.addEventListener('click', async () => {
+              row.style.opacity = '0.45';
+              row.style.pointerEvents = 'none';
+              try {
+                await SB.restoreSnapshot(state.currentPageId, s.id);
+                restoredId = s.id;
+                // Update editor state directly — avoids the full loadPage + animation crash
+                const restored = await SB.getPage(state.currentPageId);
+                state.doc = restored;
+                state.savedVersion = restored.version || 0;
+                state.selectedBlockId = null;
+                setDirty(false);
+                renderBlockList();
+                refreshPreview();
+                renderHistoryList();
+                toast(`Restored to v${s.version}`, 'success');
+              } catch (err) {
+                row.style.opacity = '';
+                row.style.pointerEvents = '';
+                toast('Restore failed: ' + err.message, 'error');
+              }
+            });
+          }
+
+          list.appendChild(row);
         });
-        list.appendChild(row);
-      });
+      };
+
+      renderHistoryList();
       body.appendChild(list);
     } catch (e) { body.textContent = 'Error: ' + e.message; }
   });

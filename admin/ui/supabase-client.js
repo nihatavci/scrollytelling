@@ -361,14 +361,7 @@
         .single();
       if (hErr) throw new Error(hErr.message);
 
-      // Snapshot current state first
-      await client.from('page_history').insert({
-        page_id: row.id,
-        content: row.content,
-        version: row.version,
-      });
-
-      // Restore
+      // Restore (no pre-restore snapshot — restoring doesn't create a new history entry)
       const newVersion = (row.version || 0) + 1;
       const doc = hist.content;
       doc.version = newVersion;
