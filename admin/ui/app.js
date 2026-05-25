@@ -4968,17 +4968,21 @@ startAutosave();
   btn.addEventListener('click', function() {
     var collapsed = blocks.classList.toggle('is-collapsed');
     btn.setAttribute('aria-expanded', String(!collapsed));
-    // motion.js sets inline style (opacity:1; transform:translateY(0px)) during
-    // entrance animation — inline styles beat CSS classes, so we must override
-    // directly. The CSS transition on .blocks still fires for smooth slide.
-    if (collapsed) {
-      blocks.style.transform    = 'translateX(-100%)';
-      blocks.style.opacity      = '0';
-      blocks.style.pointerEvents = 'none';
+    // animatePageSwap() leaves an active WAAPI animation on .blocks with
+    // fill:forwards — WAAPI sits ABOVE inline styles in the CSS cascade so
+    // direct .style writes are silently ignored. Drive the collapse through
+    // Motion.animate() instead, which cancels the prior animation and owns
+    // the cascade slot. CSS pointer-events is handled by the .is-collapsed class.
+    var to = collapsed
+      ? { transform: 'translateX(-100%)', opacity: 0 }
+      : { transform: 'translateX(0px)',   opacity: 1 };
+    if (window.Motion && window.Motion.animate) {
+      window.Motion.animate(blocks, to, { duration: 0.35, easing: [0.4, 0, 0.2, 1] });
     } else {
-      blocks.style.transform    = 'translateX(0)';
-      blocks.style.opacity      = '1';
-      blocks.style.pointerEvents = '';
+      // Fallback if Motion didn't load: cancel WAAPI manually then write inline
+      (blocks.getAnimations ? blocks.getAnimations() : []).forEach(function(a) { a.cancel(); });
+      blocks.style.transform = to.transform;
+      blocks.style.opacity   = String(to.opacity);
     }
   });
 })();
