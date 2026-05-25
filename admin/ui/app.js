@@ -4960,6 +4960,17 @@ startAutosave();
   fab.addEventListener('click', function() { addBtn.click(); });
 })();
 
+// ── Sidebar toggle (glass pill ☰) ────────────────────────────────────────────
+(function initSidebarToggle() {
+  var btn = document.getElementById('btn-sidebar-toggle');
+  var blocks = document.querySelector('.blocks');
+  if (!btn || !blocks) return;
+  btn.addEventListener('click', function() {
+    var hidden = blocks.classList.toggle('hidden');
+    btn.setAttribute('aria-expanded', String(!hidden));
+  });
+})();
+
 // ─────────────────────────── Article Builder bridge ──────────────
 // Exposed on window so article-builder.js (separate file) can insert generated blocks
 window._insertBlocks = function(blocks) {
