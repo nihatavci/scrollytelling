@@ -4968,6 +4968,18 @@ startAutosave();
   btn.addEventListener('click', function() {
     var collapsed = blocks.classList.toggle('is-collapsed');
     btn.setAttribute('aria-expanded', String(!collapsed));
+    // motion.js sets inline style (opacity:1; transform:translateY(0px)) during
+    // entrance animation — inline styles beat CSS classes, so we must override
+    // directly. The CSS transition on .blocks still fires for smooth slide.
+    if (collapsed) {
+      blocks.style.transform    = 'translateX(-100%)';
+      blocks.style.opacity      = '0';
+      blocks.style.pointerEvents = 'none';
+    } else {
+      blocks.style.transform    = 'translateX(0)';
+      blocks.style.opacity      = '1';
+      blocks.style.pointerEvents = '';
+    }
   });
 })();
 
