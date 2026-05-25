@@ -259,7 +259,7 @@ main.editor { display: none; }
   transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .3s ease;
   will-change: transform;
 }
-.blocks.hidden {
+.blocks.is-collapsed {
   transform: translateX(-100%);
   pointer-events: none;
   opacity: 0;
@@ -311,9 +311,9 @@ main.editor { display: none; }
 .sidebar-toggle:hover { background: rgba(255,255,255,.95); box-shadow: 0 4px 16px rgba(0,0,0,.14); }
 .sidebar-toggle:active { transform: scale(.95); }
 /* Move toggle right when sidebar is visible */
-.blocks:not(.hidden) ~ .sidebar-toggle { left: 390px; }
-.blocks:not(.hidden) ~ .sidebar-toggle { transition: left .35s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s; }
-.blocks.hidden ~ .sidebar-toggle { transition: left .35s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s; }
+.blocks:not(.is-collapsed) ~ .sidebar-toggle { left: 390px; }
+.blocks:not(.is-collapsed) ~ .sidebar-toggle { transition: left .35s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s; }
+.blocks.is-collapsed ~ .sidebar-toggle { transition: left .35s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s; }
 
 /* ── Block list (accordion) ── */
 .block-list { list-style: none; padding: 8px; }
@@ -1036,14 +1036,14 @@ main.editor { display: none; }
 /* ── Responsive: Tablet (≤1100px) ── */
 @media (max-width: 1100px) {
   .blocks { width: 320px; }
-  .blocks:not(.hidden) ~ .sidebar-toggle { left: 330px; }
+  .blocks:not(.is-collapsed) ~ .sidebar-toggle { left: 330px; }
   .topbar-page select { min-width: 140px; }
 }
 
 /* ── Responsive: Small tablet (≤900px) ── */
 @media (max-width: 900px) {
   .blocks { width: 280px; }
-  .blocks:not(.hidden) ~ .sidebar-toggle { left: 290px; }
+  .blocks:not(.is-collapsed) ~ .sidebar-toggle { left: 290px; }
   .topbar {
     flex-wrap: wrap;
     gap: 8px;
@@ -1261,8 +1261,8 @@ main.editor { display: none; }
     padding-bottom: 72px; /* room for FAB */
     background: rgba(255,255,255,.92);
   }
-  .blocks.hidden ~ .sidebar-toggle { left: 10px; }
-  .blocks:not(.hidden) ~ .sidebar-toggle { left: auto; right: 10px; }
+  .blocks.is-collapsed ~ .sidebar-toggle { left: 10px; }
+  .blocks:not(.is-collapsed) ~ .sidebar-toggle { left: auto; right: 10px; }
   .preview { display: none; }
 
   /* ── Aside header — minimal ── */

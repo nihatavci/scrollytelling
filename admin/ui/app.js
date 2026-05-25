@@ -4966,8 +4966,8 @@ startAutosave();
   var blocks = document.querySelector('.blocks');
   if (!btn || !blocks) return;
   btn.addEventListener('click', function() {
-    var hidden = blocks.classList.toggle('hidden');
-    btn.setAttribute('aria-expanded', String(!hidden));
+    var collapsed = blocks.classList.toggle('is-collapsed');
+    btn.setAttribute('aria-expanded', String(!collapsed));
   });
 })();
 
