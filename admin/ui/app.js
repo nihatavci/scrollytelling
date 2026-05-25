@@ -1878,11 +1878,14 @@ async function getPublicUrl() {
 }
 function setDirty(d) {
   state.dirty = d;
-  const s = $('#page-status');
-  s.className = 'status ' + (d ? 'dirty' : 'saved');
-  s.textContent = d ? '● Unsaved changes' : (state.savedVersion ? `Saved · v${state.savedVersion}` : 'Loaded');
+  // Publish button: enable/disable + pulse dot
   $('#btn-publish').disabled = !d;
-  if (d) backupToLocal();
+  const dot = $('#publish-dot');
+  if (dot) dot.classList.toggle('active', d);
+  if (d) {
+    backupToLocal();
+    scheduleAutosave();
+  }
 }
 
 // ── Local backup (crash recovery) ─────────────────────────────────────────
@@ -1917,38 +1920,53 @@ function clearLocalBackup(id) {
   try { localStorage.removeItem(`scrollycms_backup_${id}`); } catch (e) {}
 }
 
-// ── Save status indicator ─────────────────────────────────────────────────
-function setSaveStatus(status) {
-  const el = $('#save-status');
+// ── Save indicator (Webflow-style pill) ──────────────────────────────────
+let _siHideTimer = null;
+function showSaveIndicator(status) {
+  const el = $('#save-indicator');
   if (!el) return;
-  el.className = 'save-status';
+  const icon = el.querySelector('.save-indicator__icon');
+  const text = el.querySelector('.save-indicator__text');
+  clearTimeout(_siHideTimer);
+
+  // Reset
+  el.className = 'save-indicator';
+
   switch (status) {
     case 'saving':
-      el.textContent = 'Saving…';
-      el.classList.add('status-saving');
+      icon.innerHTML = '<span class="spinner"></span>';
+      text.textContent = 'Saving';
+      el.classList.add('saving', 'visible');
       break;
     case 'saved':
-      el.textContent = 'Saved ✓';
-      el.classList.add('status-saved');
-      setTimeout(() => { if (el.textContent === 'Saved ✓') el.textContent = ''; }, 3000);
+      icon.innerHTML = '<span class="check"></span>';
+      text.textContent = 'Saved';
+      el.classList.add('saved', 'visible');
+      _siHideTimer = setTimeout(() => el.classList.remove('visible'), 2200);
       break;
     case 'error':
-      el.textContent = 'Save failed';
-      el.classList.add('status-error');
+      icon.innerHTML = '<span class="err-icon"></span>';
+      text.textContent = 'Save failed';
+      el.classList.add('error', 'visible');
+      el.onclick = () => { el.onclick = null; runAutosave(); };
       break;
     case 'publishing':
-      el.textContent = 'Publishing…';
-      el.classList.add('status-saving');
+      icon.innerHTML = '<span class="spinner"></span>';
+      text.textContent = 'Publishing';
+      el.classList.add('publishing', 'visible');
       break;
     case 'published':
-      el.textContent = 'Published ✓';
-      el.classList.add('status-saved');
-      setTimeout(() => { if (el.textContent === 'Published ✓') el.textContent = ''; }, 3000);
+      icon.innerHTML = '<span class="check"></span>';
+      text.textContent = 'Published';
+      el.classList.add('published', 'visible');
+      _siHideTimer = setTimeout(() => el.classList.remove('visible'), 2800);
       break;
     default:
-      el.textContent = '';
+      el.classList.remove('visible');
   }
 }
+// Backward compat alias (some code paths still call this)
+function setSaveStatus(s) { showSaveIndicator(s); }
 // ─────────────────────────── API (Supabase-backed) ─────────
 // SB.* functions from supabase-client.js replace the old fetch-based api().
 
@@ -4831,47 +4849,41 @@ window.addEventListener('beforeunload', (e) => {
 });
 
 // ─────────────────────────── Autosave ──────────────────────────
-// Quietly saves to Supabase every 5 seconds when there are unsaved changes.
-// Does NOT publish or create history — just persists the draft so you never lose work.
-let _autosaveTimer = null;
+// Debounced autosave — triggers 2s after the last change.
+// Does NOT publish or create history — just persists so you never lose work.
+let _autosaveDebounce = null;
 let _autosaving = false;
 let _autosaveFailCount = 0;
 
-function startAutosave() {
-  if (_autosaveTimer) return;
-  _autosaveTimer = setInterval(async () => {
-    if (!state.dirty || !state.doc || !state.currentPageId || _autosaving) return;
-    if (_autosaveFailCount >= 3) return; // Stop retrying after 3 failures
-    _autosaving = true;
-    setSaveStatus('saving');
-    try {
-      await SB.autoSave(state.currentPageId, state.doc);
-      clearLocalBackup(state.currentPageId);
-      _autosaveFailCount = 0;
-      setSaveStatus('saved');
-      // Don't clear dirty — dirty means "unpublished changes"
-      // But update status to show autosave happened
-      const s = $('#page-status');
-      s.textContent = '● Autosaved (unpublished)';
-      s.className = 'status dirty';
-    } catch (e) {
-      console.error('Autosave failed:', e.message);
-      _autosaveFailCount++;
-      setSaveStatus('error');
-      const s = $('#page-status');
-      if (_autosaveFailCount >= 3) {
-        s.textContent = '⚠ Autosave disabled — check connection';
-        s.className = 'status dirty';
-        toast('Autosave has failed 3 times. Your changes are backed up locally. Check your connection.', 'error');
-      } else {
-        s.textContent = '⚠ Autosave failed';
-        s.className = 'status dirty';
-      }
-    } finally {
-      _autosaving = false;
-    }
-  }, 5000);
+function scheduleAutosave() {
+  clearTimeout(_autosaveDebounce);
+  _autosaveDebounce = setTimeout(runAutosave, 2000);
 }
+
+async function runAutosave() {
+  if (!state.dirty || !state.doc || !state.currentPageId || _autosaving) return;
+  if (_autosaveFailCount >= 3) return;
+  _autosaving = true;
+  showSaveIndicator('saving');
+  try {
+    await SB.autoSave(state.currentPageId, state.doc);
+    clearLocalBackup(state.currentPageId);
+    _autosaveFailCount = 0;
+    showSaveIndicator('saved');
+  } catch (e) {
+    console.error('Autosave failed:', e.message);
+    _autosaveFailCount++;
+    showSaveIndicator('error');
+    if (_autosaveFailCount >= 3) {
+      toast('Autosave paused — changes backed up locally. Check connection.', 'error');
+    }
+  } finally {
+    _autosaving = false;
+  }
+}
+
+// startAutosave is now a no-op (kept for backward compat with existing call sites)
+function startAutosave() {}
 
 // Auth expiry — save locally before showing login prompt
 window.addEventListener('scrollycms:auth-expired', () => {
