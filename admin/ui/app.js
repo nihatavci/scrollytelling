@@ -1878,8 +1878,9 @@ async function getPublicUrl() {
 }
 function setDirty(d) {
   state.dirty = d;
-  // Publish button: enable/disable + pulse dot
-  $('#btn-publish').disabled = !d;
+  // Publish button: enable/disable + pulse dot (null-safe — element may not exist in cached HTML)
+  const pub = $('#btn-publish');
+  if (pub) pub.disabled = !d;
   const dot = $('#publish-dot');
   if (dot) dot.classList.toggle('active', d);
   if (d) {
