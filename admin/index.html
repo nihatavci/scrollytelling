@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f8f8f8">
+<title>ScrollyCMS · Admin</title>
+<!-- Supabase config — replaced at deploy or set in env -->
+<meta name="supabase-url" content="https://dwdwrmdqdqikiryhgqtm.supabase.co">
+<meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZHdybWRxZHFpa2lyeWhncXRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2ODk2ODAsImV4cCI6MjA5NDI2NTY4MH0.28-7FMq74AOo_4cD8EbOxdC6DV3Sg5ZZBjH794rNwOQ">
+<link rel="stylesheet" href="/admin/ui/styles.css?v=20260525b">
+</head>
+<body>
+
+<!-- ───────── Auth screen ───────── -->
+<div id="auth" class="auth-screen hidden">
+  <div class="auth-card">
+    <div class="auth-brand">ScrollyCMS</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Sign in</button>
+      <button class="auth-tab" data-tab="signup">Create account</button>
+    </div>
+
+    <!-- Login form -->
+    <form id="login-form" class="auth-form">
+      <input id="login-email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="login-pwd" type="password" placeholder="Password" autocomplete="current-password" required>
+      <button type="submit" class="primary">Sign in</button>
+      <div id="login-error" class="error"></div>
+    </form>
+
+    <!-- Signup form -->
+    <form id="signup-form" class="auth-form hidden">
+      <input id="signup-name" type="text" placeholder="Display name" autocomplete="name" required>
+      <input id="signup-email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="signup-pwd" type="password" placeholder="Password (min 6 chars)" autocomplete="new-password" minlength="6" required>
+      <button type="submit" class="primary">Create account</button>
+      <div id="signup-error" class="error"></div>
+    </form>
+
+    <div id="auth-success" class="auth-success hidden">
+      <p>Check your email for a confirmation link, then sign in.</p>
+      <button onclick="document.querySelector('[data-tab=login]').click()" class="small">Go to sign in</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────── Dashboard ───────── -->
+<div id="app" class="app hidden">
+
+  <header class="topbar">
+    <div class="brand">ScrollyCMS</div>
+    <div class="topbar-page">
+      <label>Page:</label>
+      <select id="page-select"></select>
+      <button id="btn-new-page" class="small" title="Create a new page">+ New page</button>
+      <button id="btn-rename-page" class="small" title="Rename page">✏️</button>
+      <a id="link-view-page" href="#" target="_blank" class="small view-link">View ↗</a>
+      <div id="save-indicator" class="save-indicator" aria-live="polite">
+        <span class="save-indicator__icon"></span>
+        <span class="save-indicator__text"></span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <button id="btn-article-builder" title="Build a full article from source material">⚡ Full Article</button>
+      <button id="btn-preview" title="Open rendered page in a new tab">Preview</button>
+      <button id="btn-history" title="Snapshots history">History</button>
+      <button id="btn-publish" class="primary publish-btn">Publish<span id="publish-dot" class="publish-dot"></span></button>
+      <button id="btn-settings" class="ghost" title="Site settings">⚙</button>
+      <button id="btn-logout" class="ghost">Logout</button>
+    </div>
+    <button id="btn-overflow" class="topbar-overflow-btn" title="More options" aria-label="More options">⋮</button>
+  </header>
+
+  <!-- Bottom sheet — MUST live outside .topbar to avoid backdrop-filter containing block -->
+  <div id="overflow-backdrop" class="overflow-backdrop"></div>
+  <div id="overflow-menu" class="overflow-menu">
+    <div class="overflow-handle"></div>
+    <button data-overflow="new-page">New page</button>
+    <button data-overflow="rename">Rename page</button>
+    <button data-overflow="view">View live page</button>
+    <div class="overflow-divider"></div>
+    <button data-overflow="preview">Preview</button>
+    <button data-overflow="history">Version history</button>
+    <button data-overflow="settings">Page settings</button>
+    <div class="overflow-divider"></div>
+    <button data-overflow="logout" class="danger">Log out</button>
+  </div>
+
+  <div class="layout">
+    <!-- Blocks list -->
+    <aside class="blocks">
+      <div class="aside-head">
+        <span>Blocks</span>
+        <button id="btn-add-block" class="small" title="Add a new block">+ Add</button>
+      </div>
+      <ol id="block-list" class="block-list"></ol>
+    </aside>
+
+    <!-- Editor / preview area -->
+    <main class="editor">
+      <div id="editor-empty" class="empty">
+        Select a block on the left to edit it.
+      </div>
+      <div id="editor-form" class="form hidden"></div>
+    </main>
+
+    <!-- Live preview -->
+    <aside class="preview">
+      <div class="aside-head">
+        <span>Preview</span>
+        <button id="btn-fullscreen-preview" class="small" title="Expand preview to full width">⛶</button>
+        <button id="btn-visual-edit" class="small ve-toggle" title="Edit text &amp; images directly on preview">✏️ Edit</button>
+        <button id="btn-refresh-preview" class="small">Reload</button>
+      </div>
+      <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin" allow="autoplay"></iframe>
+    </aside>
+
+    <!-- Sidebar toggle (glass pill) -->
+    <button id="btn-sidebar-toggle" class="sidebar-toggle" title="Toggle blocks panel">☰</button>
+
+    <!-- Mobile FAB -->
+    <button id="fab-add" class="fab-add" aria-label="Add block">+</button>
+  </div>
+</div>
+
+<!-- ───────── Modals ───────── -->
+<div id="modal-root"></div>
+
+<!-- ───────── Scripts ───────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1/mammoth.browser.min.js"></script>
+<script type="module">
+  import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4/build/pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4/build/pdf.worker.min.mjs';
+  window.pdfjsLib = pdfjsLib;
+</script>
+<script src="/admin/ui/motion.js?v=20260525b"></script>
+<script src="/admin/ui/supabase-client.js?v=20260525b"></script>
+<script src="/admin/ui/app.js?v=20260525b"></script>
+<script src="/admin/ui/article-builder.js?v=20260525b"></script>
+</body>
+</html>
