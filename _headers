@@ -1,5 +1,12 @@
 # _headers — Cloudflare Pages custom headers
 
+# Never cache HTML — ensures cache-busted script URLs always reach the browser
+/*.html
+  Cache-Control: no-store
+
+/admin/index.html
+  Cache-Control: no-store
+
 /admin/*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
