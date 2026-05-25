@@ -4966,24 +4966,13 @@ startAutosave();
   var blocks = document.querySelector('.blocks');
   if (!btn || !blocks) return;
   btn.addEventListener('click', function() {
+    // Animate via `left` (not `transform`): motion.js owns the WAAPI transform
+    // slot on .blocks via animatePageSwap — WAAPI beats inline styles in the
+    // cascade so transform writes are silently lost. `left` is a separate property
+    // motion.js never touches; the CSS `transition: left .35s` on .blocks handles
+    // the smooth slide entirely through the normal author-style cascade.
     var collapsed = blocks.classList.toggle('is-collapsed');
     btn.setAttribute('aria-expanded', String(!collapsed));
-    // animatePageSwap() leaves an active WAAPI animation on .blocks with
-    // fill:forwards — WAAPI sits ABOVE inline styles in the CSS cascade so
-    // direct .style writes are silently ignored. Drive the collapse through
-    // Motion.animate() instead, which cancels the prior animation and owns
-    // the cascade slot. CSS pointer-events is handled by the .is-collapsed class.
-    var to = collapsed
-      ? { transform: 'translateX(-100%)', opacity: 0 }
-      : { transform: 'translateX(0px)',   opacity: 1 };
-    if (window.Motion && window.Motion.animate) {
-      window.Motion.animate(blocks, to, { duration: 0.35, easing: [0.4, 0, 0.2, 1] });
-    } else {
-      // Fallback if Motion didn't load: cancel WAAPI manually then write inline
-      (blocks.getAnimations ? blocks.getAnimations() : []).forEach(function(a) { a.cancel(); });
-      blocks.style.transform = to.transform;
-      blocks.style.opacity   = String(to.opacity);
-    }
   });
 })();
 

@@ -255,12 +255,14 @@ main.editor { display: none; }
   border-right: 1px solid rgba(255, 255, 255, 0.45);
   box-shadow: 0 0 0 1px rgba(0,0,0,.06), 4px 0 24px rgba(0,0,0,.08);
   overflow: auto;
-  transform: translateX(0);
-  transition: transform .35s cubic-bezier(.4,0,.2,1), opacity .3s ease;
-  will-change: transform;
+  /* Animate `left` not `transform` — motion.js owns the WAAPI transform slot
+     (via animatePageSwap) so CSS transitions on transform lose in the cascade.
+     Animating `left` is a separate property that motion.js never touches. */
+  transition: left .35s cubic-bezier(.4,0,.2,1), opacity .3s ease;
+  will-change: left;
 }
 .blocks.is-collapsed {
-  transform: translateX(-100%);
+  left: -380px;
   pointer-events: none;
   opacity: 0;
 }
@@ -273,7 +275,7 @@ main.editor { display: none; }
 }
 
 /* Fullscreen mode — hide sidebar toggle area */
-.layout.preview-fullscreen > .blocks { transform: translateX(-100%); opacity: 0; pointer-events: none; }
+.layout.preview-fullscreen > .blocks { left: -380px; opacity: 0; pointer-events: none; }
 .layout.preview-fullscreen > .preview { border: 0; }
 
 .aside-head {
@@ -1261,6 +1263,7 @@ main.editor { display: none; }
     padding-bottom: 72px; /* room for FAB */
     background: rgba(255,255,255,.92);
   }
+  .blocks.is-collapsed { left: -100%; }
   .blocks.is-collapsed ~ .sidebar-toggle { left: 10px; }
   .blocks:not(.is-collapsed) ~ .sidebar-toggle { left: auto; right: 10px; }
   .preview { display: none; }
