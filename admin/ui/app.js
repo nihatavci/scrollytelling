@@ -4788,6 +4788,7 @@ $('#btn-history').addEventListener('click', async () => {
               } catch (err) {
                 row.style.opacity = '';
                 row.style.pointerEvents = '';
+                console.error('[restore] failed:', err);
                 toast('Restore failed: ' + err.message, 'error');
               }
             });
