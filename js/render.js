@@ -504,7 +504,7 @@ const COMPONENT_CSS = `
 .fullbleed-media{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
 .fullbleed video.fullbleed-media{object-fit:cover}
 .fullbleed-scrim{position:absolute;inset:0;pointer-events:none}
-.fullbleed-content{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:flex-end;padding:2rem;min-height:100vh;max-width:720px}
+.fullbleed-content{position:relative;z-index:2;display:flex;flex-direction:column;justify-content:flex-end;padding:2rem;min-height:inherit;max-width:720px}
 .fullbleed-content.pos-center{justify-content:center;align-items:center;text-align:center;margin:0 auto}
 .fullbleed-content.pos-bottom-left{justify-content:flex-end;align-items:flex-start;padding-bottom:4rem}
 .fullbleed-content.pos-bottom-right{justify-content:flex-end;align-items:flex-end;text-align:right;margin-left:auto;padding-bottom:4rem}
@@ -514,6 +514,11 @@ const COMPONENT_CSS = `
 .fullbleed.h-100{min-height:100vh}
 .fullbleed.h-75{min-height:75vh}
 .fullbleed.h-50{min-height:50vh}
+.fullbleed-media.slow-zoom{animation:fbZoom 28s ease-in-out infinite alternate;transform-origin:center center}
+@keyframes fbZoom{0%{transform:scale(1)}100%{transform:scale(1.07)}}
+.fullbleed-slides{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
+.fullbleed-slide{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.5s ease;will-change:opacity}
+.fullbleed-slide.is-active{opacity:1}
 @media(max-width:900px){
   .fullbleed-content{padding:1.5rem 1.25rem}
   .fullbleed-content.pos-bottom-left,.fullbleed-content.pos-bottom-right{padding-bottom:3rem}
@@ -645,6 +650,31 @@ const COMPONENT_CSS = `
 .parallax__ph-hint{font-size:.8rem;opacity:.6;max-width:240px;line-height:1.4}
 .parallax__headline--ghost,.parallax__subtitle--ghost{opacity:.35;font-style:italic}
 @media(max-width:600px){.parallax{height:75vh}.parallax__overlay{padding:1.5rem}}
+/* ── Scene3D scrollytelling block ── */
+.scene3d{position:relative;width:100%}
+.scene3d-sticky{position:sticky;top:0;height:100vh;overflow:hidden;background:#1a1a1a}
+.scene3d-canvas{width:100%;height:100%;display:block;opacity:0;transition:opacity .5s ease}
+.scene3d-dots{position:absolute;right:1.5rem;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:2}
+.scene3d-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .3s,transform .3s;cursor:default}
+.scene3d-dot.active{background:#0358f7;transform:scale(1.4)}
+.scene3d-progress{position:absolute;left:0;top:0;width:3px;height:100%;background:rgba(0,0,0,.08);z-index:2}
+.scene3d-progress-fill{width:100%;height:0%;background:linear-gradient(180deg,#c679c4,#fa3d1d,#ffb005,#0358f7);border-radius:0 0 2px 2px;transition:height .4s ease}
+.scene3d-cards{position:relative;z-index:2}
+.scene3d-card{min-height:100vh;display:flex;align-items:center;padding:0 1.5rem;pointer-events:none}
+.scene3d-card-inner{background:var(--snow,#fff);border-radius:16px;padding:1.5rem 1.75rem;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.scene3d-card-num{font-size:10px;font-weight:700;color:#0358f7;letter-spacing:.1em;margin-bottom:.4rem}
+.scene3d-card-caption{font-size:1rem;font-weight:500;color:#000;line-height:1.5}
+.scene3d-coming-soon{position:absolute;inset:0;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(248,248,248,.5);z-index:10;pointer-events:none}
+.scene3d--coming-soon .scene3d-coming-soon{display:flex}
+.scene3d-coming-soon span{background:#fa3d1d;color:#fff;font-weight:700;font-size:.875rem;letter-spacing:.08em;padding:10px 24px;border-radius:9999px}
+.scene3d-loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none}
+.scene3d-loader::after{content:'';width:32px;height:32px;border:2px solid rgba(255,255,255,.15);border-top-color:rgba(255,255,255,.6);border-radius:50%;animation:scene3dSpin .8s linear infinite}
+@keyframes scene3dSpin{to{transform:rotate(360deg)}}
+@media(max-width:767px){
+  .scene3d-sticky{height:60vw;min-height:220px;position:relative}
+  .scene3d-card{min-height:auto;padding:1rem}
+  .scene3d-card-inner{max-width:none}
+}
 `;
 
 function injectComponentCSS() {
@@ -1482,6 +1512,7 @@ const BLOCK_RENDERERS = {
   Map2D:          renderMap2D,
   FullscreenImage: renderFullscreenImage,
   AudioPlayer:     renderAudioPlayer,
+  Scene3D:         renderScene3D,
   Parallax:        renderParallax,
   LottieScroll:    renderLottieScroll,
 };
@@ -1688,11 +1719,12 @@ function applyMeta(meta) {
 // ───────── Hero (cinematic intro) ─────────
 function renderHero(d) {
   const sec = el('section', { class: 'cin-intro', id: 'cin-intro' });
-  sec.appendChild(el('div', { class: 'cin-brand', id: 'cin-brand' }, d.brand || ''));
-  const svgWrap = el('div', { class: 'cin-svg-wrap' });
-  svgWrap.innerHTML = '<svg id="cin-svg"></svg>';
-  sec.appendChild(svgWrap);
 
+  const brand = el('div', { class: 'cin-brand', id: 'cin-brand' }, d.brand || '');
+  sec.appendChild(brand);
+
+  // Text lines (shown one by one before the title in the full D3 cinematic,
+  // skipped here in the simple self-contained path)
   const textLayer = el('div', { class: 'cin-text-layer', id: 'cin-text-layer' });
   (d.lines || []).forEach(line => {
     textLayer.appendChild(el('div', { class: `cin-line ${line.cls || ''}`.trim() }, line.text || ''));
@@ -1700,16 +1732,46 @@ function renderHero(d) {
   sec.appendChild(textLayer);
 
   const titleLayer = el('div', { class: 'cin-title-layer', id: 'cin-title-layer' });
+  titleLayer.style.pointerEvents = 'auto';
   const h1 = el('h1', { class: 'cin-main-title' });
   h1.innerHTML = d.titleHtml || '';
   titleLayer.appendChild(h1);
-  titleLayer.appendChild(el('p', { class: 'cin-sub-title' }, d.subtitle || ''));
+  if (d.subtitle) titleLayer.appendChild(el('p', { class: 'cin-sub-title' }, d.subtitle));
   sec.appendChild(titleLayer);
 
   const cue = el('div', { class: 'cin-scroll-cue', id: 'cin-cue' });
-  cue.appendChild(el('span', {}, d.scrollCueText || ''));
+  cue.appendChild(el('span', {}, d.scrollCueText || 'Scroll'));
   cue.appendChild(el('div', { class: 'arr' }));
   sec.appendChild(cue);
+
+  // Self-contained fade-in: brand settles to top-left → title fades in → scroll cue appears.
+  // This runs when page-init.js (the D3 cinematic) is NOT present. If it IS present,
+  // the D3 script takes ownership of the same elements and this becomes a no-op visual
+  // (D3 overwrites opacity/transform via its own timeline).
+  requestAnimationFrame(() => {
+    if (document.getElementById('cin-svg')) return; // D3 cinematic already owns this
+
+    // Brand: fade in, then settle to top after a beat
+    setTimeout(() => {
+      brand.style.opacity = '1';
+    }, 200);
+    setTimeout(() => {
+      brand.classList.add('settled');
+    }, 1000);
+
+    // Title: fade in
+    setTimeout(() => {
+      titleLayer.style.transition = 'opacity 1.1s ease';
+      titleLayer.style.opacity = '1';
+    }, 900);
+
+    // Scroll cue: fade in last
+    setTimeout(() => {
+      cue.style.transition = 'opacity 0.9s ease';
+      cue.style.opacity = '1';
+    }, 1900);
+  });
+
   return sec;
 }
 
@@ -2332,12 +2394,51 @@ function renderFullBleed(d) {
     });
     sec.appendChild(video);
   } else {
-    sec.appendChild(el('img', {
-      class: 'fullbleed-media',
-      src: d.mediaSrc || '',
-      alt: d.title || '',
-      loading: 'lazy',
-    }));
+    // Collect all non-empty image URLs (up to 4)
+    const srcs = [d.mediaSrc, d.mediaSrc2, d.mediaSrc3, d.mediaSrc4].filter(Boolean);
+
+    if (srcs.length > 1) {
+      const intervalMs  = Math.max(1000, parseFloat(d.slideInterval  || 5)   * 1000);
+      const fadeSec     = Math.max(0.1,  parseFloat(d.slideFadeSec   || 1.5));
+      const doShuffle   = (d.slideShuffle || 'yes') !== 'no';
+
+      if (doShuffle) {
+        for (let i = srcs.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [srcs[i], srcs[j]] = [srcs[j], srcs[i]];
+        }
+      }
+
+      const wrap = el('div', { class: 'fullbleed-slides', 'aria-hidden': 'true' });
+      srcs.forEach((src, i) => {
+        const img = el('img', {
+          class: 'fullbleed-slide' + (i === 0 ? ' is-active' : ''),
+          src: src,
+          alt: '',
+          loading: i === 0 ? 'eager' : 'lazy',
+          style: `transition:opacity ${fadeSec}s ease`,
+        });
+        wrap.appendChild(img);
+      });
+      sec.appendChild(wrap);
+
+      // Crossfade timer — user-controlled interval
+      let cur = 0;
+      const slideEls = wrap.querySelectorAll('.fullbleed-slide');
+      setInterval(() => {
+        slideEls[cur].classList.remove('is-active');
+        cur = (cur + 1) % srcs.length;
+        slideEls[cur].classList.add('is-active');
+      }, intervalMs);
+    } else {
+      // Single image — slow Ken Burns zoom
+      sec.appendChild(el('img', {
+        class: 'fullbleed-media slow-zoom',
+        src: d.mediaSrc || '',
+        alt: d.title || '',
+        loading: 'lazy',
+      }));
+    }
   }
 
   const opacity = d.scrimOpacity != null ? d.scrimOpacity : 0.4;
@@ -2364,6 +2465,80 @@ function renderFullBleed(d) {
   }
   sec.appendChild(content);
   return sec;
+}
+
+// ───────── Scene3D scrollytelling ─────────
+function renderScene3D(d, block) {
+  const hasScenes = Array.isArray(d.scenes) && d.scenes.some(Boolean);
+  const sec = el('section', {
+    class: 'scene3d' + (d._comingSoon === true || d._comingSoon === 'true' ? ' scene3d--coming-soon' : ''),
+    id: `scene3d-${block.id}`,
+  });
+
+  // Sticky viewport
+  const sticky = el('div', { class: 'scene3d-sticky' });
+  const canvas = el('canvas', { class: 'scene3d-canvas', 'aria-hidden': 'true' });
+  sticky.appendChild(canvas);
+
+  // Loading spinner (shown until Three.js finishes)
+  const loader = el('div', { class: 'scene3d-loader', 'aria-hidden': 'true' });
+  sticky.appendChild(loader);
+
+  // Scene dots
+  const activeScs = (d.scenes || []).filter(Boolean);
+  if (activeScs.length > 1) {
+    const dots = el('div', { class: 'scene3d-dots', 'aria-hidden': 'true' });
+    activeScs.forEach((_, i) => {
+      dots.appendChild(el('div', { class: 'scene3d-dot' + (i === 0 ? ' active' : '') }));
+    });
+    sticky.appendChild(dots);
+  }
+
+  // Progress bar
+  const prog = el('div', { class: 'scene3d-progress' });
+  prog.appendChild(el('div', { class: 'scene3d-progress-fill' }));
+  sticky.appendChild(prog);
+
+  sec.appendChild(sticky);
+
+  // Scroll cards (one per scene)
+  if (hasScenes) {
+    const cards = el('div', { class: 'scene3d-cards' });
+    activeScs.forEach((sc, i) => {
+      const card = el('div', { class: 'scene3d-card', 'data-scene': String(i) });
+      const inner = el('div', { class: 'scene3d-card-inner' });
+      inner.appendChild(el('div', { class: 'scene3d-card-num' }, `SCENE ${i + 1}`));
+      if (sc.caption) inner.appendChild(el('div', { class: 'scene3d-card-caption' }, sc.caption));
+      card.appendChild(inner);
+      cards.appendChild(card);
+    });
+    sec.appendChild(cards);
+  }
+
+  // Coming Soon overlay
+  const csOverlay = el('div', { class: 'scene3d-coming-soon', 'aria-hidden': 'true' });
+  csOverlay.appendChild(el('span', {}, 'Coming Soon'));
+  sec.appendChild(csOverlay);
+
+  // Lazy-load the Three.js renderer after this section is in the DOM
+  if (hasScenes && d.glbUrl) {
+    Promise.resolve().then(() => _initScene3DPublic(block.id, d));
+  }
+
+  return sec;
+}
+
+let _scene3dModPromise = null;
+async function _initScene3DPublic(blockId, data) {
+  try {
+    if (!_scene3dModPromise) {
+      _scene3dModPromise = import('./scene3d.js');
+    }
+    const mod = await _scene3dModPromise;
+    await mod.initScene3D(blockId, data);
+  } catch (err) {
+    console.error('[Scene3D] init failed:', err);
+  }
 }
 
 function renderImageCompare(d) {
