@@ -675,6 +675,13 @@ const COMPONENT_CSS = `
 .scene3d-coming-soon{position:absolute;inset:0;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(248,248,248,.5);z-index:10;pointer-events:none}
 .scene3d--coming-soon .scene3d-coming-soon{display:flex}
 .scene3d-coming-soon span{background:#fa3d1d;color:#fff;font-weight:700;font-size:.875rem;letter-spacing:.08em;padding:10px 24px;border-radius:9999px}
+.scene3d-annotations{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:hidden}
+.s3d-anno{position:absolute;top:0;left:0;display:flex;align-items:center;background:none;border:none;padding:0;margin:0;pointer-events:auto;cursor:pointer;opacity:0;transition:opacity .4s ease;font-family:var(--font,'DM Sans',sans-serif);will-change:transform}
+.s3d-anno.is-visible{opacity:1}
+.s3d-anno-dot{width:22px;height:22px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--ink-black,#000);background-image:linear-gradient(#fff,#fff),var(--spectrum-gradient,linear-gradient(90deg,#c679c4,#fa3d1d,#ffb005,#e1e1fe,#0358f7));background-origin:border-box;background-clip:padding-box,border-box;border:2px solid transparent;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+.s3d-anno-label{max-width:0;overflow:hidden;white-space:nowrap;background:var(--snow,#fff);color:var(--ink-black,#000);font-size:12px;line-height:1;border-radius:9999px;box-shadow:0 2px 10px rgba(0,0,0,.15);margin-left:0;padding:0;opacity:0;transition:max-width .35s ease,padding .35s ease,opacity .25s ease,margin-left .35s ease}
+.s3d-anno.is-open .s3d-anno-label{max-width:220px;padding:7px 12px;margin-left:8px;opacity:1}
+@media(max-width:767px){.s3d-anno-dot{width:26px;height:26px}}
 .scene3d-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;color:rgba(255,255,255,.45);font-size:.85rem;text-align:center;padding:1rem}
 .scene3d-loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none}
 .scene3d-loader::after{content:'';width:32px;height:32px;border:2px solid rgba(120,120,120,.25);border-top-color:rgba(120,120,120,.85);border-radius:50%;animation:scene3dSpin .8s linear infinite}
@@ -2489,6 +2496,10 @@ function renderScene3D(d, block) {
   const sticky = el('div', { class: 'scene3d-sticky' });
   const canvas = el('canvas', { class: 'scene3d-canvas', 'aria-hidden': 'true' });
   sticky.appendChild(canvas);
+
+  // Spatial annotation overlay — dots positioned every frame by scene3d.js
+  const annoLayer = el('div', { class: 'scene3d-annotations', 'aria-hidden': 'true' });
+  sticky.appendChild(annoLayer);
 
   // Loading spinner whenever there's a model to load (with or without saved scenes).
   if (d.glbUrl) {
