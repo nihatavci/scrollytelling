@@ -2290,3 +2290,9 @@ main.editor { display: none; }
 
 /* model3d field container */
 .field--model3d > .field-label { margin-bottom: 8px; }
+
+.s3d-text-panel { margin-top: 12px; display: flex; flex-direction: column; gap: 8px; }
+.s3d-text-title { font-size: 11px; font-weight: 700; color: var(--graphite); }
+.s3d-text-title span { font-weight: 400; color: var(--ash); }
+.s3d-text-panel .field { margin: 0; }
+.s3d-text-panel input, .s3d-text-panel textarea { width: 100%; }

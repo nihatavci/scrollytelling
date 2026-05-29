@@ -128,6 +128,27 @@ async function initScene3DEditor(container, blockData, onChange) {
   editorWrap.appendChild(strip);
   container.appendChild(editorWrap);
 
+  // Per-scene text panel (heading + body for the active saved scene)
+  const textPanel = document.createElement('div');
+  textPanel.className = 's3d-text-panel';
+  container.appendChild(textPanel);
+
+  function renderTextPanel() {
+    const sc = blockData.scenes[activeSlot];
+    if (!sc) { textPanel.innerHTML = ''; textPanel.style.display = 'none'; return; }
+    textPanel.style.display = '';
+    textPanel.innerHTML = `
+      <div class="s3d-text-title">Scene ${activeSlot + 1} text <span>— shown in a card on the right as you scroll</span></div>
+      <div class="field"><label class="field-label">Heading</label><input class="s3d-text-h" type="text" placeholder="Optional heading"></div>
+      <div class="field"><label class="field-label">Body</label><textarea class="s3d-text-b" rows="2" placeholder="Optional paragraph"></textarea></div>`;
+    const hIn = textPanel.querySelector('.s3d-text-h');
+    const bIn = textPanel.querySelector('.s3d-text-b');
+    hIn.value = sc.heading || sc.caption || '';
+    bIn.value = sc.body || '';
+    hIn.addEventListener('input', () => { sc.heading = hIn.value; delete sc.caption; onChange(); });
+    bIn.addEventListener('input', () => { sc.body = bIn.value; onChange(); });
+  }
+
   // ── State ──
   let THREE_LIB, renderer, threeScene, camera, controls;
   let activeSlot = 0;
@@ -165,7 +186,8 @@ async function initScene3DEditor(container, blockData, onChange) {
           if (del.dataset.confirming) {
             clearTimeout(del._t); delete del.dataset.confirming;
             blockData.scenes[i] = null;
-            onChange(); renderStrip(); updateSaveBtn();
+            if (activeSlot === i) { const f = blockData.scenes.findIndex(Boolean); activeSlot = f === -1 ? 0 : f; }
+            onChange(); renderStrip(); updateSaveBtn(); renderTextPanel();
           } else {
             del.dataset.confirming = '1';
             del.textContent = '?';
@@ -179,7 +201,7 @@ async function initScene3DEditor(container, blockData, onChange) {
         slot.appendChild(del);
 
         slot.addEventListener('click', () => {
-          activeSlot = i; renderStrip(); updateSaveBtn();
+          activeSlot = i; renderStrip(); updateSaveBtn(); renderTextPanel();
           if (controls) tweenEditorCamera(sc, 400);
         });
       } else {
@@ -194,6 +216,7 @@ async function initScene3DEditor(container, blockData, onChange) {
     });
   }
   renderStrip();
+  renderTextPanel();
 
   // ── Upload handler ──
   async function handleUpload(file) {
@@ -399,7 +422,7 @@ async function initScene3DEditor(container, blockData, onChange) {
       thumb,
     };
     activeSlot = slot;
-    onChange(); renderStrip(); updateSaveBtn();
+    onChange(); renderStrip(); updateSaveBtn(); renderTextPanel();
   });
 
   // Init immediately if editing an existing block with a GLB
