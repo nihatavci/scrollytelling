@@ -4482,7 +4482,7 @@ ${themeLink}
 <body>
 <main id="page-root"></main>
 <script type="module">
-import { render } from '${origin}/js/render.js?v=20260528o';
+import { render } from '${origin}/js/render.js?v=20260528p';
 render();
 <\/script>
 ${veScript}</body></html>`;
