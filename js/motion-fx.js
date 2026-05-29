@@ -149,13 +149,33 @@
     });
   }
 
+  // ── 3D tilt toward pointer (.fx-tilt) ──
+  function bindTilt() {
+    if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    document.querySelectorAll('.fx-tilt').forEach(el => {
+      if (el._fxTiltBound) return;
+      el._fxTiltBound = true;
+      const MAX = 8; // degrees
+      el.addEventListener('pointermove', (e) => {
+        const r = el.getBoundingClientRect();
+        const px = (e.clientX - r.left) / r.width - 0.5;
+        const py = (e.clientY - r.top) / r.height - 0.5;
+        el.style.transform = `perspective(800px) rotateY(${px * MAX}deg) rotateX(${-py * MAX}deg)`;
+      });
+      el.addEventListener('pointerleave', () => { el.style.transform = ''; });
+    });
+  }
+
   // ── Init: called after content:ready ──────────────────────────
   function init() {
-    autoTag();
+    // autoTag() removed — auto-reveal animations on text/figures were
+    // unwanted (user reported content "zooming in" on scroll).
+    // bindReveals and bindStagger still work for manually placed data-reveal attrs.
     bindReveals();
     bindStagger();
     bindCounters();
     bindParallax();
+    bindTilt();
   }
 
   // Wait for render.js to fire content:ready, or run now if already rendered
@@ -166,5 +186,5 @@
   }
 
   // Expose for manual use
-  window.MFX = { init, bindReveals, bindStagger, bindCounters, bindParallax, autoTag };
+  window.MFX = { init, bindReveals, bindStagger, bindCounters, bindParallax, bindTilt, autoTag };
 })();
