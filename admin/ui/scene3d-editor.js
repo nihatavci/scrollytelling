@@ -7,6 +7,7 @@
 // esm.sh rewrites the addons' internal bare `import ... from 'three'` to a real
 // URL (jsDelivr does NOT — that left 'three' unresolvable and broke every loader).
 const CDN = 'https://esm.sh/three@0.170.0';
+const _uid = () => 'an-' + Math.random().toString(36).slice(2, 7);
 let _libPromise = null;
 
 async function loadThree() {
@@ -77,6 +78,28 @@ async function initScene3DEditor(container, blockData, onChange) {
   canvas.className = 's3d-canvas';
   viewportEl.appendChild(canvas);
 
+  canvas.addEventListener('pointerdown', (e) => {
+    if (!placementMode || !camera || !model3d) return;
+    ensureAnnoTemps();
+    const rect = canvas.getBoundingClientRect();
+    _ndc.set(((e.clientX - rect.left) / rect.width) * 2 - 1, -((e.clientY - rect.top) / rect.height) * 2 + 1);
+    _ray.setFromCamera(_ndc, camera);
+    const hits = _ray.intersectObject(model3d, true);
+    if (!hits.length) { window.toast?.('Click directly on the model', 'info'); return; }
+    const p = hits[0].point;
+    if (!Array.isArray(blockData.annotations)) blockData.annotations = [];
+    blockData.annotations.push({ id: _uid(), scene: activeSlot, point: { x: p.x, y: p.y, z: p.z }, label: '' });
+    setPlacement(false);
+    rebuildAnnoEls(); updateAnnotations();
+    onChange(); renderTextPanel();
+  });
+
+  function setPlacement(on) {
+    placementMode = on;
+    canvas.style.cursor = on ? 'crosshair' : '';
+    viewportEl.classList.toggle('s3d-placing', on);
+  }
+
   const hintBar = document.createElement('div');
   hintBar.className = 's3d-hint-bar';
   hintBar.textContent = 'Drag · orbit   Scroll · zoom   Right-drag · pan';
@@ -116,6 +139,11 @@ async function initScene3DEditor(container, blockData, onChange) {
   });
   viewportEl.appendChild(fsBtn);
 
+  // Annotation overlay (dots tracked live while orbiting)
+  const annoLayer = document.createElement('div');
+  annoLayer.className = 's3d-anno-layer';
+  viewportEl.appendChild(annoLayer);
+
   const saveBtn = document.createElement('button');
   saveBtn.type = 'button';
   saveBtn.className = 's3d-save-btn small';
@@ -147,11 +175,92 @@ async function initScene3DEditor(container, blockData, onChange) {
     bIn.value = sc.body || '';
     hIn.addEventListener('input', () => { sc.heading = hIn.value; delete sc.caption; onChange(); });
     bIn.addEventListener('input', () => { sc.body = bIn.value; onChange(); });
+
+    // ── Annotations for this scene ──
+    const annoWrap = document.createElement('div');
+    annoWrap.className = 's3d-anno-edit';
+    const list = (blockData.annotations || []).map((a, gi) => ({ a, gi })).filter(x => x.a.scene === activeSlot);
+    annoWrap.innerHTML = `<div class="s3d-text-title">Annotations <span>— pinned points on the model, shown in this scene</span></div>`;
+    const addBtn = document.createElement('button');
+    addBtn.type = 'button'; addBtn.className = 'small';
+    addBtn.textContent = placementMode ? '✕ Cancel — click the model' : '📍 Add annotation';
+    addBtn.addEventListener('click', () => { setPlacement(!placementMode); renderTextPanel(); });
+    annoWrap.appendChild(addBtn);
+    list.forEach(({ a, gi }, n) => {
+      const row = document.createElement('div');
+      row.className = 's3d-anno-row';
+      const badge = document.createElement('span');
+      badge.className = 's3d-anno-badge'; badge.textContent = n + 1;
+      const inp = document.createElement('input');
+      inp.type = 'text'; inp.placeholder = 'Label'; inp.value = a.label || '';
+      inp.addEventListener('input', () => { a.label = inp.value; rebuildAnnoEls(); updateAnnotations(); onChange(); });
+      const del = document.createElement('button');
+      del.type = 'button'; del.className = 's3d-anno-del'; del.textContent = '✕';
+      del.addEventListener('click', () => {
+        if (del.dataset.confirming) {
+          clearTimeout(del._t); blockData.annotations.splice(gi, 1);
+          rebuildAnnoEls(); updateAnnotations(); onChange(); renderTextPanel();
+        } else {
+          del.dataset.confirming = '1'; del.textContent = '?';
+          del.style.cssText = 'background:#fa3d1d;color:#fff;border-color:#fa3d1d;';
+          del._t = setTimeout(() => { delete del.dataset.confirming; del.textContent = '✕'; del.style.cssText = ''; }, 3000);
+        }
+      });
+      row.appendChild(badge); row.appendChild(inp); row.appendChild(del);
+      annoWrap.appendChild(row);
+    });
+    textPanel.appendChild(annoWrap);
   }
 
   // ── State ──
-  let THREE_LIB, renderer, threeScene, camera, controls;
+  let THREE_LIB, renderer, threeScene, camera, controls, model3d;
   let activeSlot = 0;
+  let placementMode = false;
+  const _annoEls = [];          // [{ btn, point(Vector3), id }]
+  let _ray, _ndc, _vv, _dirv;   // lazily created THREE temporaries
+
+  function ensureAnnoTemps() {
+    if (_ray || !THREE_LIB) return;
+    _ray = new THREE_LIB.Raycaster();
+    _ndc = new THREE_LIB.Vector2();
+    _vv = new THREE_LIB.Vector3();
+    _dirv = new THREE_LIB.Vector3();
+  }
+
+  function rebuildAnnoEls() {
+    annoLayer.innerHTML = '';
+    _annoEls.length = 0;
+    (blockData.annotations || []).forEach((a, i) => {
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 's3d-anno';
+      btn.innerHTML = `<span class="s3d-anno-dot">${i + 1}</span><span class="s3d-anno-label"></span>`;
+      btn.querySelector('.s3d-anno-label').textContent = a.label || '';
+      // Labels stay open while their dot is visible (auto-open per active scene).
+      annoLayer.appendChild(btn);
+      _annoEls.push({ btn, id: a.id, point: new THREE_LIB.Vector3(a.point.x, a.point.y, a.point.z), scene: a.scene });
+    });
+  }
+
+  function updateAnnotations() {
+    if (!_annoEls.length || !camera || !renderer) return;
+    ensureAnnoTemps();
+    const rect = canvas.getBoundingClientRect();
+    for (const an of _annoEls) {
+      if (an.scene !== activeSlot) { an.btn.classList.remove('is-visible', 'is-open'); continue; }
+      _vv.copy(an.point).project(camera);
+      if (_vv.z > 1) { an.btn.classList.remove('is-visible'); continue; }
+      _dirv.copy(an.point).sub(camera.position);
+      const pointDist = _dirv.length();
+      _ray.set(camera.position, _dirv.normalize());
+      const hits = model3d ? _ray.intersectObject(model3d, true) : [];
+      if (hits.length && hits[0].distance < pointDist - 0.02) { an.btn.classList.remove('is-visible'); continue; }
+      const left = (_vv.x * 0.5 + 0.5) * rect.width;
+      const top = (-_vv.y * 0.5 + 0.5) * rect.height;
+      an.btn.style.transform = `translate(${left}px,${top}px) translate(-50%,-50%)`;
+      an.btn.classList.add('is-visible', 'is-open'); // auto-open label while visible
+    }
+  }
 
   function nextEmptySlot() { return blockData.scenes.findIndex(s => !s); }
 
@@ -186,6 +295,7 @@ async function initScene3DEditor(container, blockData, onChange) {
           if (del.dataset.confirming) {
             clearTimeout(del._t); delete del.dataset.confirming;
             blockData.scenes[i] = null;
+            blockData.annotations = (blockData.annotations || []).filter(a => a.scene !== i);
             if (activeSlot === i) { const f = blockData.scenes.findIndex(Boolean); activeSlot = f === -1 ? 0 : f; }
             onChange(); renderStrip(); updateSaveBtn(); renderTextPanel();
           } else {
@@ -327,6 +437,7 @@ async function initScene3DEditor(container, blockData, onChange) {
         model.position.sub(center.multiplyScalar(scale));
       }
       threeScene.add(model);
+      model3d = model;
     } catch (err) {
       console.error('[Scene3D admin] model load failed:', err);
       window.toast?.('Could not load 3D model: ' + err.message, 'error');
@@ -335,7 +446,7 @@ async function initScene3DEditor(container, blockData, onChange) {
     }
 
     resize(); renderFrame();
-    renderer.setAnimationLoop(() => { controls.update(); renderFrame(); });
+    renderer.setAnimationLoop(() => { controls.update(); renderFrame(); updateAnnotations(); });
 
     // If scenes already saved, recall scene 0; otherwise frame the model so it's
     // always visible regardless of its native scale/position.
@@ -352,6 +463,8 @@ async function initScene3DEditor(container, blockData, onChange) {
     }
 
     updateSaveBtn();
+    rebuildAnnoEls();
+    updateAnnotations();
   }
 
   function resize() {
