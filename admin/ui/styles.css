@@ -2310,3 +2310,11 @@ main.editor { display: none; }
 .s3d-anno-badge { width:18px; height:18px; border-radius:50%; background:var(--fog); font-size:10px; font-weight:700; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
 .s3d-anno-row input { flex:1; }
 .s3d-anno-del { width:24px; height:24px; padding:0; border-radius:6px; flex-shrink:0; font-size:11px; }
+
+/* Effects panel controls */
+.fx-chips { display:flex; gap:4px; flex-wrap:wrap; margin-top:6px; }
+.fx-chip { padding:4px 11px; border-radius:9999px; font-size:11px; border:1.5px solid #e8e8e8; background:#fff; color:#555; cursor:pointer; font-family:inherit; }
+.fx-chip:hover { border-color:#bbb; color:#000; }
+.fx-chip.active { background:#000; color:#fff; border-color:#000; font-weight:600; }
+.fx-toggle { display:flex; align-items:center; gap:7px; font-size:13px; font-weight:400; padding:5px 0; cursor:pointer; }
+.fx-toggle input { width:auto; }
