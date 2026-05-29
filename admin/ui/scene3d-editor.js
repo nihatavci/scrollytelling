@@ -148,16 +148,28 @@ async function initScene3DEditor(container, blockData, onChange) {
   async function handleUpload(file) {
     const MAX = 50 * 1024 * 1024;
     if (file.size > MAX) { window.toast?.('File too large (max 50 MB)', 'error'); return; }
-    uploadZone.innerHTML = '<div class="s3d-upload-text" style="padding:12px">Uploading…</div>';
+    const mb = (file.size / 1024 / 1024).toFixed(1);
+    uploadZone.style.display = '';
+    uploadZone.innerHTML = `
+      <div class="s3d-upload-text" style="padding:4px 0 8px">Uploading ${mb} MB…</div>
+      <div class="s3d-progress-track"><div class="s3d-progress-bar" style="width:0%"></div></div>
+      <div class="s3d-progress-pct">0%</div>`;
+    const bar = uploadZone.querySelector('.s3d-progress-bar');
+    const pct = uploadZone.querySelector('.s3d-progress-pct');
     try {
-      const r = await window.SB.uploadFile(file);
+      const r = await window.SB.uploadFile(file, (p) => {
+        if (bar) bar.style.width = p + '%';
+        if (pct) pct.textContent = p + (p >= 100 ? '% · processing…' : '%');
+      });
       blockData.glbUrl = r.url; onChange();
       uploadZone.style.display = 'none';
       editorWrap.style.display = '';
       await initThree();
     } catch (err) {
       window.toast?.('Upload failed: ' + err.message, 'error');
-      uploadZone.innerHTML = `<div class="s3d-upload-icon">📦</div><div class="s3d-upload-text">Upload failed — <u style="cursor:pointer">try again</u></div>`;
+      uploadZone.innerHTML = `<div class="s3d-upload-icon">📦</div>
+        <div class="s3d-upload-text">Upload failed — <u style="cursor:pointer">try again</u></div>
+        <div class="s3d-upload-hint" style="color:#fa3d1d">${err.message.replace(/</g,'&lt;')}</div>`;
     }
   }
 

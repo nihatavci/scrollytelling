@@ -2102,6 +2102,9 @@ main.editor { display: none; }
 .s3d-upload-icon { font-size: 28px; margin-bottom: 8px; }
 .s3d-upload-text { font-size: 13px; color: var(--graphite); margin-bottom: 4px; }
 .s3d-upload-hint { font-size: 11px; color: var(--ash); }
+.s3d-progress-track { width: 100%; max-width: 280px; height: 6px; margin: 4px auto 6px; background: var(--fog); border-radius: 9999px; overflow: hidden; }
+.s3d-progress-bar { height: 100%; background: var(--signal-blue, #0358f7); border-radius: 9999px; transition: width .15s ease; }
+.s3d-progress-pct { font-size: 11px; font-weight: 600; color: var(--graphite); }
 
 /* Editor wrapper: viewport left + strip right */
 .s3d-editor-wrap {

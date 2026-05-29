@@ -23,6 +23,15 @@
 
   // ── Internals ─────────────────────────────────────────
 
+  // Turn a raw upload XHR error into a friendly, actionable message.
+  function _uploadError(err, file) {
+    let msg = err.message || 'Upload failed';
+    if (err.status === 413 || /exceeded|too large|maximum size|payload/i.test(msg)) {
+      msg = `File too large for storage (${(file.size / 1024 / 1024).toFixed(0)} MB). Raise the "page-images" bucket file-size limit in Supabase → Storage → Buckets → page-images → Edit.`;
+    }
+    return new Error(msg);
+  }
+
   async function getUser() {
     const now = Date.now();
     if (_user && (now - _lastAuthCheck) < AUTH_CHECK_INTERVAL) {
@@ -202,7 +211,8 @@
             content: payload,
             lang: payload.lang || 'en',
             meta: payload.meta || {},
-            title: payload.meta?.title || payload.title || row.title,
+            // title column is managed exclusively by renamePage/createPage —
+            // don't overwrite here or every autosave undoes a manual rename
             updated_at: new Date().toISOString(),
           })
           .eq('id', row.id)
@@ -259,7 +269,8 @@
             version: newVersion,
             lang: payload.lang || 'en',
             meta: payload.meta || {},
-            title: payload.meta?.title || payload.title || row.title,
+            // title column is managed exclusively by renamePage/createPage —
+            // don't overwrite here or every publish undoes a manual rename
             published: true,
             published_at: new Date().toISOString(),
             updated_at: new Date().toISOString(),
@@ -381,8 +392,14 @@
 
     // ─── Image Storage ───
 
-    async uploadFile(file) {
+    // uploadFile(file, onProgress?) — onProgress(percent 0-100) called during upload.
+    // Uses raw XHR against the Storage REST endpoint so we get real upload progress
+    // AND the server's actual error body (supabase-js swallows the 400 message).
+    async uploadFile(file, onProgress) {
       const user = await getUser();
+      const { data: { session } } = await client.auth.getSession();
+      if (!session) throw new Error('SESSION_EXPIRED');
+
       // Hash-based filename (same logic as old server)
       const buf = await file.arrayBuffer();
       const hashArray = await crypto.subtle.digest('SHA-256', buf);
@@ -390,10 +407,50 @@
       const ext = (file.name.match(/\.[a-z0-9]+$/i) || ['.bin'])[0].toLowerCase();
       const path = `${user.id}/${hash}${ext}`;
 
-      const { error } = await client.storage
-        .from('page-images')
-        .upload(path, file, { upsert: true, contentType: file.type });
-      if (error) throw new Error(error.message);
+      const endpoint = `${SUPABASE_URL}/storage/v1/object/page-images/${path}`;
+
+      // One XHR attempt with a given content-type. Resolves {ok} or rejects {status,msg}.
+      const attempt = (contentType) => new Promise((resolve, reject) => {
+        const xhr = new XMLHttpRequest();
+        xhr.open('POST', endpoint, true);
+        xhr.setRequestHeader('authorization', `Bearer ${session.access_token}`);
+        xhr.setRequestHeader('apikey', SUPABASE_KEY);
+        xhr.setRequestHeader('x-upsert', 'true');
+        xhr.setRequestHeader('content-type', contentType);
+        xhr.upload.onprogress = (e) => {
+          if (e.lengthComputable && typeof onProgress === 'function') {
+            onProgress(Math.round((e.loaded / e.total) * 100));
+          }
+        };
+        xhr.onload = () => {
+          if (xhr.status >= 200 && xhr.status < 300) { resolve(); return; }
+          let msg = `HTTP ${xhr.status}`;
+          try {
+            const body = JSON.parse(xhr.responseText);
+            msg = body.message || body.error || msg;
+          } catch (_) { if (xhr.responseText) msg += ': ' + xhr.responseText.slice(0, 200); }
+          const err = new Error(msg); err.status = xhr.status; reject(err);
+        };
+        xhr.onerror = () => { const e = new Error('network error'); e.status = 0; reject(e); };
+        xhr.send(file);
+      });
+
+      // 3D models / unknown types: try octet-stream first.
+      const is3D = /\.(glb|gltf|stl|obj|fbx|usdz)$/i.test(file.name);
+      const primaryType = (is3D || !file.type) ? 'application/octet-stream' : file.type;
+      try {
+        await attempt(primaryType);
+      } catch (e1) {
+        // If the bucket's MIME allow-list rejected it, retry as an allow-listed type.
+        // Loaders parse by bytes, so the stored content-type header is irrelevant.
+        const mimeRejected = e1.status === 400 || e1.status === 415 || /mime|content.?type|not supported|not allowed/i.test(e1.message);
+        if (mimeRejected) {
+          try { await attempt('image/png'); }
+          catch (e2) { throw _uploadError(e2, file); }
+        } else {
+          throw _uploadError(e1, file);
+        }
+      }
 
       // Try public URL first — works when the bucket is set to public
       const { data: { publicUrl } } = client.storage
