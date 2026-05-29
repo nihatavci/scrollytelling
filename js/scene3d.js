@@ -127,9 +127,60 @@ export async function initScene3D(blockId, data) {
   canvas.style.opacity = '1';
   if (loaderEl) loaderEl.style.display = 'none';
 
+  // currentIdx is read by updateAnnotations() below; declare before first use.
+  let currentIdx = 0;
+
+  // ── Annotations: build dots, map slot index → dense scene index ──
+  const annoLayer = sec.querySelector('.scene3d-annotations');
+  const _raycaster = new THREE.Raycaster();
+  const _v = new THREE.Vector3();
+  const _dir = new THREE.Vector3();
+  const annoEls = [];
+  if (annoLayer && Array.isArray(data.annotations)) {
+    // slot index (as stored) → dense index (matches currentIdx)
+    const slotToDense = {};
+    let dense = 0;
+    (data.scenes || []).forEach((s, slot) => { if (s) slotToDense[slot] = dense++; });
+    data.annotations.forEach((a, i) => {
+      const denseScene = slotToDense[a.scene];
+      if (denseScene == null) return; // its scene slot is empty/removed
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 's3d-anno';
+      btn.innerHTML = `<span class="s3d-anno-dot">${i + 1}</span><span class="s3d-anno-label"></span>`;
+      btn.querySelector('.s3d-anno-label').textContent = a.label || '';
+      // Labels stay open while their dot is visible (auto-open per active scene).
+      annoLayer.appendChild(btn);
+      annoEls.push({ btn, point: new THREE.Vector3(a.point.x, a.point.y, a.point.z), denseScene });
+    });
+  }
+
+  function updateAnnotations() {
+    if (!annoEls.length) return;
+    const rect = canvas.getBoundingClientRect();
+    const camDist = camera.position;
+    for (const an of annoEls) {
+      if (an.denseScene !== currentIdx) { an.btn.classList.remove('is-visible', 'is-open'); continue; }
+      _v.copy(an.point).project(camera);
+      if (_v.z > 1) { an.btn.classList.remove('is-visible'); continue; }
+      // Occlusion: is the model in front of the point along the camera ray?
+      _dir.copy(an.point).sub(camDist);
+      const pointDist = _dir.length();
+      _raycaster.set(camDist, _dir.normalize());
+      const hits = model ? _raycaster.intersectObject(model, true) : [];
+      if (hits.length && hits[0].distance < pointDist - 0.02) { an.btn.classList.remove('is-visible'); continue; }
+      const left = (_v.x * 0.5 + 0.5) * rect.width;
+      const top = (-_v.y * 0.5 + 0.5) * rect.height;
+      an.btn.style.transform = `translate(${left}px,${top}px) translate(-50%,-50%)`;
+      an.btn.classList.add('is-visible', 'is-open'); // auto-open label on its active scene
+    }
+  }
+
+  updateAnnotations();
+  requestAnimationFrame(updateAnnotations);
+
   // ── Tween state ──
   let tweenRaf = null;
-  let currentIdx = 0;
 
   function tweenCamera(toScene, durationMs) {
     if (tweenRaf) { cancelAnimationFrame(tweenRaf); tweenRaf = null; }
@@ -152,6 +203,7 @@ export async function initScene3D(blockId, data) {
       camera.updateProjectionMatrix();
       resize();
       renderer.render(scene, camera);
+      updateAnnotations();
       if (p < 1) { tweenRaf = requestAnimationFrame(step); }
       else { tweenRaf = null; }
     }
@@ -172,6 +224,7 @@ export async function initScene3D(blockId, data) {
       progressFill.style.height = ((n / (scenes.length - 1)) * 100) + '%';
     }
     tweenCamera(scenes[n], 1600);
+    updateAnnotations();
   }
 
   // Deterministic scene selection: whichever card's center is nearest the
@@ -197,7 +250,7 @@ export async function initScene3D(blockId, data) {
   onScroll(); // set initial scene immediately
 
   // ── ResizeObserver — refit canvas when container changes ──
-  const ro = new ResizeObserver(() => { resize(); renderer.render(scene, camera); });
+  const ro = new ResizeObserver(() => { resize(); renderer.render(scene, camera); updateAnnotations(); });
   ro.observe(canvas);
 
   // NOTE: no scroll-based auto-dispose. A previous version disposed the renderer
