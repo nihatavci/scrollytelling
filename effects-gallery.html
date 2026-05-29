@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Premium Effects Gallery — ScrollyCMS</title>
+<link rel="stylesheet" href="/css/site.css">
+<style>
+  body{font-family:'DM Sans',system-ui,sans-serif;background:#f8f8f8;color:#000;margin:0}
+  .fx-section{min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1rem;padding:4rem 1.5rem;border-bottom:1px solid #eee}
+  .fx-section h2{font-size:.8rem;letter-spacing:.1em;text-transform:uppercase;color:#0358f7;margin:0}
+  .fx-demo{max-width:680px;width:100%}
+  .demo-card{background:#fff;border-radius:20px;padding:2rem;box-shadow:0 4px 24px rgba(0,0,0,.08)}
+  .demo-img{width:100%;height:340px;object-fit:cover;border-radius:16px;display:block}
+  h3.big{font-size:clamp(2rem,5vw,3.4rem);font-weight:300;letter-spacing:-.03em;margin:.4rem 0}
+  :root{--card:rgba(255,255,255,.6)}
+</style>
+</head>
+<body>
+  <div style="text-align:center;padding:6rem 1.5rem 2rem"><h1 style="font-weight:300;font-size:2.4rem;letter-spacing:-.03em">Premium Effects Gallery</h1><p style="color:#777">Scroll to see each effect. Apply any of these per-block in the editor.</p></div>
+
+  <section class="fx-section"><h2>Reveal · fade up</h2><div class="fx-demo" data-reveal="up"><div class="demo-card"><h3 class="big">Reveal on scroll</h3><p>Fades and slides in as it enters the viewport.</p></div></div></section>
+
+  <section class="fx-section"><h2>Parallax</h2><div class="fx-demo"><img class="demo-img" data-parallax="0.2" src="https://images.unsplash.com/photo-1493246507139-91e8fad9978e?w=900&q=70" alt="" loading="lazy"></div></section>
+
+  <section class="fx-section"><h2>3D tilt · hover</h2><div class="fx-demo fx-tilt"><img class="demo-img" src="https://images.unsplash.com/photo-1519681393784-d120267933ba?w=900&q=70" alt="" loading="lazy"></div></section>
+
+  <section class="fx-section"><h2>Scroll wipe</h2><div class="fx-demo"><img class="demo-img fx-wipe" src="https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?w=900&q=70" alt="" loading="lazy"></div></section>
+
+  <section class="fx-section"><h2>Slow zoom</h2><div class="fx-demo" style="overflow:hidden;border-radius:16px"><img class="demo-img fx-zoom" src="https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?w=900&q=70" alt="" loading="lazy"></div></section>
+
+  <section class="fx-section" style="background:url('https://images.unsplash.com/photo-1465101046530-73398c7f28ca?w=1200&q=70') center/cover"><h2 style="color:#fff">Glass</h2><div class="fx-demo fx-glass" style="border-radius:20px;padding:2rem"><h3 class="big" style="margin:0">Frosted glass surface</h3><p>backdrop-filter over imagery.</p></div></section>
+
+  <section class="fx-section"><h2>Gradient text</h2><div class="fx-demo fx-gradient-text" style="text-align:center"><h2 style="font-size:clamp(2.4rem,7vw,5rem);font-weight:300;letter-spacing:-.04em;color:#000">Spectrum headline</h2></div></section>
+
+  <section class="fx-section"><h2>Generative backdrop</h2><div class="fx-demo fx-genbg demo-card" style="min-height:280px;display:flex;align-items:center;justify-content:center"><h3 class="big">Houdini texture</h3></div></section>
+
+  <script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
+  <script type="module">
+    // Pull in the same effect CSS the renderer injects, plus motion-fx behaviors.
+    import { injectComponentCSS } from '/js/render.js';
+    try { injectComponentCSS(); } catch(_) {}
+    if (CSS.paintWorklet) { try { CSS.paintWorklet.addModule('/js/fx-garden-worklet.js'); } catch(_){} }
+  </script>
+  <script src="/js/motion-fx.js"></script>
+  <script>
+    // The gallery has no #page-root, so motion-fx's auto-init won't fire — run it manually.
+    window.addEventListener('load', () => { if (window.MFX) window.MFX.init(); });
+  </script>
+</body>
+</html>
