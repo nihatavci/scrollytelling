@@ -101,9 +101,11 @@ export async function initScene3D(blockId, data) {
   }
   scene.add(model);
 
-  // Show canvas, hide loader
+  // Show canvas, hide loader. Paint twice across frames so the first frame
+  // always lands on the transparent canvas regardless of layout timing.
   resize();
   renderer.render(scene, camera);
+  requestAnimationFrame(() => { resize(); renderer.render(scene, camera); });
   canvas.style.opacity = '1';
   if (loaderEl) loaderEl.style.display = 'none';
 
@@ -144,23 +146,37 @@ export async function initScene3D(blockId, data) {
   const cards = [...sec.querySelectorAll('.scene3d-card')];
 
   function activateScene(n) {
-    if (n === currentIdx) return;
+    if (n === currentIdx || !scenes[n]) return;
     currentIdx = n;
     dots.forEach((d, i) => d.classList.toggle('active', i === n));
+    cards.forEach((c, i) => c.classList.toggle('is-active', i === n));
     if (progressFill && scenes.length > 1) {
       progressFill.style.height = ((n / (scenes.length - 1)) * 100) + '%';
     }
     tweenCamera(scenes[n], 1600);
   }
 
-  const cardObs = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting && e.intersectionRatio >= 0.5) {
-        activateScene(Number(e.target.dataset.scene));
+  // Deterministic scene selection: whichever card's center is nearest the
+  // viewport center wins. Robust both directions, never "sticks".
+  let _scrollTick = false;
+  function onScroll() {
+    if (_scrollTick) return;
+    _scrollTick = true;
+    requestAnimationFrame(() => {
+      _scrollTick = false;
+      if (!cards.length) return;
+      const vpCenter = window.innerHeight / 2;
+      let best = 0, bestDist = Infinity;
+      for (let i = 0; i < cards.length; i++) {
+        const r = cards[i].getBoundingClientRect();
+        const d = Math.abs((r.top + r.height / 2) - vpCenter);
+        if (d < bestDist) { bestDist = d; best = i; }
       }
+      activateScene(best);
     });
-  }, { threshold: 0.5 });
-  cards.forEach(c => cardObs.observe(c));
+  }
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll(); // set initial scene immediately
 
   // ── ResizeObserver — refit canvas when container changes ──
   const ro = new ResizeObserver(() => { resize(); renderer.render(scene, camera); });
@@ -172,7 +188,7 @@ export async function initScene3D(blockId, data) {
   // teardown (e.g. when the admin soft-refresh re-renders the block).
   function disposeAll() {
     if (tweenRaf) cancelAnimationFrame(tweenRaf);
-    cardObs.disconnect();
+    window.removeEventListener('scroll', onScroll);
     ro.disconnect();
     scene.traverse(obj => {
       obj.geometry?.dispose();
