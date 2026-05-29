@@ -4,14 +4,15 @@
 (function () {
 'use strict';
 
-const CDN = 'https://cdn.jsdelivr.net/npm/three@0.170.0';
+// esm.sh rewrites the addons' internal bare `import ... from 'three'` to a real
+// URL (jsDelivr does NOT — that left 'three' unresolvable and broke every loader).
+const CDN = 'https://esm.sh/three@0.170.0';
 let _libPromise = null;
 
 async function loadThree() {
   if (_libPromise) return _libPromise;
   _libPromise = (async () => {
-    const THREE = (await import(`${CDN}/build/three.module.js`)).default
-      || await import(`${CDN}/build/three.module.js`);
+    const THREE = await import(CDN);
     const { GLTFLoader } = await import(`${CDN}/examples/jsm/loaders/GLTFLoader.js`);
     const { STLLoader } = await import(`${CDN}/examples/jsm/loaders/STLLoader.js`);
     const { OrbitControls } = await import(`${CDN}/examples/jsm/controls/OrbitControls.js`);
@@ -191,7 +192,23 @@ async function initScene3DEditor(container, blockData, onChange) {
 
   // ── Three.js setup ──
   async function initThree() {
-    const { THREE, GLTFLoader, STLLoader, OrbitControls } = await loadThree();
+    // Immediate feedback while the Three.js library + model load.
+    let bootOverlay = viewportEl.querySelector('.s3d-load-overlay');
+    if (!bootOverlay) {
+      bootOverlay = document.createElement('div');
+      bootOverlay.className = 's3d-load-overlay';
+      bootOverlay.innerHTML = '<div class="s3d-load-spinner"></div><div class="s3d-load-text">Loading 3D engine…</div>';
+      viewportEl.appendChild(bootOverlay);
+    }
+    let lib;
+    try {
+      lib = await loadThree();
+    } catch (err) {
+      console.error('[Scene3D admin] Three.js failed to load:', err);
+      bootOverlay.innerHTML = `<div class="s3d-load-text" style="color:#ff9b7a;max-width:85%">3D engine failed to load.<br><span style="opacity:.8;font-size:11px">${String(err.message).replace(/</g,'&lt;').slice(0,160)}</span></div>`;
+      return;
+    }
+    const { THREE, GLTFLoader, STLLoader, OrbitControls } = lib;
     THREE_LIB = THREE;
 
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -211,12 +228,10 @@ async function initScene3DEditor(container, blockData, onChange) {
     controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.addEventListener('change', renderFrame);
 
-    // Loading overlay — visible feedback while the model downloads/parses.
-    const loadOverlay = document.createElement('div');
-    loadOverlay.className = 's3d-load-overlay';
-    loadOverlay.innerHTML = '<div class="s3d-load-spinner"></div><div class="s3d-load-text">Loading model…</div>';
-    viewportEl.appendChild(loadOverlay);
+    // Reuse the boot overlay for model download/parse feedback.
+    const loadOverlay = bootOverlay;
     const loadText = loadOverlay.querySelector('.s3d-load-text');
+    if (loadText) loadText.textContent = 'Loading model…';
     const onProg = (e) => {
       if (!loadText) return;
       if (e && e.lengthComputable && e.total) loadText.textContent = `Loading model… ${Math.round((e.loaded / e.total) * 100)}%`;

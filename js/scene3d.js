@@ -2,15 +2,15 @@
 // Lazy-loaded by render.js only when a Scene3D block exists.
 // Exports: initScene3D(blockId, data), dispose(blockId)
 
-const _CDN = 'https://cdn.jsdelivr.net/npm/three@0.170.0';
+// esm.sh resolves the addons' internal bare `import ... from 'three'`; jsDelivr does not.
+const _CDN = 'https://esm.sh/three@0.170.0';
 const _active = new Map(); // blockId → { dispose }
 
 let _libPromise = null;
 async function _loadThree() {
   if (_libPromise) return _libPromise;
   _libPromise = (async () => {
-    const THREE = (await import(`${_CDN}/build/three.module.js`)).default
-      || await import(`${_CDN}/build/three.module.js`);
+    const THREE = await import(_CDN);
     const { GLTFLoader } = await import(`${_CDN}/examples/jsm/loaders/GLTFLoader.js`);
     const { STLLoader } = await import(`${_CDN}/examples/jsm/loaders/STLLoader.js`);
     return { THREE, GLTFLoader, STLLoader };
