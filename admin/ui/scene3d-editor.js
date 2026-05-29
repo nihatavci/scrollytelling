@@ -211,19 +211,32 @@ async function initScene3DEditor(container, blockData, onChange) {
     controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.addEventListener('change', renderFrame);
 
+    // Loading overlay — visible feedback while the model downloads/parses.
+    const loadOverlay = document.createElement('div');
+    loadOverlay.className = 's3d-load-overlay';
+    loadOverlay.innerHTML = '<div class="s3d-load-spinner"></div><div class="s3d-load-text">Loading model…</div>';
+    viewportEl.appendChild(loadOverlay);
+    const loadText = loadOverlay.querySelector('.s3d-load-text');
+    const onProg = (e) => {
+      if (!loadText) return;
+      if (e && e.lengthComputable && e.total) loadText.textContent = `Loading model… ${Math.round((e.loaded / e.total) * 100)}%`;
+      else if (e && e.loaded) loadText.textContent = `Loading model… ${(e.loaded / 1024 / 1024).toFixed(1)} MB`;
+    };
+
     // Load model — GLB/GLTF via GLTFLoader, STL via STLLoader (geometry → mesh)
     const isSTL = /\.stl(\?|$)/i.test(blockData.glbUrl);
     try {
       let model;
       if (isSTL) {
-        const geo = await new Promise((res, rej) => new STLLoader().load(blockData.glbUrl, res, undefined, rej));
+        const geo = await new Promise((res, rej) => new STLLoader().load(blockData.glbUrl, res, onProg, rej));
         geo.computeVertexNormals();
         const mat = new THREE.MeshStandardMaterial({ color: 0xcfcfcf, metalness: 0.1, roughness: 0.65 });
         model = new THREE.Mesh(geo, mat);
       } else {
-        const gltf = await new Promise((res, rej) => new GLTFLoader().load(blockData.glbUrl, res, undefined, rej));
+        const gltf = await new Promise((res, rej) => new GLTFLoader().load(blockData.glbUrl, res, onProg, rej));
         model = gltf.scene;
       }
+      loadOverlay.remove();
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
@@ -237,6 +250,7 @@ async function initScene3DEditor(container, blockData, onChange) {
     } catch (err) {
       console.error('[Scene3D admin] model load failed:', err);
       window.toast?.('Could not load 3D model: ' + err.message, 'error');
+      loadOverlay.innerHTML = `<div class="s3d-load-text" style="color:#ff9b7a;max-width:85%;line-height:1.5">Couldn't load the model.<br><span style="opacity:.8;font-size:11px">${String(err.message).replace(/</g,'&lt;').slice(0,160)}</span><br><u style="cursor:pointer" onclick="this.closest('.s3d-upload-zone, .s3d-editor-wrap')">Re-upload a different file</u></div>`;
       return;
     }
 

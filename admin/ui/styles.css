@@ -2175,6 +2175,21 @@ main.editor { display: none; }
   z-index: 4;
 }
 .s3d-fs-btn:hover { background: rgba(255,255,255,.22); }
+
+/* Loading overlay over the viewport while the model downloads/parses */
+.s3d-load-overlay {
+  position: absolute; inset: 0; z-index: 3;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 10px;
+  background: rgba(26,26,26,.65); backdrop-filter: blur(2px);
+  text-align: center;
+}
+.s3d-load-spinner {
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid rgba(255,255,255,.15); border-top-color: rgba(255,255,255,.7);
+  animation: scene3dEditSpin .8s linear infinite;
+}
+@keyframes scene3dEditSpin { to { transform: rotate(360deg); } }
+.s3d-load-text { font-size: 12px; color: rgba(255,255,255,.7); }
 .s3d-hint-bar {
   position: absolute;
   bottom: 40px;
