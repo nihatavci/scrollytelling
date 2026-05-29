@@ -662,17 +662,22 @@ const COMPONENT_CSS = `
 .scene3d-dot.active{background:#0358f7;transform:scale(1.4)}
 .scene3d-progress{position:absolute;left:0;top:0;width:3px;height:100%;background:rgba(0,0,0,.08);z-index:2}
 .scene3d-progress-fill{width:100%;height:0%;background:linear-gradient(180deg,#c679c4,#fa3d1d,#ffb005,#0358f7);border-radius:0 0 2px 2px;transition:height .4s ease}
-.scene3d-cards{position:relative;z-index:2}
-.scene3d-card{min-height:100vh;display:flex;align-items:center;padding:0 1.5rem;pointer-events:none}
-.scene3d-card-inner{background:var(--snow,#fff);border-radius:16px;padding:1.5rem 1.75rem;max-width:380px;box-shadow:0 4px 24px rgba(0,0,0,.12)}
+.scene3d-cards{position:relative;z-index:2;margin-top:-100vh;pointer-events:none}
+.scene3d-card{min-height:100vh;display:flex;align-items:center;justify-content:flex-end;padding:0 6vw;pointer-events:none}
+.scene3d-sc{max-width:380px;width:100%;pointer-events:auto;opacity:.35;transform:translateY(8px);transition:opacity .5s,transform .5s,box-shadow .5s}
+.scene3d-card.is-active .scene3d-sc{opacity:1;transform:translateY(0);box-shadow:rgba(0,0,0,.15) 0 4px 24px}
 .scene3d-card-num{font-size:10px;font-weight:700;color:#0358f7;letter-spacing:.1em;margin-bottom:.4rem}
-.scene3d-card-caption{font-size:1rem;font-weight:500;color:#000;line-height:1.5}
+@media(max-width:767px){
+  .scene3d-cards{margin-top:-100vh}
+  .scene3d-card{justify-content:center;align-items:flex-end;padding:0 1rem 12vh}
+  .scene3d-sc{max-width:100%}
+}
 .scene3d-coming-soon{position:absolute;inset:0;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(248,248,248,.5);z-index:10;pointer-events:none}
 .scene3d--coming-soon .scene3d-coming-soon{display:flex}
 .scene3d-coming-soon span{background:#fa3d1d;color:#fff;font-weight:700;font-size:.875rem;letter-spacing:.08em;padding:10px 24px;border-radius:9999px}
 .scene3d-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;color:rgba(255,255,255,.45);font-size:.85rem;text-align:center;padding:1rem}
 .scene3d-loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none}
-.scene3d-loader::after{content:'';width:32px;height:32px;border:2px solid rgba(255,255,255,.15);border-top-color:rgba(255,255,255,.6);border-radius:50%;animation:scene3dSpin .8s linear infinite}
+.scene3d-loader::after{content:'';width:32px;height:32px;border:2px solid rgba(120,120,120,.25);border-top-color:rgba(120,120,120,.85);border-radius:50%;animation:scene3dSpin .8s linear infinite}
 @keyframes scene3dSpin{to{transform:rotate(360deg)}}
 @media(max-width:767px){
   .scene3d-sticky{height:60vw;min-height:220px;position:relative}
@@ -2511,15 +2516,24 @@ function renderScene3D(d, block) {
 
   sec.appendChild(sticky);
 
-  // Scroll cards (one per scene)
+  // Scroll cards (one per scene) — overlay on the right, Scrolly .sc styling.
   if (hasScenes) {
     const cards = el('div', { class: 'scene3d-cards' });
     activeScs.forEach((sc, i) => {
-      const card = el('div', { class: 'scene3d-card', 'data-scene': String(i) });
-      const inner = el('div', { class: 'scene3d-card-inner' });
-      inner.appendChild(el('div', { class: 'scene3d-card-num' }, `SCENE ${i + 1}`));
-      if (sc.caption) inner.appendChild(el('div', { class: 'scene3d-card-caption' }, sc.caption));
-      card.appendChild(inner);
+      const card = el('div', { class: 'scene3d-card' + (i === 0 ? ' is-active' : ''), 'data-scene': String(i) });
+      const heading = sc.heading || sc.caption || '';   // migrate legacy caption
+      const body = sc.body || '';
+      if (heading || body) {
+        const inner = el('div', { class: 'sc scene3d-sc' });
+        inner.appendChild(el('div', { class: 'scene3d-card-num' }, `SCENE ${i + 1}`));
+        if (heading) inner.appendChild(el('h3', { class: 'step-heading' }, heading));
+        if (body) {
+          const b = el('div', { class: 'step-body' });
+          b.innerHTML = body;
+          inner.appendChild(b);
+        }
+        card.appendChild(inner);
+      }
       cards.appendChild(card);
     });
     sec.appendChild(cards);
