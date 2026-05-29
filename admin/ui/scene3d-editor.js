@@ -65,6 +65,22 @@ async function initScene3DEditor(container, blockData, onChange) {
   hintBar.textContent = 'Drag · orbit   Scroll · zoom   Right-drag · pan';
   viewportEl.appendChild(hintBar);
 
+  // Fullscreen toggle — expand the canvas to fill the screen for real editing.
+  const fsBtn = document.createElement('button');
+  fsBtn.type = 'button';
+  fsBtn.className = 's3d-fs-btn';
+  fsBtn.title = 'Edit fullscreen';
+  fsBtn.textContent = '⛶';
+  fsBtn.addEventListener('click', () => {
+    const on = editorWrap.classList.toggle('s3d-fullscreen');
+    fsBtn.textContent = on ? '✕' : '⛶';
+    fsBtn.title = on ? 'Exit fullscreen' : 'Edit fullscreen';
+    document.body.style.overflow = on ? 'hidden' : '';
+    // force an immediate resize so the model fills the new canvas size
+    requestAnimationFrame(() => { resize(); renderFrame(); });
+  });
+  viewportEl.appendChild(fsBtn);
+
   const saveBtn = document.createElement('button');
   saveBtn.type = 'button';
   saveBtn.className = 's3d-save-btn small';
@@ -227,9 +243,19 @@ async function initScene3DEditor(container, blockData, onChange) {
     resize(); renderFrame();
     renderer.setAnimationLoop(() => { controls.update(); renderFrame(); });
 
-    // If scenes already saved, recall scene 0
+    // If scenes already saved, recall scene 0; otherwise frame the model so it's
+    // always visible regardless of its native scale/position.
     const s0 = blockData.scenes.find(Boolean);
-    if (s0) recallCamera(s0);
+    if (s0) {
+      recallCamera(s0);
+    } else {
+      // model is normalised to a ~2-unit box centred at origin → frame from front
+      camera.position.set(1.6, 1.2, 3.2);
+      controls.target.set(0, 0, 0);
+      camera.updateProjectionMatrix();
+      controls.update();
+      renderFrame();
+    }
 
     updateSaveBtn();
   }

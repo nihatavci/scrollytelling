@@ -667,6 +667,7 @@ const COMPONENT_CSS = `
 .scene3d-coming-soon{position:absolute;inset:0;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(248,248,248,.5);z-index:10;pointer-events:none}
 .scene3d--coming-soon .scene3d-coming-soon{display:flex}
 .scene3d-coming-soon span{background:#fa3d1d;color:#fff;font-weight:700;font-size:.875rem;letter-spacing:.08em;padding:10px 24px;border-radius:9999px}
+.scene3d-hint{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none;color:rgba(255,255,255,.45);font-size:.85rem;text-align:center;padding:1rem}
 .scene3d-loader{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:3;pointer-events:none}
 .scene3d-loader::after{content:'';width:32px;height:32px;border:2px solid rgba(255,255,255,.15);border-top-color:rgba(255,255,255,.6);border-radius:50%;animation:scene3dSpin .8s linear infinite}
 @keyframes scene3dSpin{to{transform:rotate(360deg)}}
@@ -2480,9 +2481,15 @@ function renderScene3D(d, block) {
   const canvas = el('canvas', { class: 'scene3d-canvas', 'aria-hidden': 'true' });
   sticky.appendChild(canvas);
 
-  // Loading spinner (shown until Three.js finishes)
-  const loader = el('div', { class: 'scene3d-loader', 'aria-hidden': 'true' });
-  sticky.appendChild(loader);
+  // Loading spinner — only when we'll actually initialise (model + at least one scene).
+  // Otherwise show a hint so the preview doesn't spin forever during editing.
+  if (hasScenes && d.glbUrl) {
+    sticky.appendChild(el('div', { class: 'scene3d-loader', 'aria-hidden': 'true' }));
+  } else {
+    const hint = el('div', { class: 'scene3d-hint' });
+    hint.appendChild(el('div', {}, !d.glbUrl ? 'Upload a 3D model in the editor' : 'Save at least one scene to preview the camera'));
+    sticky.appendChild(hint);
+  }
 
   // Scene dots
   const activeScs = (d.scenes || []).filter(Boolean);
