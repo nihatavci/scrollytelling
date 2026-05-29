@@ -675,6 +675,20 @@ const COMPONENT_CSS = `
 .scene3d-coming-soon{position:absolute;inset:0;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(248,248,248,.5);z-index:10;pointer-events:none}
 .scene3d--coming-soon .scene3d-coming-soon{display:flex}
 .scene3d-coming-soon span{background:#fa3d1d;color:#fff;font-weight:700;font-size:.875rem;letter-spacing:.08em;padding:10px 24px;border-radius:9999px}
+/* ── Premium effects ── */
+.fx-zoom{animation:fxZoom 22s ease-in-out infinite alternate;transform-origin:center}
+@keyframes fxZoom{from{transform:scale(1)}to{transform:scale(1.08)}}
+.fx-glass{background:rgba(255,255,255,.55)}
+@supports ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){.fx-glass{background:rgba(255,255,255,.35);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px)}}
+.fx-gradient-text h1,.fx-gradient-text h2,.fx-gradient-text .fullbleed-title,.fx-gradient-text .step-heading{color:var(--ink-black)}
+@supports (background-clip:text) or (-webkit-background-clip:text){.fx-gradient-text h1,.fx-gradient-text h2,.fx-gradient-text .fullbleed-title,.fx-gradient-text .step-heading{background:var(--spectrum-gradient);-webkit-background-clip:text;background-clip:text;color:transparent}}
+.fx-tilt{transform-style:preserve-3d;transition:transform .25s ease-out;will-change:transform}
+.fx-wipe{clip-path:inset(0 0 0 0)}
+@supports (animation-timeline:view()){.fx-wipe{animation:fxWipe linear both;animation-timeline:view();animation-range:entry 10% cover 40%}@keyframes fxWipe{from{clip-path:inset(0 100% 0 0)}to{clip-path:inset(0 0 0 0)}}}
+.fx-genbg{position:relative;isolation:isolate}
+.fx-genbg::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(135deg,rgba(198,121,196,.12),rgba(3,88,247,.12))}
+@supports (background:paint(id)){.fx-genbg::before{background:paint(fxGarden)}}
+@media(prefers-reduced-motion:reduce){.fx-zoom{animation:none}.fx-tilt{transform:none!important}}
 .scene3d-annotations{position:absolute;inset:0;z-index:4;pointer-events:none;overflow:hidden}
 .s3d-anno{position:absolute;top:0;left:0;display:flex;align-items:center;background:none;border:none;padding:0;margin:0;pointer-events:auto;cursor:pointer;opacity:0;transition:opacity .4s ease;font-family:var(--font,'DM Sans',sans-serif);will-change:transform}
 .s3d-anno.is-visible{opacity:1}
@@ -693,7 +707,7 @@ const COMPONENT_CSS = `
 }
 `;
 
-function injectComponentCSS() {
+export function injectComponentCSS() {
   if (document.getElementById('__component_css__')) return;
   const tag = document.createElement('style');
   tag.id = '__component_css__';
@@ -1566,6 +1580,37 @@ function initLenis() {
   document.head.appendChild(script);
 }
 
+// ── Premium effects: tag a block node from block.data._fx ──
+let _fxWorkletTried = false;
+function _ensureGardenWorklet() {
+  if (_fxWorkletTried) return;
+  _fxWorkletTried = true;
+  try {
+    if (typeof CSS !== 'undefined' && CSS.paintWorklet) {
+      const base = document.querySelector('base')?.href || '';
+      CSS.paintWorklet.addModule((base ? base : '/') + 'js/fx-garden-worklet.js');
+    }
+  } catch (_) { /* fallback gradient shows */ }
+}
+
+function applyBlockFx(node, block) {
+  if (!node || node.nodeType !== 1) return;
+  const fx = block && block.data && block.data._fx;
+  if (!fx) return;
+  if (fx.reveal) {
+    node.setAttribute('data-reveal', fx.reveal);
+    if (fx.revealDelay) node.setAttribute('data-reveal-delay', String(fx.revealDelay));
+  }
+  const media = node.querySelector('img,video');
+  if (fx.parallax) (media || node).setAttribute('data-parallax', String(fx.parallax));
+  if (fx.tilt) node.classList.add('fx-tilt');
+  if (fx.wipe) node.classList.add('fx-wipe');
+  if (fx.zoom) (media || node).classList.add('fx-zoom');
+  if (fx.glass) node.classList.add('fx-glass');
+  if (fx.gradientText) node.classList.add('fx-gradient-text');
+  if (fx.genBg) { node.classList.add('fx-genbg'); _ensureGardenWorklet(); }
+}
+
 export async function render(jsonUrl, rootSelector = '#page-root') {
   injectComponentCSS();
 
@@ -1647,6 +1692,7 @@ export async function render(jsonUrl, rootSelector = '#page-root') {
         if (block.data && block.data.bgOpacity != null) {
           node.dataset.bgOpacity = String(block.data.bgOpacity);
         }
+        applyBlockFx(node, block);
       }
       root.appendChild(node);
     }
@@ -3306,6 +3352,7 @@ window.addEventListener('message', function (evt) {
         if (block.data && block.data.bgOpacity != null) {
           node.dataset.bgOpacity = String(block.data.bgOpacity);
         }
+        applyBlockFx(node, block);
       }
       if (node) root.appendChild(node);
     }
