@@ -2834,6 +2834,7 @@ function duplicateBlock(idx) {
   state.doc.blocks.splice(idx + 1, 0, copy);
   setDirty(true);
   renderBlockList();
+  refreshPreview({ immediate: true });
 }
 function deleteBlock(idx) {
   const block = state.doc.blocks[idx];
@@ -2843,6 +2844,7 @@ function deleteBlock(idx) {
   setDirty(true);
   renderBlockList();
   renderEditor();
+  refreshPreview({ immediate: true });
 }
 
 // Full Article builder button
@@ -4494,8 +4496,7 @@ ${veScript}</body></html>`;
 //                           already-loaded iframe and re-render without navigation,
 //                           so the reader's scroll position is preserved (no jump).
 function refreshPreview(opts = {}) {
-  clearTimeout(refreshPreview._t);
-  refreshPreview._t = setTimeout(() => {
+  const run = () => {
     const iframe = $('#preview-frame');
     const cw = iframe.contentWindow;
     const samePage = iframe._loadedPageId && iframe._loadedPageId === state.currentPageId;
@@ -4513,7 +4514,11 @@ function refreshPreview(opts = {}) {
     iframe._blobUrl = url;
     iframe._loadedPageId = state.currentPageId;
     iframe.src = url;
-  }, 400);
+  };
+
+  clearTimeout(refreshPreview._t);
+  if (opts.immediate) { run(); return; }
+  refreshPreview._t = setTimeout(run, 150);
 }
 $('#btn-preview').addEventListener('click', () => window.open(pageUrl(), '_blank'));
 $('#btn-refresh-preview').addEventListener('click', () => {
