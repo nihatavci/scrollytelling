@@ -25,6 +25,10 @@ export async function initScene3D(blockId, data) {
   const loaderEl = sec.querySelector('.scene3d-loader');
   if (!canvas) return;
 
+  // If this block already has a live renderer (e.g. admin soft-refresh re-rendered
+  // it), tear the old one down first to avoid leaking WebGL contexts.
+  if (_active.has(blockId)) { try { _active.get(blockId).disposeAll(); } catch (_) {} }
+
   const scenes = (data.scenes || []).filter(Boolean);
   if (!data.glbUrl) return;
   // If no scenes saved yet, show the model statically with a sensible default
@@ -162,17 +166,14 @@ export async function initScene3D(blockId, data) {
   const ro = new ResizeObserver(() => { resize(); renderer.render(scene, camera); });
   ro.observe(canvas);
 
-  // ── Dispose when block scrolls very far out of view ──
-  const disposeObs = new IntersectionObserver((entries) => {
-    if (!entries[0].isIntersecting) disposeAll();
-  }, { rootMargin: '-100% 0px' });
-  disposeObs.observe(sec);
-
+  // NOTE: no scroll-based auto-dispose. A previous version disposed the renderer
+  // when the block left the viewport, which froze the model on scroll-up and
+  // black-screened it on re-entry. disposeAll() is still exposed for explicit
+  // teardown (e.g. when the admin soft-refresh re-renders the block).
   function disposeAll() {
     if (tweenRaf) cancelAnimationFrame(tweenRaf);
     cardObs.disconnect();
     ro.disconnect();
-    disposeObs.disconnect();
     scene.traverse(obj => {
       obj.geometry?.dispose();
       const mats = obj.material ? (Array.isArray(obj.material) ? obj.material : [obj.material]) : [];
