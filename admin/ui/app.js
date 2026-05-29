@@ -3293,6 +3293,112 @@ function defaultDataFor(type) {
   }
 }
 
+// Which effects make sense per block type (modifier model).
+const FX_ALL = ['reveal', 'parallax', 'tilt', 'wipe', 'zoom', 'glass', 'gradientText', 'genBg'];
+const FX_APPLICABLE = {
+  Hero: ['reveal', 'gradientText', 'genBg'],
+  ChapterDivider: ['reveal', 'gradientText', 'genBg'],
+  Editorial: ['reveal', 'parallax', 'wipe', 'glass', 'gradientText'],
+  Quote: ['reveal', 'tilt', 'glass', 'gradientText'],
+  Aside: ['reveal', 'tilt', 'glass'],
+  StatRow: ['reveal', 'glass', 'gradientText'],
+  Timeline: ['reveal'],
+  FullscreenImage: ['reveal', 'parallax', 'tilt', 'wipe', 'zoom'],
+  FullBleed: ['reveal', 'parallax', 'tilt', 'wipe', 'zoom'],
+  ImageGrid: ['reveal', 'parallax', 'tilt', 'wipe', 'zoom'],
+  ImageCompare: ['reveal', 'tilt'],
+  ImageHotspot: ['reveal', 'tilt'],
+  VideoEmbed: ['reveal'],
+  AudioPlayer: ['reveal', 'glass'],
+  Scene3D: ['reveal'],
+  Outro: ['reveal', 'gradientText', 'genBg'],
+  VizPanel: ['reveal', 'glass'],
+  EmbedBlock: ['reveal'],
+  AccordionBlock: ['reveal', 'glass'],
+  ProgressNav: [],
+  Scrolly: ['reveal'],
+  DataScrolly: ['reveal'],
+};
+const FX_LABELS = {
+  reveal: 'Reveal on scroll', parallax: 'Parallax', tilt: '3D tilt', wipe: 'Scroll wipe',
+  zoom: 'Slow zoom', glass: 'Glass', gradientText: 'Gradient text', genBg: 'Generative backdrop',
+};
+
+function renderFxGroup(block, form, onFieldChange) {
+  const keys = FX_APPLICABLE[block.type] || [];
+  if (!keys.length) return;
+  if (!block.data._fx) block.data._fx = {};
+  const fx = block.data._fx;
+
+  const section = document.createElement('div');
+  section.className = 'editor-group';
+  const header = document.createElement('button');
+  header.className = 'editor-group-header'; header.type = 'button';
+  header.innerHTML = `<span class="editor-group-arrow">▸</span> ✨ Effects`;
+  const body = document.createElement('div');
+  body.className = 'editor-group-body collapsed';
+  header.addEventListener('click', () => {
+    body.classList.toggle('collapsed');
+    header.querySelector('.editor-group-arrow').textContent = body.classList.contains('collapsed') ? '▸' : '▼';
+  });
+
+  const note = document.createElement('div');
+  note.style.cssText = 'font-size:11px;color:#8c959f;margin-bottom:8px;line-height:1.45;';
+  note.textContent = 'Effects enhance this block. Unsupported browsers fall back gracefully.';
+  body.appendChild(note);
+
+  // Reveal (select) + delay chips
+  if (keys.includes('reveal')) {
+    const f = document.createElement('div'); f.className = 'field';
+    f.innerHTML = `<label class="field-label">Reveal on scroll</label>`;
+    const sel = document.createElement('select');
+    [['','Off'],['up','Fade up'],['left','Slide left'],['right','Slide right'],['scale','Scale'],['fade','Fade']].forEach(([v,t]) => {
+      const o = document.createElement('option'); o.value = v; o.textContent = t;
+      if ((fx.reveal||'') === v) o.selected = true; sel.appendChild(o);
+    });
+    sel.addEventListener('change', () => { fx.reveal = sel.value; if (!sel.value) delete fx.revealDelay; onFieldChange(); renderEditor(); });
+    f.appendChild(sel);
+    if (fx.reveal) {
+      const delRow = document.createElement('div'); delRow.className = 'fx-chips';
+      [0,0.1,0.2,0.3].forEach(d => {
+        const c = document.createElement('button'); c.type='button'; c.className='fx-chip'+(((fx.revealDelay||0)===d)?' active':'');
+        c.textContent = d === 0 ? 'No delay' : d+'s';
+        c.addEventListener('click', e => { e.preventDefault(); fx.revealDelay = d; onFieldChange(); renderEditor(); });
+        delRow.appendChild(c);
+      });
+      f.appendChild(delRow);
+    }
+    body.appendChild(f);
+  }
+  // Parallax chips
+  if (keys.includes('parallax')) {
+    const f = document.createElement('div'); f.className = 'field';
+    f.innerHTML = `<label class="field-label">Parallax</label>`;
+    const row = document.createElement('div'); row.className = 'fx-chips';
+    [[0,'Off'],[0.1,'Subtle'],[0.2,'Medium'],[0.3,'Strong']].forEach(([v,t]) => {
+      const c = document.createElement('button'); c.type='button'; c.className='fx-chip'+(((fx.parallax||0)===v)?' active':'');
+      c.textContent = t;
+      c.addEventListener('click', e => { e.preventDefault(); fx.parallax = v; onFieldChange(); renderEditor(); });
+      row.appendChild(c);
+    });
+    f.appendChild(row); body.appendChild(f);
+  }
+  // Boolean toggles
+  ['tilt','wipe','zoom','glass','gradientText','genBg'].forEach(key => {
+    if (!keys.includes(key)) return;
+    const lbl = document.createElement('label');
+    lbl.className = 'fx-toggle';
+    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!fx[key];
+    cb.addEventListener('change', () => { fx[key] = cb.checked; onFieldChange(); });
+    lbl.appendChild(cb);
+    lbl.appendChild(document.createTextNode(' ' + FX_LABELS[key]));
+    body.appendChild(lbl);
+  });
+
+  section.appendChild(header); section.appendChild(body);
+  form.appendChild(section);
+}
+
 // ─────────────────────────── Editor form ─────────────────────
 function renderEditor() {
   if (!state.selectedBlockId) return;
@@ -3408,6 +3514,9 @@ function renderEditor() {
     section.appendChild(body);
     form.appendChild(section);
   });
+
+  // ── Premium effects panel ──
+  renderFxGroup(block, form, onFieldChange);
 
   // ── Universal: background opacity per block ──
   if (state.doc.background && state.doc.background.imageSrc) {
