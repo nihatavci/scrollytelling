@@ -3338,9 +3338,9 @@ function renderEditor() {
     groups[g].push(field);
   });
 
-  const GROUP_ORDER = ['content', 'media', 'data', 'layout', 'style', 'meta', 'advanced'];
+  const GROUP_ORDER = ['content', 'media', 'settings', 'data', 'layout', 'style', 'meta', 'advanced'];
   const GROUP_LABELS = {
-    content: 'Content', media: 'Media', data: 'Data',
+    content: 'Content', media: 'Media', settings: 'Settings', data: 'Data',
     layout: 'Layout & Position', style: 'Style & Animation',
     meta: 'Caption & Credits', advanced: 'Advanced',
   };
