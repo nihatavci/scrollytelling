@@ -3263,6 +3263,9 @@ window.addEventListener('message', function (evt) {
     }
     var root = document.querySelector('#page-root');
     if (!root) return;
+    // Preserve the reader's scroll position across the in-place rebuild so editing
+    // never jumps the preview to the top.
+    var prevScroll = window.scrollY || window.pageYOffset || 0;
     root.innerHTML = '';
     var blocks = doc.blocks || [];
     for (var i = 0; i < blocks.length; i++) {
@@ -3277,6 +3280,11 @@ window.addEventListener('message', function (evt) {
         }
       }
       if (node) root.appendChild(node);
+    }
+    // Restore scroll synchronously (same document, no navigation → no flash).
+    window.scrollTo(0, prevScroll);
+    if (window.__lenis && typeof window.__lenis.scrollTo === 'function') {
+      window.__lenis.scrollTo(prevScroll, { immediate: true });
     }
     document.dispatchEvent(new CustomEvent('content:ready', { detail: { doc: doc } }));
     return;

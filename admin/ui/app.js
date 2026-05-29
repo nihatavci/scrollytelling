@@ -4483,15 +4483,32 @@ render();
 ${veScript}</body></html>`;
   return URL.createObjectURL(new Blob([html], { type: 'text/html' }));
 }
-function refreshPreview() {
-  // Debounced reload of the iframe — blob URLs don't support query params
+// refreshPreview(opts)
+//   opts.reload === true  → force a full iframe reload (needed for first load,
+//                           page switch, theme change, or visual-edit toggle,
+//                           which all change the iframe's <head>/scripts).
+//   otherwise             → in-place soft refresh: post the updated doc into the
+//                           already-loaded iframe and re-render without navigation,
+//                           so the reader's scroll position is preserved (no jump).
+function refreshPreview(opts = {}) {
   clearTimeout(refreshPreview._t);
   refreshPreview._t = setTimeout(() => {
     const iframe = $('#preview-frame');
-    // Revoke old blob URL to avoid memory leaks
+    const cw = iframe.contentWindow;
+    const samePage = iframe._loadedPageId && iframe._loadedPageId === state.currentPageId;
+
+    if (!opts.reload && samePage && cw) {
+      try {
+        cw.postMessage({ type: 'soft-refresh', doc: state.doc }, '*');
+        return;
+      } catch (_) { /* fall through to full reload */ }
+    }
+
+    // Full reload (revoke old blob URL to avoid memory leaks)
     if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
     const url = pageUrl();
     iframe._blobUrl = url;
+    iframe._loadedPageId = state.currentPageId;
     iframe.src = url;
   }, 400);
 }
@@ -4501,13 +4518,14 @@ $('#btn-refresh-preview').addEventListener('click', () => {
   if (iframe._blobUrl) URL.revokeObjectURL(iframe._blobUrl);
   const url = pageUrl();
   iframe._blobUrl = url;
+  iframe._loadedPageId = state.currentPageId;
   iframe.src = url;
 });
 $('#btn-visual-edit').addEventListener('click', () => {
   state.visualEditMode = !state.visualEditMode;
   $('#btn-visual-edit').classList.toggle('active', state.visualEditMode);
   $('#btn-visual-edit').textContent = state.visualEditMode ? '✏️ Editing' : '✏️ Edit';
-  refreshPreview();
+  refreshPreview({ reload: true }); // toggling VE injects/removes a script → needs reload
 });
 
 // ── Fullscreen preview toggle ──
@@ -4833,7 +4851,7 @@ $('#btn-settings').addEventListener('click', () => {
       }
       state.doc.smoothScroll = scrollChk.checked;
       setDirty(true);
-      refreshPreview();
+      refreshPreview({ reload: true }); // theme / bg / <head> changes need a full reload
       closeModal();
       toast('Settings updated — publish to apply', 'success');
     });
