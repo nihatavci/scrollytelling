@@ -113,7 +113,13 @@ const BLOCK_SCHEMAS = {
     name: 'Immersive',
     description: 'Full-viewport cinematic moment — image or video that fills the screen. The Snow Fall signature. Stops the reader cold.',
     fields: [
-      { key: 'mediaSrc',         label: 'Image / poster',  kind: 'image', group: 'media' },
+      { key: 'mediaSrc',         label: 'Image 1 (main)',  kind: 'image', group: 'media' },
+      { key: 'mediaSrc2',        label: 'Image 2 (optional)', kind: 'image', group: 'media' },
+      { key: 'mediaSrc3',        label: 'Image 3 (optional)', kind: 'image', group: 'media' },
+      { key: 'mediaSrc4',        label: 'Image 4 (optional)', kind: 'image', group: 'media' },
+      { key: 'slideInterval',    label: 'Slide interval (seconds)', kind: 'text', group: 'media', hint: 'How long each image shows. Default: 5' },
+      { key: 'slideFadeSec',     label: 'Fade duration (seconds)',  kind: 'text', group: 'media', hint: 'Crossfade transition length. Default: 1.5' },
+      { key: 'slideShuffle',     label: 'Shuffle order',   kind: 'select', group: 'media', options: ['yes', 'no'] },
       { key: 'mediaType',        label: 'Media type',      kind: 'select', group: 'layout', options: ['image', 'video', 'loop'] },
       { key: 'videoSrc',         label: 'Video file',      kind: 'video', group: 'media' },
       { key: 'posterSrc',        label: 'Poster image',    kind: 'image', group: 'media' },
@@ -169,6 +175,17 @@ const BLOCK_SCHEMAS = {
       { key: 'caption',        label: 'Caption',           kind: 'textarea', group: 'meta', inline: true },
       { key: 'credit',         label: 'Credit',            kind: 'text', group: 'meta', inline: true },
     ]
+  },
+
+  Scene3D: {
+    name: 'Scene 3D',
+    description: 'A 3D model the reader scrolls through — camera snaps between up to 4 saved viewpoints.',
+    fields: [
+      { key: 'glbUrl',      label: '3D Model (GLB / GLTF)', kind: 'model3d', group: 'media' },
+      { key: '_comingSoon', label: 'Status', kind: 'select', group: 'settings',
+        options: ['false', 'true'],
+        hint: '"true" shows a Coming Soon overlay on the public page — the block is fully built but visually gated.' },
+    ],
   },
 
   // ── Evidence & Proof ─────────────────────────────────────────
@@ -326,6 +343,7 @@ const BLOCK_ICONS = {
   ImageHotspot: '\u{1F4CD}', AccordionBlock: '\u{1F4C2}', ProgressNav: '\u{1F4CD}',
   EmbedBlock: '\u{1F9E9}', ImageGrid: '\u{1F50D}', Map2D: '\u{1F9ED}',
   FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}',
+  Scene3D: '🎲',
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -601,6 +619,16 @@ const BLOCK_PREVIEWS = {
       <div style="position:absolute;bottom:8px;left:10px;right:10px;z-index:1;">
         <div style="font:600 14px 'DM Sans',sans-serif;color:#fff;line-height:1.1;letter-spacing:-.02em;">The Moment</div>
         <div style="font:400 7px 'DM Sans',sans-serif;color:rgba(255,255,255,.7);margin-top:3px;">Full-viewport cinematic image or video — stops the reader</div>
+      </div>
+    </div>`,
+  Scene3D: `
+    <div style="background:linear-gradient(135deg,#1a1a1a 0%,#2a2a2a 100%);border-radius:6px;height:70px;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+      <div style="font-size:22px;">🎲</div>
+      <div style="position:absolute;bottom:6px;left:8px;font:700 8px 'DM Sans',sans-serif;color:rgba(255,255,255,.5);letter-spacing:.06em;">SCENE 3D</div>
+      <div style="position:absolute;right:8px;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:3px;">
+        <div style="width:5px;height:5px;border-radius:50%;background:#0358f7;"></div>
+        <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);"></div>
+        <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);"></div>
       </div>
     </div>`,
   FullscreenImage: `
@@ -2253,6 +2281,47 @@ $('#btn-rename-page').addEventListener('click', () => {
   }, '');
 });
 
+// ── Delete page — two-click arm/confirm (no modal) ──
+$('#btn-delete-page').addEventListener('click', async function() {
+  const btn = this;
+  if (btn.dataset.confirming) {
+    // Second click — execute delete
+    clearTimeout(btn._delTimer);
+    delete btn.dataset.confirming;
+    btn.textContent = '🗑';
+    btn.style.cssText = '';
+    if (!state.currentPageId) return;
+    const row = state.pageRows?.find(r => r.slug === state.currentPageId);
+    const label = row?.title || state.currentPageId;
+    btn.disabled = true;
+    try {
+      await SB.deletePage(state.currentPageId);
+      toast(`Page "${label}" deleted`, 'success');
+      state.currentPageId = null;
+      await loadPages();
+    } catch (e) {
+      toast('Delete failed: ' + e.message, 'error');
+    }
+    btn.disabled = false;
+    return;
+  }
+  // First click — arm with guard checks
+  if (!state.currentPageId) return;
+  if (state.pages && state.pages.length <= 1) {
+    toast('Cannot delete the only page', 'error');
+    return;
+  }
+  btn.dataset.confirming = '1';
+  btn.textContent = '⚠️ Confirm?';
+  btn.style.cssText = 'background:#fa3d1d;color:#fff;border-color:#fa3d1d;';
+  // Auto-reset after 3 s if user doesn't confirm
+  btn._delTimer = setTimeout(() => {
+    delete btn.dataset.confirming;
+    btn.textContent = '🗑';
+    btn.style.cssText = '';
+  }, 3000);
+});
+
 // Update "View" link to point at the current page (full production URL)
 async function updateViewLink() {
   const link = $('#link-view-page');
@@ -2615,6 +2684,10 @@ function blockSummary(block) {
     case 'Map2D': return `${(d.steps || []).length} steps · ${(d.markers || []).length} markers` + (d.tileStyle && d.tileStyle !== 'default' ? ` · ${d.tileStyle}` : '');
     case 'FullscreenImage': return d.title?.replace(/<[^>]+>/g, '') || 'Fullscreen Image';
     case 'AudioPlayer': return d.title || 'Audio Player';
+    case 'Scene3D': {
+      const n = (d.scenes || []).filter(Boolean).length;
+      return n ? `${n} scene${n !== 1 ? 's' : ''}${d.glbUrl ? '' : ' · no model'}` : 'No scenes saved yet';
+    }
     default:          return block.id;
   }
 }
@@ -2756,8 +2829,6 @@ function duplicateBlock(idx) {
 function deleteBlock(idx) {
   const block = state.doc.blocks[idx];
   if (!block) return;
-  const name = block.type + (block.data?.title ? `: ${block.data.title}` : '');
-  if (!confirm(`Delete "${name}"? This cannot be undone.`)) return;
   if (block.id === state.selectedBlockId) state.selectedBlockId = null;
   state.doc.blocks.splice(idx, 1);
   setDirty(true);
@@ -3200,6 +3271,7 @@ function defaultDataFor(type) {
     case 'Map2D': return { title: '', subtitle: '', source: '', layout: 'behind', tileStyle: 'default', height: '100vh', maxWidth: '100%', initialCenter: [52.52, 13.405], initialZoom: 6, flyDuration: 2, scrollZoom: false, markers: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', name: 'Berlin', popupHtml: '<strong>Berlin</strong>', color: '#c06830' }], routes: [], areas: [], steps: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }], caption: '', credit: 'OpenStreetMap' };
     case 'FullscreenImage': return { imageSrc: '', imageAlt: '', kicker: '', title: 'Title', subtitle: '', body: '', overlayPosition: 'bottom-left', scrimOpacity: 0.45, scrimDirection: 'bottom', kenBurns: true, scrollCue: false, caption: '', credit: '' };
     case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
+    case 'Scene3D': return { glbUrl: '', scenes: [], _comingSoon: 'false' };
     default:          return {};
   }
 }
@@ -3229,7 +3301,26 @@ function renderEditor() {
     <button data-act="del" class="danger" title="Delete block">Delete</button>`;
   toolbar.querySelector('[data-act="claude"]').addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
   toolbar.querySelector('[data-act="dup"]').addEventListener('click', (e) => { e.stopPropagation(); duplicateBlock(idx); });
-  toolbar.querySelector('[data-act="del"]').addEventListener('click', (e) => { e.stopPropagation(); deleteBlock(idx); });
+  toolbar.querySelector('[data-act="del"]').addEventListener('click', function(e) {
+    e.stopPropagation();
+    const btn = this;
+    if (btn.dataset.confirming) {
+      clearTimeout(btn._delTimer);
+      delete btn.dataset.confirming;
+      btn.textContent = 'Delete';
+      btn.style.cssText = '';
+      deleteBlock(idx);
+    } else {
+      btn.dataset.confirming = '1';
+      btn.textContent = '⚠️ Confirm?';
+      btn.style.cssText = 'background:#fa3d1d;color:#fff;border-color:#fa3d1d;';
+      btn._delTimer = setTimeout(() => {
+        delete btn.dataset.confirming;
+        btn.textContent = 'Delete';
+        btn.style.cssText = '';
+      }, 3000);
+    }
+  });
   form.appendChild(toolbar);
 
   if (!schema) {
@@ -3581,6 +3672,32 @@ function renderField(field, data, onChange) {
       addBtn.className = 'small';
       addBtn.addEventListener('click', (e) => { e.preventDefault(); list.push({ badgeKind: 'data', badgeLabel: 'Step', body: '', vizState: { highlightX: null, annotation: '' } }); onChange(); renderEditor(); });
       wrap.appendChild(addBtn);
+      break;
+    }
+    case 'model3d': {
+      // Full orbit editor — initialised async after wrap is in the DOM
+      wrap.classList.add('field--model3d');
+      wrap.style.minHeight = '320px';
+      requestAnimationFrame(() => {
+        if (typeof window.initScene3DEditor === 'function') {
+          window.initScene3DEditor(wrap, data, () => { onChange(); updateBlockSummary(); });
+        } else {
+          const msg = document.createElement('p');
+          msg.style.cssText = 'font-size:12px;color:#aaa;padding:8px;';
+          msg.textContent = 'Scene3D editor loading…';
+          wrap.appendChild(msg);
+        }
+      });
+      break;
+    }
+    case 'image': {
+      const mf = mediaField(val ?? '', (v) => { data[field.key] = v; onChange(); updateBlockSummary(); }, { accept: 'image/*', kind: 'image', browseFilter: 'image' });
+      wrap.appendChild(mf);
+      break;
+    }
+    case 'video': {
+      const mf = mediaField(val ?? '', (v) => { data[field.key] = v; onChange(); updateBlockSummary(); }, { accept: 'video/*', kind: 'video', browseFilter: 'video' });
+      wrap.appendChild(mf);
       break;
     }
     default:
@@ -4551,6 +4668,26 @@ $('#btn-settings').addEventListener('click', () => {
     langSel.innerHTML = `<option value="de" ${state.doc.lang === 'de' ? 'selected' : ''}>Deutsch</option><option value="en" ${state.doc.lang === 'en' ? 'selected' : ''}>English</option>`;
     body.appendChild(langSel);
 
+    // ── Smooth scroll ──
+    const scrollSep = document.createElement('div');
+    scrollSep.style.cssText = 'margin-top:16px;padding-top:14px;border-top:1px solid #eaeef2;';
+    body.appendChild(scrollSep);
+    const scrollRow = document.createElement('label');
+    scrollRow.style.cssText = 'display:flex;align-items:center;gap:8px;cursor:pointer;';
+    const scrollChk = document.createElement('input');
+    scrollChk.type = 'checkbox';
+    scrollChk.checked = !!state.doc.smoothScroll;
+    scrollRow.appendChild(scrollChk);
+    const scrollTxt = document.createElement('span');
+    scrollTxt.style.cssText = 'font-size:13px;color:#24292f;';
+    scrollTxt.textContent = 'Smooth scroll';
+    scrollRow.appendChild(scrollTxt);
+    body.appendChild(scrollRow);
+    const scrollHint = document.createElement('div');
+    scrollHint.style.cssText = 'font-size:11px;color:#8c959f;margin-top:3px;line-height:1.45;';
+    scrollHint.textContent = 'Enables Lenis buttery-smooth scrolling (wheel + touch).';
+    body.appendChild(scrollHint);
+
     // ── Background image ──
     const bgData = state.doc.background || {};
 
@@ -4680,6 +4817,7 @@ $('#btn-settings').addEventListener('click', () => {
       } else {
         delete state.doc.background;
       }
+      state.doc.smoothScroll = scrollChk.checked;
       setDirty(true);
       refreshPreview();
       closeModal();
@@ -4939,8 +5077,9 @@ startAutosave();
     if (!btn) return;
     closeMenu();
     var map = {
-      'new-page': 'btn-new-page',
-      'rename':   'btn-rename-page',
+      'new-page':    'btn-new-page',
+      'rename':      'btn-rename-page',
+      'delete-page': 'btn-delete-page',
       'view':     'link-view-page',
       'preview':  'btn-preview',
       'history':  'btn-history',
@@ -4965,15 +5104,15 @@ startAutosave();
   var btn = document.getElementById('btn-sidebar-toggle');
   var blocks = document.querySelector('.blocks');
   if (!btn || !blocks) return;
-  btn.addEventListener('click', function() {
-    // Animate via `left` (not `transform`): motion.js owns the WAAPI transform
-    // slot on .blocks via animatePageSwap — WAAPI beats inline styles in the
-    // cascade so transform writes are silently lost. `left` is a separate property
-    // motion.js never touches; the CSS `transition: left .35s` on .blocks handles
-    // the smooth slide entirely through the normal author-style cascade.
+  // Use onclick (not addEventListener) to guarantee exactly one handler even
+  // if this IIFE ever runs more than once. Cancel any WAAPI animations on
+  // .blocks before toggling so motion.js's animatePageSwap fill doesn't
+  // fight the CSS transition.
+  btn.onclick = function() {
+    blocks.getAnimations().forEach(function(a) { a.cancel(); });
     var collapsed = blocks.classList.toggle('is-collapsed');
     btn.setAttribute('aria-expanded', String(!collapsed));
-  });
+  };
 })();
 
 // ─────────────────────────── Article Builder bridge ──────────────
