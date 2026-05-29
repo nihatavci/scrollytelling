@@ -16,9 +16,25 @@ async function loadThree() {
     const { GLTFLoader } = await import(`${CDN}/examples/jsm/loaders/GLTFLoader.js`);
     const { STLLoader } = await import(`${CDN}/examples/jsm/loaders/STLLoader.js`);
     const { OrbitControls } = await import(`${CDN}/examples/jsm/controls/OrbitControls.js`);
-    return { THREE, GLTFLoader, STLLoader, OrbitControls };
+    const { DRACOLoader } = await import(`${CDN}/examples/jsm/loaders/DRACOLoader.js`);
+    const { KTX2Loader } = await import(`${CDN}/examples/jsm/loaders/KTX2Loader.js`);
+    const { MeshoptDecoder } = await import(`${CDN}/examples/jsm/libs/meshopt_decoder.module.js`);
+    return { THREE, GLTFLoader, STLLoader, OrbitControls, DRACOLoader, KTX2Loader, MeshoptDecoder };
   })();
   return _libPromise;
+}
+
+function makeGltfLoader(lib, renderer) {
+  const loader = new lib.GLTFLoader();
+  const draco = new lib.DRACOLoader();
+  draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+  loader.setDRACOLoader(draco);
+  loader.setMeshoptDecoder(lib.MeshoptDecoder);
+  try {
+    const ktx2 = new lib.KTX2Loader().setTranscoderPath(`${CDN}/examples/jsm/libs/basis/`).detectSupport(renderer);
+    loader.setKTX2Loader(ktx2);
+  } catch (_) {}
+  return loader;
 }
 
 async function initScene3DEditor(container, blockData, onChange) {
@@ -226,7 +242,7 @@ async function initScene3DEditor(container, blockData, onChange) {
       bootOverlay.innerHTML = `<div class="s3d-load-text" style="color:#ff9b7a;max-width:85%">3D engine failed to load.<br><span style="opacity:.8;font-size:11px">${String(err.message).replace(/</g,'&lt;').slice(0,160)}</span></div>`;
       return;
     }
-    const { THREE, GLTFLoader, STLLoader, OrbitControls } = lib;
+    const { THREE, STLLoader, OrbitControls } = lib;
     THREE_LIB = THREE;
 
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
@@ -267,7 +283,7 @@ async function initScene3DEditor(container, blockData, onChange) {
         const mat = new THREE.MeshStandardMaterial({ color: 0xcfcfcf, metalness: 0.1, roughness: 0.65 });
         model = new THREE.Mesh(geo, mat);
       } else {
-        const gltf = await new Promise((res, rej) => new GLTFLoader().load(blockData.glbUrl, res, onProg, rej));
+        const gltf = await new Promise((res, rej) => makeGltfLoader(lib, renderer).load(blockData.glbUrl, res, onProg, rej));
         model = gltf.scene;
       }
       loadOverlay.remove();

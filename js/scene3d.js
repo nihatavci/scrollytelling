@@ -13,9 +13,26 @@ async function _loadThree() {
     const THREE = await import(_CDN);
     const { GLTFLoader } = await import(`${_CDN}/examples/jsm/loaders/GLTFLoader.js`);
     const { STLLoader } = await import(`${_CDN}/examples/jsm/loaders/STLLoader.js`);
-    return { THREE, GLTFLoader, STLLoader };
+    const { DRACOLoader } = await import(`${_CDN}/examples/jsm/loaders/DRACOLoader.js`);
+    const { KTX2Loader } = await import(`${_CDN}/examples/jsm/loaders/KTX2Loader.js`);
+    const { MeshoptDecoder } = await import(`${_CDN}/examples/jsm/libs/meshopt_decoder.module.js`);
+    return { THREE, GLTFLoader, STLLoader, DRACOLoader, KTX2Loader, MeshoptDecoder };
   })();
   return _libPromise;
+}
+
+// Build a GLTFLoader wired with Draco + Meshopt + KTX2 decoders.
+function _makeGltfLoader(lib, renderer) {
+  const loader = new lib.GLTFLoader();
+  const draco = new lib.DRACOLoader();
+  draco.setDecoderPath('https://www.gstatic.com/draco/versioned/decoders/1.5.7/');
+  loader.setDRACOLoader(draco);
+  loader.setMeshoptDecoder(lib.MeshoptDecoder);
+  try {
+    const ktx2 = new lib.KTX2Loader().setTranscoderPath(`${_CDN}/examples/jsm/libs/basis/`).detectSupport(renderer);
+    loader.setKTX2Loader(ktx2);
+  } catch (_) { /* KTX2 optional */ }
+  return loader;
 }
 
 export async function initScene3D(blockId, data) {
@@ -36,7 +53,8 @@ export async function initScene3D(blockId, data) {
   const DEFAULT_SCENE = { camera: { x: 1.6, y: 1.2, z: 3.2 }, target: { x: 0, y: 0, z: 0 }, fov: 45 };
   const hasScenes = scenes.length > 0;
 
-  const { THREE, GLTFLoader, STLLoader } = await _loadThree();
+  const lib = await _loadThree();
+  const { THREE, STLLoader } = lib;
 
   // ── Renderer ──
   const isMobile = window.innerWidth < 768;
@@ -80,7 +98,7 @@ export async function initScene3D(blockId, data) {
       const mat = new THREE.MeshStandardMaterial({ color: 0xcfcfcf, metalness: 0.1, roughness: 0.65 });
       model = new THREE.Mesh(geo, mat);
     } else {
-      const gltf = await new Promise((res, rej) => new GLTFLoader().load(data.glbUrl, res, undefined, rej));
+      const gltf = await new Promise((res, rej) => _makeGltfLoader(lib, renderer).load(data.glbUrl, res, undefined, rej));
       model = gltf.scene;
     }
   } catch (err) {
