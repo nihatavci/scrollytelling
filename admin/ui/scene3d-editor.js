@@ -49,7 +49,7 @@ async function initScene3DEditor(container, blockData, onChange) {
   uploadZone.innerHTML = `
     <div class="s3d-upload-icon">📦</div>
     <div class="s3d-upload-text">Drop a <strong>GLB / GLTF / STL</strong> file here or <u style="cursor:pointer">browse</u></div>
-    <div class="s3d-upload-hint">A 3D model is required · Best under 10 MB · Use Draco compression for large GLB</div>`;
+    <div class="s3d-upload-hint">Required · max 50 MB · compress big models free at <a href="https://gltf.report" target="_blank" rel="noopener" style="color:var(--signal-blue,#0358f7)">gltf.report ↗</a></div>`;
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file'; fileInput.accept = '.glb,.gltf,.stl'; fileInput.style.display = 'none';
@@ -221,7 +221,14 @@ async function initScene3DEditor(container, blockData, onChange) {
   // ── Upload handler ──
   async function handleUpload(file) {
     const MAX = 50 * 1024 * 1024;
-    if (file.size > MAX) { window.toast?.('File too large (max 50 MB)', 'error'); return; }
+    const mbSize = file.size / 1024 / 1024;
+    if (file.size > MAX) {
+      window.toast?.(`File too large (${mbSize.toFixed(0)} MB). Maximum is 50 MB — compress at gltf.report.`, 'error');
+      return;
+    }
+    if (mbSize > 12) {
+      window.toast?.(`Large model (${mbSize.toFixed(0)} MB) — every visitor downloads this. Compress at gltf.report for faster loads.`, 'info');
+    }
     const mb = (file.size / 1024 / 1024).toFixed(1);
     uploadZone.style.display = '';
     uploadZone.innerHTML = `
