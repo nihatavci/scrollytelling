@@ -2080,3 +2080,148 @@ main.editor { display: none; }
   .lottie-scroll--fullscreen { min-height: 70vh; }
   .lottie-scroll--fullscreen .lottie-canvas { flex: unset; height: 70vh; aspect-ratio: unset; }
 }
+
+/* ─────────────────────────────────────────────
+   Scene3D admin editor
+   ───────────────────────────────────────────── */
+
+/* Upload zone */
+.s3d-upload-zone {
+  border: 2px dashed rgba(0,0,0,.12);
+  border-radius: 16px;
+  padding: 32px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color .2s, background .2s;
+  background: var(--canvas);
+}
+.s3d-upload-zone:hover, .s3d-drag-over {
+  border-color: var(--signal-blue, #0358f7);
+  background: rgba(3,88,247,.04);
+}
+.s3d-upload-icon { font-size: 28px; margin-bottom: 8px; }
+.s3d-upload-text { font-size: 13px; color: var(--graphite); margin-bottom: 4px; }
+.s3d-upload-hint { font-size: 11px; color: var(--ash); }
+
+/* Editor wrapper: viewport left + strip right */
+.s3d-editor-wrap {
+  display: flex;
+  gap: 8px;
+  align-items: stretch;
+}
+
+/* Viewport */
+.s3d-viewport {
+  flex: 1;
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  background: #1a1a1a;
+  min-height: 240px;
+}
+.s3d-canvas {
+  width: 100%;
+  height: 100%;
+  display: block;
+  min-height: 240px;
+}
+.s3d-hint-bar {
+  position: absolute;
+  bottom: 40px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 10px;
+  color: rgba(255,255,255,.35);
+  white-space: nowrap;
+  pointer-events: none;
+  letter-spacing: .03em;
+}
+.s3d-save-btn {
+  position: absolute;
+  bottom: 10px;
+  right: 10px;
+  background: var(--ink-black);
+  color: var(--snow);
+  border-color: var(--ink-black);
+  font-size: 11px;
+  padding: 5px 10px;
+}
+.s3d-save-btn:hover { background: #333; border-color: #333; }
+
+/* Scene thumbnail strip */
+.s3d-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  width: 64px;
+  flex-shrink: 0;
+}
+.s3d-slot {
+  width: 64px;
+  height: 48px;
+  border-radius: 7px;
+  border: 1.5px dashed rgba(0,0,0,.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  background: var(--fog);
+  transition: border-color .15s;
+  flex-shrink: 0;
+}
+.s3d-slot--filled {
+  border-style: solid;
+  border-color: rgba(0,0,0,.1);
+  background: #1a1a1a;
+}
+.s3d-slot--active {
+  border-color: #0358f7;
+  box-shadow: 0 0 0 2px rgba(3,88,247,.2);
+}
+.s3d-slot:hover { border-color: rgba(0,0,0,.3); }
+.s3d-slot--filled:hover { border-color: #0358f7; }
+
+.s3d-thumb-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  position: absolute; inset: 0;
+}
+.s3d-slot-num {
+  position: absolute;
+  bottom: 2px; right: 4px;
+  font-size: 9px; font-weight: 700;
+  color: rgba(255,255,255,.5);
+  z-index: 1;
+}
+.s3d-slot-plus {
+  font-size: 18px;
+  color: rgba(0,0,0,.2);
+  line-height: 1;
+}
+.s3d-slot--filled .s3d-slot-plus { display: none; }
+
+.s3d-slot-del {
+  position: absolute;
+  top: 2px; right: 2px;
+  width: 14px; height: 14px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.5);
+  color: #fff;
+  border: none;
+  font-size: 8px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  cursor: pointer;
+  z-index: 2;
+  line-height: 1;
+  transition: background .15s;
+}
+.s3d-slot--filled:hover .s3d-slot-del { display: flex; }
+.s3d-slot-del:hover { background: rgba(250,61,29,.9); }
+
+/* model3d field container */
+.field--model3d > .field-label { margin-bottom: 8px; }
