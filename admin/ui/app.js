@@ -416,7 +416,7 @@ const PALETTE_CATEGORIES = [
   {
     label: 'Immersive Moments',
     hint: 'Full-viewport scenes that stop the reader',
-    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer'],
+    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer', 'Scene3D'],
   },
   {
     label: 'Evidence & Proof',
