@@ -12,7 +12,8 @@ async function _loadThree() {
     const THREE = (await import(`${_CDN}/build/three.module.js`)).default
       || await import(`${_CDN}/build/three.module.js`);
     const { GLTFLoader } = await import(`${_CDN}/examples/jsm/loaders/GLTFLoader.js`);
-    return { THREE, GLTFLoader };
+    const { STLLoader } = await import(`${_CDN}/examples/jsm/loaders/STLLoader.js`);
+    return { THREE, GLTFLoader, STLLoader };
   })();
   return _libPromise;
 }
@@ -27,7 +28,7 @@ export async function initScene3D(blockId, data) {
   const scenes = (data.scenes || []).filter(Boolean);
   if (!scenes.length || !data.glbUrl) return;
 
-  const { THREE, GLTFLoader } = await _loadThree();
+  const { THREE, GLTFLoader, STLLoader } = await _loadThree();
 
   // ── Renderer ──
   const isMobile = window.innerWidth < 768;
@@ -60,19 +61,26 @@ export async function initScene3D(blockId, data) {
     }
   }
 
-  // ── Load GLB ──
-  const loader = new GLTFLoader();
-  let gltf;
+  // ── Load model — GLB/GLTF via GLTFLoader, STL via STLLoader (geometry → mesh) ──
+  const isSTL = /\.stl(\?|$)/i.test(data.glbUrl);
+  let model;
   try {
-    gltf = await new Promise((res, rej) => loader.load(data.glbUrl, res, undefined, rej));
+    if (isSTL) {
+      const geo = await new Promise((res, rej) => new STLLoader().load(data.glbUrl, res, undefined, rej));
+      geo.computeVertexNormals();
+      const mat = new THREE.MeshStandardMaterial({ color: 0xcfcfcf, metalness: 0.1, roughness: 0.65 });
+      model = new THREE.Mesh(geo, mat);
+    } else {
+      const gltf = await new Promise((res, rej) => new GLTFLoader().load(data.glbUrl, res, undefined, rej));
+      model = gltf.scene;
+    }
   } catch (err) {
-    console.error('[Scene3D] GLB load failed:', err);
+    console.error('[Scene3D] model load failed:', err);
     if (loaderEl) loaderEl.style.display = 'none';
     return;
   }
 
   // Auto-normalise: scale model into a 2-unit bounding box, centred at origin
-  const model = gltf.scene;
   const box = new THREE.Box3().setFromObject(model);
   const size = box.getSize(new THREE.Vector3());
   const center = box.getCenter(new THREE.Vector3());

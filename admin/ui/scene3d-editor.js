@@ -13,8 +13,9 @@ async function loadThree() {
     const THREE = (await import(`${CDN}/build/three.module.js`)).default
       || await import(`${CDN}/build/three.module.js`);
     const { GLTFLoader } = await import(`${CDN}/examples/jsm/loaders/GLTFLoader.js`);
+    const { STLLoader } = await import(`${CDN}/examples/jsm/loaders/STLLoader.js`);
     const { OrbitControls } = await import(`${CDN}/examples/jsm/controls/OrbitControls.js`);
-    return { THREE, GLTFLoader, OrbitControls };
+    return { THREE, GLTFLoader, STLLoader, OrbitControls };
   })();
   return _libPromise;
 }
@@ -30,11 +31,11 @@ async function initScene3DEditor(container, blockData, onChange) {
   if (blockData.glbUrl) uploadZone.style.display = 'none';
   uploadZone.innerHTML = `
     <div class="s3d-upload-icon">📦</div>
-    <div class="s3d-upload-text">Drop a <strong>GLB / GLTF</strong> file here or <u style="cursor:pointer">browse</u></div>
-    <div class="s3d-upload-hint">Best under 10 MB · Use Draco compression for large models</div>`;
+    <div class="s3d-upload-text">Drop a <strong>GLB / GLTF / STL</strong> file here or <u style="cursor:pointer">browse</u></div>
+    <div class="s3d-upload-hint">A 3D model is required · Best under 10 MB · Use Draco compression for large GLB</div>`;
 
   const fileInput = document.createElement('input');
-  fileInput.type = 'file'; fileInput.accept = '.glb,.gltf'; fileInput.style.display = 'none';
+  fileInput.type = 'file'; fileInput.accept = '.glb,.gltf,.stl'; fileInput.style.display = 'none';
   uploadZone.addEventListener('click', () => fileInput.click());
   uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('s3d-drag-over'); });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('s3d-drag-over'));
@@ -162,7 +163,7 @@ async function initScene3DEditor(container, blockData, onChange) {
 
   // ── Three.js setup ──
   async function initThree() {
-    const { THREE, GLTFLoader, OrbitControls } = await loadThree();
+    const { THREE, GLTFLoader, STLLoader, OrbitControls } = await loadThree();
     THREE_LIB = THREE;
 
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
@@ -182,11 +183,19 @@ async function initScene3DEditor(container, blockData, onChange) {
     controls.enableDamping = true; controls.dampingFactor = 0.08;
     controls.addEventListener('change', renderFrame);
 
-    // Load model
-    const loader = new GLTFLoader();
+    // Load model — GLB/GLTF via GLTFLoader, STL via STLLoader (geometry → mesh)
+    const isSTL = /\.stl(\?|$)/i.test(blockData.glbUrl);
     try {
-      const gltf = await new Promise((res, rej) => loader.load(blockData.glbUrl, res, undefined, rej));
-      const model = gltf.scene;
+      let model;
+      if (isSTL) {
+        const geo = await new Promise((res, rej) => new STLLoader().load(blockData.glbUrl, res, undefined, rej));
+        geo.computeVertexNormals();
+        const mat = new THREE.MeshStandardMaterial({ color: 0xcfcfcf, metalness: 0.1, roughness: 0.65 });
+        model = new THREE.Mesh(geo, mat);
+      } else {
+        const gltf = await new Promise((res, rej) => new GLTFLoader().load(blockData.glbUrl, res, undefined, rej));
+        model = gltf.scene;
+      }
       const box = new THREE.Box3().setFromObject(model);
       const size = box.getSize(new THREE.Vector3());
       const center = box.getCenter(new THREE.Vector3());
@@ -198,7 +207,7 @@ async function initScene3DEditor(container, blockData, onChange) {
       }
       threeScene.add(model);
     } catch (err) {
-      console.error('[Scene3D admin] GLB load failed:', err);
+      console.error('[Scene3D admin] model load failed:', err);
       window.toast?.('Could not load 3D model: ' + err.message, 'error');
       return;
     }

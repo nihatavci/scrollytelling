@@ -181,7 +181,7 @@ const BLOCK_SCHEMAS = {
     name: '3D Model',
     description: 'A 3D model the reader scrolls through — camera snaps between up to 4 saved viewpoints.',
     fields: [
-      { key: 'glbUrl',      label: '3D Model (GLB / GLTF)', kind: 'model3d', group: 'media' },
+      { key: 'glbUrl',      label: '3D Model (GLB / GLTF / STL) — required', kind: 'model3d', group: 'media', required: true },
       { key: '_comingSoon', label: 'Status', kind: 'select', group: 'settings',
         options: ['false', 'true'],
         hint: '"true" shows a Coming Soon overlay on the public page — the block is fully built but visually gated.' },
@@ -1628,6 +1628,12 @@ function renderCreationField(fieldDef, data, onChange) {
 // Opens a purpose-built creation form for the given block type.
 // opts.insertAfter — block ID to insert after (optional)
 function openCreationCard(type, opts = {}) {
+  // 3D blocks have no AI-generatable text — skip the Claude modal entirely and
+  // open the orbit/upload editor directly by inserting an empty block.
+  if (type === 'Scene3D') {
+    addEmptyBlock(type, opts.insertAfter);
+    return;
+  }
   const card = BLOCK_CREATION_CARDS[type];
   if (!card) {
     // Fallback for types without a creation card — use Claude modal
@@ -3224,13 +3230,19 @@ function openClaudeModal(opts) {
   }, '');
 }
 
-async function addEmptyBlock(type) {
+async function addEmptyBlock(type, insertAfterId) {
   if (!state.doc) {
     toast('Please create or select a page first', 'error');
     return;
   }
   const block = { id: uid('b'), type, data: defaultDataFor(type) };
-  state.doc.blocks.push(block);
+  if (insertAfterId) {
+    const i = state.doc.blocks.findIndex(b => b.id === insertAfterId);
+    if (i !== -1) state.doc.blocks.splice(i + 1, 0, block);
+    else state.doc.blocks.push(block);
+  } else {
+    state.doc.blocks.push(block);
+  }
   state.selectedBlockId = block.id;
   setDirty(true);
   renderBlockList();
@@ -3294,12 +3306,14 @@ function renderEditor() {
   const idx = state.doc.blocks.indexOf(block);
   const toolbar = document.createElement('div');
   toolbar.className = 'block-actions';
+  // Some blocks (e.g. 3D models) have no AI-generatable text — hide Enhance.
+  const noEnhance = block.type === 'Scene3D';
   toolbar.innerHTML = `
-    <button data-act="claude" class="enhance-btn" title="Enhance with Claude">✨ Enhance</button>
+    ${noEnhance ? '' : '<button data-act="claude" class="enhance-btn" title="Enhance with Claude">✨ Enhance</button>'}
     <span class="block-actions-spacer"></span>
     <button data-act="dup" title="Duplicate block">Duplicate</button>
     <button data-act="del" class="danger" title="Delete block">Delete</button>`;
-  toolbar.querySelector('[data-act="claude"]').addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
+  toolbar.querySelector('[data-act="claude"]')?.addEventListener('click', (e) => { e.stopPropagation(); openClaudeModal({ mode: 'improve', block }); });
   toolbar.querySelector('[data-act="dup"]').addEventListener('click', (e) => { e.stopPropagation(); duplicateBlock(idx); });
   toolbar.querySelector('[data-act="del"]').addEventListener('click', function(e) {
     e.stopPropagation();
