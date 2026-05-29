@@ -36,9 +36,10 @@ export async function initScene3D(blockId, data) {
 
   // ── Renderer ──
   const isMobile = window.innerWidth < 768;
-  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: false });
+  // alpha:true → the CSS gradient on .scene3d-sticky shows through behind the model.
+  const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
-  renderer.setClearColor(0x1a1a1a, 1);
+  renderer.setClearColor(0x000000, 0);
   renderer.shadowMap.enabled = false;
 
   // ── Scene + lights ──
@@ -118,7 +119,8 @@ export async function initScene3D(blockId, data) {
 
     function step(now) {
       const p = Math.min((now - t0) / durationMs, 1);
-      const t = 1 - Math.pow(1 - p, 3); // cubic ease-out
+      // cubic ease-in-out — gentle accel/decel for a slow, cinematic move
+      const t = p < 0.5 ? 4 * p * p * p : 1 - Math.pow(-2 * p + 2, 3) / 2;
       camera.position.lerpVectors(fromPos, toPos, t);
       target.lerpVectors(fromTgt, toTgt, t);
       camera.lookAt(target);
@@ -144,7 +146,7 @@ export async function initScene3D(blockId, data) {
     if (progressFill && scenes.length > 1) {
       progressFill.style.height = ((n / (scenes.length - 1)) * 100) + '%';
     }
-    tweenCamera(scenes[n], 800);
+    tweenCamera(scenes[n], 1600);
   }
 
   const cardObs = new IntersectionObserver((entries) => {

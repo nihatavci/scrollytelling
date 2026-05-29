@@ -653,6 +653,9 @@ const COMPONENT_CSS = `
 /* ── Scene3D scrollytelling block ── */
 .scene3d{position:relative;width:100%}
 .scene3d-sticky{position:sticky;top:0;height:100vh;overflow:hidden;background:#1a1a1a}
+.scene3d--bg-studio .scene3d-sticky{background:radial-gradient(ellipse at 50% 38%,#fafafa 0%,#e6e6ea 65%,#d3d3d9 100%)}
+.scene3d--bg-dark .scene3d-sticky{background:radial-gradient(ellipse at 50% 38%,#2c2c31 0%,#161618 72%,#0d0d0f 100%)}
+.scene3d--bg-page .scene3d-sticky{background:transparent}
 .scene3d-canvas{width:100%;height:100%;display:block;opacity:0;transition:opacity .5s ease}
 .scene3d-dots{position:absolute;right:1.5rem;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;gap:8px;z-index:2}
 .scene3d-dot{width:8px;height:8px;border-radius:50%;background:rgba(255,255,255,.2);transition:background .3s,transform .3s;cursor:default}
@@ -2471,8 +2474,9 @@ function renderFullBleed(d) {
 // ───────── Scene3D scrollytelling ─────────
 function renderScene3D(d, block) {
   const hasScenes = Array.isArray(d.scenes) && d.scenes.some(Boolean);
+  const bg = d.bg || 'studio';
   const sec = el('section', {
-    class: 'scene3d' + (d._comingSoon === true || d._comingSoon === 'true' ? ' scene3d--coming-soon' : ''),
+    class: 'scene3d scene3d--bg-' + bg + (d._comingSoon === true || d._comingSoon === 'true' ? ' scene3d--coming-soon' : ''),
     id: `scene3d-${block.id}`,
   });
 

@@ -229,9 +229,10 @@ async function initScene3DEditor(container, blockData, onChange) {
     const { THREE, GLTFLoader, STLLoader, OrbitControls } = lib;
     THREE_LIB = THREE;
 
-    renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+    renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setClearColor(0x1a1a1a, 1);
+    renderer.setClearColor(0x000000, 0); // transparent → CSS gradient shows behind model
+    applyViewportBg();
 
     threeScene = new THREE.Scene();
     threeScene.add(new THREE.AmbientLight(0xffffff, 0.8));
@@ -317,6 +318,17 @@ async function initScene3DEditor(container, blockData, onChange) {
   function renderFrame() {
     if (!renderer) return;
     resize(); renderer.render(threeScene, camera);
+  }
+
+  // Match the editor viewport background to the chosen public background.
+  function applyViewportBg() {
+    const bg = blockData.bg || 'studio';
+    const grad = {
+      studio: 'radial-gradient(ellipse at 50% 38%,#fafafa 0%,#e6e6ea 65%,#d3d3d9 100%)',
+      dark:   'radial-gradient(ellipse at 50% 38%,#2c2c31 0%,#161618 72%,#0d0d0f 100%)',
+      page:   '#f8f8f8',
+    };
+    viewportEl.style.background = grad[bg] || grad.studio;
   }
 
   function recallCamera(sc) {

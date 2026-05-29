@@ -182,6 +182,9 @@ const BLOCK_SCHEMAS = {
     description: 'A 3D model the reader scrolls through — camera snaps between up to 4 saved viewpoints.',
     fields: [
       { key: 'glbUrl',      label: '3D Model (GLB / GLTF / STL) — required', kind: 'model3d', group: 'media', required: true },
+      { key: 'bg',          label: 'Background', kind: 'select', group: 'settings',
+        options: ['studio', 'dark', 'page'],
+        hint: 'studio = soft light gradient · dark = deep gradient · page = transparent (shows the page background).' },
       { key: '_comingSoon', label: 'Status', kind: 'select', group: 'settings',
         options: ['false', 'true'],
         hint: '"true" shows a Coming Soon overlay on the public page — the block is fully built but visually gated.' },
@@ -4477,7 +4480,7 @@ ${themeLink}
 <body>
 <main id="page-root"></main>
 <script type="module">
-import { render } from '${origin}/js/render.js?v=20260528m';
+import { render } from '${origin}/js/render.js?v=20260528n';
 render();
 <\/script>
 ${veScript}</body></html>`;
