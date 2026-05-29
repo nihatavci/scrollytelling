@@ -47,7 +47,7 @@ function sanitizeHtml(html) {
 const BLOCK_SCHEMAS = {
   // ── Opening & Structure ──────────────────────────────────────
   Hero: {
-    name: 'The Lede',
+    name: 'Cover',
     description: 'The opening scene — first thing your reader sees. Sets the emotional register of the entire story.',
     fields: [
       { key: 'brand',          label: 'Brand line (small caps at top)',     kind: 'text', group: 'content' },
@@ -59,7 +59,7 @@ const BLOCK_SCHEMAS = {
     ],
   },
   ChapterDivider: {
-    name: 'Scene Break',
+    name: 'Section Break',
     description: 'Signals a new act. Resets the reader\'s attention between major story chapters — like a film cut.',
     fields: [
       { key: 'number',   label: 'Number / label (optional)',     kind: 'text', group: 'content', hint: 'e.g. <code>I</code>, <code>01</code>, <code>Kapitel 2</code>' },
@@ -68,7 +68,7 @@ const BLOCK_SCHEMAS = {
     ],
   },
   ProgressNav: {
-    name: 'Progress',
+    name: 'Progress Bar',
     description: 'Shows the reader where they are in the story. Chapter dots + reading progress bar.',
     fields: [
       { key: 'mode',           label: 'Mode',           kind: 'text', group: 'content', hint: 'bar (default)' },
@@ -79,14 +79,14 @@ const BLOCK_SCHEMAS = {
 
   // ── The Narrative ────────────────────────────────────────────
   Editorial: {
-    name: 'Narrative',
+    name: 'Text',
     description: 'The storytelling voice — prose paragraphs, inline quotes, images, drop caps. The backbone of your story.',
     fields: [
       { key: 'content', label: 'Content', kind: 'editorial_items', group: 'data' },
     ],
   },
   Scrolly: {
-    name: 'Scroll · Reveal',
+    name: 'Scroll Story',
     description: 'The signature scrollytelling moment. A sticky image while text cards scroll past — each step reveals a new layer of the story.',
     fields: [
       { key: 'imageSize',   label: 'Image size', kind: 'text', group: 'layout', hint: 'small (35%), medium (50%), large (65%), full, or any CSS value like "40%"' },
@@ -97,7 +97,7 @@ const BLOCK_SCHEMAS = {
     ],
   },
   DataScrolly: {
-    name: 'Data · Reveal',
+    name: 'Animated Chart',
     description: 'Chart-driven revelation — each scroll step builds the argument. The reader watches data tell the story.',
     fields: [
       { key: 'title',     label: 'Chart title',     kind: 'text', group: 'content' },
@@ -110,7 +110,7 @@ const BLOCK_SCHEMAS = {
 
   // ── Immersive Moments ────────────────────────────────────────
   FullBleed: {
-    name: 'Immersive',
+    name: 'Full-Screen Banner',
     description: 'Full-viewport cinematic moment — image or video that fills the screen. The Snow Fall signature. Stops the reader cold.',
     fields: [
       { key: 'mediaSrc',         label: 'Image 1 (main)',  kind: 'image', group: 'media' },
@@ -132,7 +132,7 @@ const BLOCK_SCHEMAS = {
     ]
   },
   FullscreenImage: {
-    name: 'The Scene',
+    name: 'Full-Screen Photo',
     description: 'A dramatic photograph that establishes place, mood, or scale. Full viewport with Ken Burns animation and text overlay.',
     fields: [
       { key: 'imageSrc',         label: 'Image',              kind: 'image', group: 'media' },
@@ -151,7 +151,7 @@ const BLOCK_SCHEMAS = {
     ]
   },
   VideoEmbed: {
-    name: 'Footage',
+    name: 'Video',
     description: 'Moving image evidence — interviews, event recordings, scene-setting footage. Embedded from YouTube or Vimeo.',
     fields: [
       { key: 'url',     label: 'Video URL', kind: 'text', group: 'media', hint: 'Paste a YouTube or Vimeo URL.' },
@@ -178,7 +178,7 @@ const BLOCK_SCHEMAS = {
   },
 
   Scene3D: {
-    name: 'Scene 3D',
+    name: '3D Model',
     description: 'A 3D model the reader scrolls through — camera snaps between up to 4 saved viewpoints.',
     fields: [
       { key: 'glbUrl',      label: '3D Model (GLB / GLTF)', kind: 'model3d', group: 'media' },
@@ -203,7 +203,7 @@ const BLOCK_SCHEMAS = {
     ]
   },
   ImageHotspot: {
-    name: 'Annotated',
+    name: 'Labeled Image',
     description: 'Interactive guided look — numbered markers on an image reveal details on click. Great for evidence and explainers.',
     fields: [
       { key: 'src',     label: 'Image URL',   kind: 'text', group: 'media' },
@@ -214,7 +214,7 @@ const BLOCK_SCHEMAS = {
     ]
   },
   ImageGrid: {
-    name: 'Evidence',
+    name: 'Image Gallery',
     description: 'A collection of photographs — proves the point, shows scale, or documents the scene. Auto-layouts from count.',
     fields: [
       { key: 'images',  label: 'Images',  kind: 'array', group: 'media', itemFields: [
@@ -229,7 +229,7 @@ const BLOCK_SCHEMAS = {
     ]
   },
   EmbedBlock: {
-    name: 'Interactive',
+    name: 'Embed',
     description: 'Third-party visualization — Datawrapper charts, Flourish graphics, Twitter embeds, or any iframe.',
     fields: [
       { key: 'provider',      label: 'Provider',      kind: 'text', group: 'content', hint: 'datawrapper, flourish, twitter, etc.' },
@@ -245,7 +245,7 @@ const BLOCK_SCHEMAS = {
 
   // ── Voices & Data ────────────────────────────────────────────
   Quote: {
-    name: 'Witness',
+    name: 'Quote',
     description: 'A real voice from the story — testimony that humanizes the data. Large quote with optional portrait.',
     fields: [
       { key: 'text',         label: 'Quote (without surrounding quote marks)', kind: 'textarea', group: 'content' },
@@ -257,7 +257,7 @@ const BLOCK_SCHEMAS = {
     ],
   },
   StatRow: {
-    name: 'Impact',
+    name: 'Big Numbers',
     description: 'The number that lands — 2–4 large statistics that make scale visceral. Place after narrative setup for maximum punch.',
     fields: [
       { key: 'title', label: 'Heading (optional)', kind: 'text', group: 'content' },
@@ -265,7 +265,7 @@ const BLOCK_SCHEMAS = {
     ],
   },
   Map2D: {
-    name: 'The Journey',
+    name: 'Map',
     description: 'Geographic narrative — the map flies between locations as the reader scrolls. Trace routes, reveal markers, show territory.',
     fields: [
       { key: 'title',         label: 'Title (optional)', kind: 'text', group: 'content' },
@@ -287,7 +287,7 @@ const BLOCK_SCHEMAS = {
     ],
   },
   Timeline: {
-    name: 'Chronicle',
+    name: 'Timeline',
     description: 'Events across time — establishes sequence and causality. Vertical timeline with dates, titles, and narrative.',
     fields: [
       { key: 'title',  label: 'Heading (optional)', kind: 'text', group: 'content' },
@@ -297,7 +297,7 @@ const BLOCK_SCHEMAS = {
 
   // ── Supporting ───────────────────────────────────────────────
   Aside: {
-    name: 'Context',
+    name: 'Callout',
     description: 'Background the reader needs without breaking the narrative — methodology note, definition, or supplementary fact.',
     fields: [
       { key: 'tone',  label: 'Tone', kind: 'tone_select', group: 'style' },
@@ -306,7 +306,7 @@ const BLOCK_SCHEMAS = {
     ],
   },
   AccordionBlock: {
-    name: 'Deep Dive',
+    name: 'Expandable Section',
     description: 'Expandable sections — methodology, FAQ, glossary, or detailed evidence the curious reader can open.',
     fields: [
       { key: 'title',     label: 'Section title',  kind: 'text', group: 'content' },
@@ -315,7 +315,7 @@ const BLOCK_SCHEMAS = {
     ]
   },
   Outro: {
-    name: 'Epilogue',
+    name: 'Ending',
     description: 'The closing reflection — final paragraphs, a lingering thought, and source credits. How you leave the reader.',
     fields: [
       { key: 'h2',          label: 'Heading',     kind: 'text', group: 'content' },
@@ -404,34 +404,34 @@ const EDITORIAL_ITEM_KINDS = [
 // Palette organized by narrative function — what does this moment in your story need?
 const PALETTE_CATEGORIES = [
   {
-    label: 'Opening & Structure',
-    hint: 'Set the scene, break chapters, guide the reader',
-    types: ['Hero', 'ChapterDivider', 'ProgressNav'],
+    label: 'Page Structure',
+    hint: 'Cover, section breaks, progress bar, and the ending',
+    types: ['Hero', 'ChapterDivider', 'ProgressNav', 'Outro'],
   },
   {
-    label: 'The Narrative',
-    hint: 'The story itself — prose, scroll reveals, data arguments',
-    types: ['Editorial', 'Scrolly', 'DataScrolly'],
+    label: 'Text',
+    hint: 'Paragraphs, quotes, callouts, and expandable sections',
+    types: ['Editorial', 'Quote', 'Aside', 'AccordionBlock'],
   },
   {
-    label: 'Immersive Moments',
-    hint: 'Full-viewport scenes that stop the reader',
-    types: ['FullBleed', 'FullscreenImage', 'VideoEmbed', 'AudioPlayer', 'Scene3D'],
+    label: 'Images & Media',
+    hint: 'Photos, galleries, video, audio, and 3D models',
+    types: ['FullscreenImage', 'FullBleed', 'ImageGrid', 'ImageCompare', 'ImageHotspot', 'VideoEmbed', 'AudioPlayer', 'Scene3D'],
   },
   {
-    label: 'Evidence & Proof',
-    hint: 'Images, comparisons, and annotations that prove the point',
-    types: ['ImageCompare', 'ImageHotspot', 'ImageGrid', 'EmbedBlock'],
+    label: 'Scroll Animations',
+    hint: 'Content that moves and changes as the reader scrolls',
+    types: ['Scrolly', 'DataScrolly'],
   },
   {
-    label: 'Voices & Data',
-    hint: 'Testimony, statistics, geography, and time',
-    types: ['Quote', 'StatRow', 'Map2D', 'Timeline'],
+    label: 'Data & Facts',
+    hint: 'Big numbers, timelines, maps, and dashboards',
+    types: ['StatRow', 'Timeline', 'Map2D', 'VizPanel'],
   },
   {
-    label: 'Supporting',
-    hint: 'Context, expandable detail, closing credits',
-    types: ['Aside', 'AccordionBlock', 'Outro', 'VizPanel'],
+    label: 'Embeds',
+    hint: 'Embed an external interactive page or widget',
+    types: ['EmbedBlock'],
   },
 ];
 // Flat list for backward compat (used by DIRECT_MODE_DISABLED check etc.)
