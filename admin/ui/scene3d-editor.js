@@ -72,13 +72,31 @@ async function initScene3DEditor(container, blockData, onChange) {
   fsBtn.className = 's3d-fs-btn';
   fsBtn.title = 'Edit fullscreen';
   fsBtn.textContent = '⛶';
+  let _fsPlaceholder = null;
   fsBtn.addEventListener('click', () => {
-    const on = editorWrap.classList.toggle('s3d-fullscreen');
-    fsBtn.textContent = on ? '✕' : '⛶';
-    fsBtn.title = on ? 'Exit fullscreen' : 'Edit fullscreen';
-    document.body.style.overflow = on ? 'hidden' : '';
-    // force an immediate resize so the model fills the new canvas size
+    const goingFull = !editorWrap.classList.contains('s3d-fullscreen');
+    if (goingFull) {
+      // Move to <body> so position:fixed is relative to the viewport, not a
+      // transformed sidebar ancestor (which silently traps fixed positioning).
+      _fsPlaceholder = document.createComment('s3d-fs');
+      editorWrap.parentNode.insertBefore(_fsPlaceholder, editorWrap);
+      document.body.appendChild(editorWrap);
+      editorWrap.classList.add('s3d-fullscreen');
+      document.body.style.overflow = 'hidden';
+    } else {
+      editorWrap.classList.remove('s3d-fullscreen');
+      if (_fsPlaceholder && _fsPlaceholder.parentNode) {
+        _fsPlaceholder.parentNode.insertBefore(editorWrap, _fsPlaceholder);
+        _fsPlaceholder.remove();
+      }
+      _fsPlaceholder = null;
+      document.body.style.overflow = '';
+    }
+    fsBtn.textContent = goingFull ? '✕' : '⛶';
+    fsBtn.title = goingFull ? 'Exit fullscreen' : 'Edit fullscreen';
+    // force resize so the model fills the new canvas size
     requestAnimationFrame(() => { resize(); renderFrame(); });
+    setTimeout(() => { resize(); renderFrame(); }, 60);
   });
   viewportEl.appendChild(fsBtn);
 

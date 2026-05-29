@@ -2481,13 +2481,12 @@ function renderScene3D(d, block) {
   const canvas = el('canvas', { class: 'scene3d-canvas', 'aria-hidden': 'true' });
   sticky.appendChild(canvas);
 
-  // Loading spinner — only when we'll actually initialise (model + at least one scene).
-  // Otherwise show a hint so the preview doesn't spin forever during editing.
-  if (hasScenes && d.glbUrl) {
+  // Loading spinner whenever there's a model to load (with or without saved scenes).
+  if (d.glbUrl) {
     sticky.appendChild(el('div', { class: 'scene3d-loader', 'aria-hidden': 'true' }));
   } else {
     const hint = el('div', { class: 'scene3d-hint' });
-    hint.appendChild(el('div', {}, !d.glbUrl ? 'Upload a 3D model in the editor' : 'Save at least one scene to preview the camera'));
+    hint.appendChild(el('div', {}, 'Upload a 3D model in the editor'));
     sticky.appendChild(hint);
   }
 
@@ -2528,7 +2527,7 @@ function renderScene3D(d, block) {
   sec.appendChild(csOverlay);
 
   // Lazy-load the Three.js renderer after this section is in the DOM
-  if (hasScenes && d.glbUrl) {
+  if (d.glbUrl) {
     Promise.resolve().then(() => _initScene3DPublic(block.id, d));
   }
 

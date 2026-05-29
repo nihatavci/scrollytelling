@@ -26,7 +26,11 @@ export async function initScene3D(blockId, data) {
   if (!canvas) return;
 
   const scenes = (data.scenes || []).filter(Boolean);
-  if (!scenes.length || !data.glbUrl) return;
+  if (!data.glbUrl) return;
+  // If no scenes saved yet, show the model statically with a sensible default
+  // camera so it's visible in the preview before the editor saves viewpoints.
+  const DEFAULT_SCENE = { camera: { x: 1.6, y: 1.2, z: 3.2 }, target: { x: 0, y: 0, z: 0 }, fov: 45 };
+  const hasScenes = scenes.length > 0;
 
   const { THREE, GLTFLoader, STLLoader } = await _loadThree();
 
@@ -45,7 +49,7 @@ export async function initScene3D(blockId, data) {
   scene.add(dir);
 
   // ── Camera ──
-  const s0 = scenes[0];
+  const s0 = scenes[0] || DEFAULT_SCENE;
   const camera = new THREE.PerspectiveCamera(s0.fov || 45, canvas.clientWidth / (canvas.clientHeight || 1), 0.01, 1000);
   camera.position.set(s0.camera.x, s0.camera.y, s0.camera.z);
   const target = new THREE.Vector3(s0.target.x, s0.target.y, s0.target.z);
