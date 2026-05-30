@@ -38,7 +38,8 @@ export async function initWebGLFx(blockId, kind, data) {
   let effect = null;
   try {
     if (kind === 'gradient') effect = createGradient(THREE, renderer, data);
-    // flowmap / particles added in later phases
+    else if (kind === 'flowmap') effect = createFlowmap(THREE, renderer, canvas, sec, data);
+    // particles added in a later phase
   } catch (e) { console.error('[webgl-fx] effect build failed:', e); renderer.dispose(); return; }
   if (!effect) { renderer.dispose(); return; }
 
@@ -145,5 +146,135 @@ function createGradient(THREE, renderer, data) {
     render(t) { uniforms.u_time.value = t * speed; renderer.render(scene, cam); },
     resize(w, h) { uniforms.u_res.value.set(w, h); },
     dispose() { quad.geometry.dispose(); mat.dispose(); },
+  };
+}
+
+// ───────────────────────── Effect: Flowmap Image ─────────────────────────
+// Ping-pong velocity field painted by the pointer; display shader offsets the
+// image UVs by the flow (with subtle chromatic split) — the Immersive-Garden feel.
+
+const FLOW_VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+
+const FLOW_UPDATE_FRAG = `
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D u_prev;
+uniform vec2 u_mouse;
+uniform vec2 u_velocity;
+uniform float u_aspect;
+uniform float u_falloff;
+uniform float u_dissipation;
+void main(){
+  vec4 prev = texture2D(u_prev, vUv);
+  vec2 vel = (prev.rg - 0.5) * u_dissipation;
+  vec2 p = vUv - u_mouse; p.x *= u_aspect;
+  float d = 1.0 - smoothstep(0.0, u_falloff, length(p));
+  vel += u_velocity * d;
+  vel = clamp(vel, -0.5, 0.5);
+  gl_FragColor = vec4(vel + 0.5, 0.0, 1.0);
+}`;
+
+const FLOW_DISPLAY_FRAG = `
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D u_image;
+uniform sampler2D u_flow;
+uniform vec2 u_imgScale;
+uniform float u_intensity;
+void main(){
+  vec2 flow = texture2D(u_flow, vUv).rg - 0.5;
+  vec2 uv = (vUv - 0.5) * u_imgScale + 0.5;
+  vec2 disp = flow * u_intensity;
+  float r = texture2D(u_image, uv + disp * 1.00).r;
+  float g = texture2D(u_image, uv + disp * 0.92).g;
+  float b = texture2D(u_image, uv + disp * 0.84).b;
+  gl_FragColor = vec4(r, g, b, 1.0);
+}`;
+
+function createFlowmap(THREE, renderer, canvas, sec, data) {
+  const intensity = data.intensity != null ? parseFloat(data.intensity) : 0.18;
+  const scene = new THREE.Scene();
+  const cam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+  // Two ping-pong targets for the velocity field (half resolution is plenty).
+  const mkRT = (w, h) => new THREE.WebGLRenderTarget(w, h, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false, stencilBuffer: false });
+  let rtA = mkRT(2, 2), rtB = mkRT(2, 2);
+
+  const updUniforms = {
+    u_prev: { value: rtA.texture },
+    u_mouse: { value: new THREE.Vector2(0.5, 0.5) },
+    u_velocity: { value: new THREE.Vector2(0, 0) },
+    u_aspect: { value: 1 },
+    u_falloff: { value: 0.15 },
+    u_dissipation: { value: 0.94 },
+  };
+  const updMat = new THREE.ShaderMaterial({ uniforms: updUniforms, vertexShader: FLOW_VERT, fragmentShader: FLOW_UPDATE_FRAG });
+  const updScene = new THREE.Scene();
+  updScene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), updMat));
+
+  const dispUniforms = {
+    u_image: { value: null },
+    u_flow: { value: rtB.texture },
+    u_imgScale: { value: new THREE.Vector2(1, 1) },
+    u_intensity: { value: intensity },
+  };
+  const dispMat = new THREE.ShaderMaterial({ uniforms: dispUniforms, vertexShader: FLOW_VERT, fragmentShader: FLOW_DISPLAY_FRAG });
+  scene.add(new THREE.Mesh(new THREE.PlaneGeometry(2, 2), dispMat));
+
+  // Load image + compute cover scale.
+  let imgAspect = 1, canvasAspect = 1;
+  const tex = new THREE.TextureLoader().load(data.imageSrc || '', (t) => {
+    t.minFilter = THREE.LinearFilter;
+    imgAspect = (t.image && t.image.width / t.image.height) || 1;
+    updateCover();
+  });
+  dispUniforms.u_image.value = tex;
+  function updateCover() {
+    // "cover" fit: scale UVs so the image fills without distortion.
+    if (canvasAspect > imgAspect) dispUniforms.u_imgScale.value.set(1, imgAspect / canvasAspect);
+    else dispUniforms.u_imgScale.value.set(canvasAspect / imgAspect, 1);
+  }
+
+  // Pointer tracking → velocity.
+  const mouse = new THREE.Vector2(0.5, 0.5);
+  const last = new THREE.Vector2(0.5, 0.5);
+  const vel = new THREE.Vector2(0, 0);
+  function onMove(e) {
+    const r = canvas.getBoundingClientRect();
+    const x = (e.clientX - r.left) / r.width;
+    const y = 1 - (e.clientY - r.top) / r.height;
+    mouse.set(x, y);
+  }
+  (sec || canvas).addEventListener('pointermove', onMove);
+
+  let w0 = 2, h0 = 2;
+  return {
+    render() {
+      // velocity = smoothed mouse delta, decays when idle
+      vel.set((mouse.x - last.x), (mouse.y - last.y)).multiplyScalar(0.8);
+      last.lerp(mouse, 0.2);
+      updUniforms.u_velocity.value.copy(vel);
+      updUniforms.u_mouse.value.copy(mouse);
+      // ping-pong: render new flow (sampling rtA) into rtB
+      updUniforms.u_prev.value = rtA.texture;
+      renderer.setRenderTarget(rtB);
+      renderer.render(updScene, cam);
+      renderer.setRenderTarget(null);
+      const tmp = rtA; rtA = rtB; rtB = tmp;
+      dispUniforms.u_flow.value = rtA.texture;
+      // display
+      renderer.render(scene, cam);
+    },
+    resize(w, h) {
+      w0 = w; h0 = h; canvasAspect = w / Math.max(h, 1);
+      updUniforms.u_aspect.value = canvasAspect;
+      const fw = Math.max(2, Math.floor(w / 2)), fh = Math.max(2, Math.floor(h / 2));
+      rtA.setSize(fw, fh); rtB.setSize(fw, fh);
+      updateCover();
+    },
+    dispose() {
+      (sec || canvas).removeEventListener('pointermove', onMove);
+      rtA.dispose(); rtB.dispose(); updMat.dispose(); dispMat.dispose(); tex.dispose();
+    },
   };
 }

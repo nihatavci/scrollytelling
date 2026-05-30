@@ -1555,6 +1555,7 @@ const BLOCK_RENDERERS = {
   AudioPlayer:     renderAudioPlayer,
   Scene3D:         renderScene3D,
   WebGLGradient:   renderWebGLGradient,
+  WebGLFlowmap:    renderWebGLFlowmap,
   Parallax:        renderParallax,
   LottieScroll:    renderLottieScroll,
 };
@@ -2657,6 +2658,14 @@ function renderWebGLGradient(d, block) {
     sec.appendChild(ov);
   }
   Promise.resolve().then(() => _initWebGLFx(block.id, 'gradient', d));
+  return sec;
+}
+
+function renderWebGLFlowmap(d, block) {
+  const sec = el('section', { class: `webgl-fx webgl-fx--flowmap ${_webglHeightCls(d.height)}`, id: `webglfx-${block.id}` });
+  sec.appendChild(el('img', { class: 'webgl-fx-fallback', src: d.imageSrc || '', alt: d.title || '', loading: 'lazy' }));
+  sec.appendChild(el('canvas', { class: 'webgl-fx-canvas', 'aria-hidden': 'true' }));
+  Promise.resolve().then(() => _initWebGLFx(block.id, 'flowmap', d));
   return sec;
 }
 
