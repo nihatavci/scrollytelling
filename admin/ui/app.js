@@ -3392,53 +3392,57 @@ function renderFxGroup(block, form, onFieldChange) {
   note.textContent = 'Effects enhance this block. Unsupported browsers fall back gracefully.';
   body.appendChild(note);
 
-  // Reveal (select) + delay chips
-  if (keys.includes('reveal')) {
-    const f = document.createElement('div'); f.className = 'field';
-    f.innerHTML = `<label class="field-label">Reveal on scroll</label>`;
-    const sel = document.createElement('select');
-    [['','Off'],['up','Fade up'],['left','Slide left'],['right','Slide right'],['scale','Scale'],['fade','Fade']].forEach(([v,t]) => {
-      const o = document.createElement('option'); o.value = v; o.textContent = t;
-      if ((fx.reveal||'') === v) o.selected = true; sel.appendChild(o);
+  // Square tile grid — each effect is a tile; active = highlighted.
+  const FX_GLYPH = { reveal: '↑', parallax: '🌀', tilt: '🃏', wipe: '▤', zoom: '🔍', glass: '🧊', gradientText: '🌈', genBg: '✨' };
+  const isOn = (k) => k === 'reveal' ? !!fx.reveal : k === 'parallax' ? !!fx.parallax : !!fx[k];
+  const grid = document.createElement('div'); grid.className = 'fx-tiles';
+  ['reveal', 'parallax', 'tilt', 'wipe', 'zoom', 'glass', 'gradientText', 'genBg'].forEach(k => {
+    if (!keys.includes(k)) return;
+    const tile = document.createElement('button'); tile.type = 'button';
+    tile.className = 'fx-tile' + (isOn(k) ? ' active' : '');
+    tile.innerHTML = `<span class="fx-tile-glyph">${FX_GLYPH[k]}</span><span class="fx-tile-label">${FX_LABELS[k]}</span>`;
+    tile.addEventListener('click', (e) => {
+      e.preventDefault();
+      if (k === 'reveal') { fx.reveal = fx.reveal ? '' : 'up'; if (!fx.reveal) delete fx.revealDelay; }
+      else if (k === 'parallax') { fx.parallax = fx.parallax ? 0 : 0.2; }
+      else { fx[k] = !fx[k]; }
+      onFieldChange(); renderEditor();
     });
-    sel.addEventListener('change', () => { fx.reveal = sel.value; if (!sel.value) delete fx.revealDelay; onFieldChange(); renderEditor(); });
-    f.appendChild(sel);
-    if (fx.reveal) {
-      const delRow = document.createElement('div'); delRow.className = 'fx-chips';
-      [0,0.1,0.2,0.3].forEach(d => {
-        const c = document.createElement('button'); c.type='button'; c.className='fx-chip'+(((fx.revealDelay||0)===d)?' active':'');
-        c.textContent = d === 0 ? 'No delay' : d+'s';
-        c.addEventListener('click', e => { e.preventDefault(); fx.revealDelay = d; onFieldChange(); renderEditor(); });
-        delRow.appendChild(c);
-      });
-      f.appendChild(delRow);
-    }
-    body.appendChild(f);
-  }
-  // Parallax chips
-  if (keys.includes('parallax')) {
-    const f = document.createElement('div'); f.className = 'field';
-    f.innerHTML = `<label class="field-label">Parallax</label>`;
+    grid.appendChild(tile);
+  });
+  body.appendChild(grid);
+
+  // Options appear only when reveal / parallax are active.
+  if (keys.includes('reveal') && fx.reveal) {
+    const f = document.createElement('div'); f.className = 'fx-opts';
+    f.innerHTML = `<label class="field-label">Reveal direction</label>`;
     const row = document.createElement('div'); row.className = 'fx-chips';
-    [[0,'Off'],[0.1,'Subtle'],[0.2,'Medium'],[0.3,'Strong']].forEach(([v,t]) => {
-      const c = document.createElement('button'); c.type='button'; c.className='fx-chip'+(((fx.parallax||0)===v)?' active':'');
-      c.textContent = t;
-      c.addEventListener('click', e => { e.preventDefault(); fx.parallax = v; onFieldChange(); renderEditor(); });
+    [['up', 'Up'], ['left', 'Left'], ['right', 'Right'], ['scale', 'Scale'], ['fade', 'Fade']].forEach(([v, t]) => {
+      const c = document.createElement('button'); c.type = 'button'; c.className = 'fx-chip' + ((fx.reveal === v) ? ' active' : ''); c.textContent = t;
+      c.addEventListener('click', (e) => { e.preventDefault(); fx.reveal = v; onFieldChange(); renderEditor(); });
+      row.appendChild(c);
+    });
+    f.appendChild(row);
+    const dl = document.createElement('div'); dl.className = 'fx-chips'; dl.style.marginTop = '4px';
+    [0, 0.1, 0.2, 0.3].forEach(d => {
+      const c = document.createElement('button'); c.type = 'button'; c.className = 'fx-chip' + (((fx.revealDelay || 0) === d) ? ' active' : '');
+      c.textContent = d === 0 ? 'No delay' : d + 's';
+      c.addEventListener('click', (e) => { e.preventDefault(); fx.revealDelay = d; onFieldChange(); renderEditor(); });
+      dl.appendChild(c);
+    });
+    f.appendChild(dl); body.appendChild(f);
+  }
+  if (keys.includes('parallax') && fx.parallax) {
+    const f = document.createElement('div'); f.className = 'fx-opts';
+    f.innerHTML = `<label class="field-label">Parallax strength</label>`;
+    const row = document.createElement('div'); row.className = 'fx-chips';
+    [[0.1, 'Subtle'], [0.2, 'Medium'], [0.3, 'Strong']].forEach(([v, t]) => {
+      const c = document.createElement('button'); c.type = 'button'; c.className = 'fx-chip' + ((fx.parallax === v) ? ' active' : ''); c.textContent = t;
+      c.addEventListener('click', (e) => { e.preventDefault(); fx.parallax = v; onFieldChange(); renderEditor(); });
       row.appendChild(c);
     });
     f.appendChild(row); body.appendChild(f);
   }
-  // Boolean toggles
-  ['tilt','wipe','zoom','glass','gradientText','genBg'].forEach(key => {
-    if (!keys.includes(key)) return;
-    const lbl = document.createElement('label');
-    lbl.className = 'fx-toggle';
-    const cb = document.createElement('input'); cb.type = 'checkbox'; cb.checked = !!fx[key];
-    cb.addEventListener('change', () => { fx[key] = cb.checked; onFieldChange(); });
-    lbl.appendChild(cb);
-    lbl.appendChild(document.createTextNode(' ' + FX_LABELS[key]));
-    body.appendChild(lbl);
-  });
 
   section.appendChild(header); section.appendChild(body);
   form.appendChild(section);
