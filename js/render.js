@@ -1556,6 +1556,7 @@ const BLOCK_RENDERERS = {
   Scene3D:         renderScene3D,
   WebGLGradient:   renderWebGLGradient,
   WebGLFlowmap:    renderWebGLFlowmap,
+  WebGLParticles:  renderWebGLParticles,
   Parallax:        renderParallax,
   LottieScroll:    renderLottieScroll,
 };
@@ -2666,6 +2667,14 @@ function renderWebGLFlowmap(d, block) {
   sec.appendChild(el('img', { class: 'webgl-fx-fallback', src: d.imageSrc || '', alt: d.title || '', loading: 'lazy' }));
   sec.appendChild(el('canvas', { class: 'webgl-fx-canvas', 'aria-hidden': 'true' }));
   Promise.resolve().then(() => _initWebGLFx(block.id, 'flowmap', d));
+  return sec;
+}
+
+function renderWebGLParticles(d, block) {
+  const sec = el('section', { class: `webgl-fx webgl-fx--particles ${_webglHeightCls(d.height)}`, id: `webglfx-${block.id}` });
+  sec.appendChild(el('img', { class: 'webgl-fx-fallback', src: d.imageSrc || '', alt: d.title || '', loading: 'lazy' }));
+  sec.appendChild(el('canvas', { class: 'webgl-fx-canvas', 'aria-hidden': 'true' }));
+  Promise.resolve().then(() => _initWebGLFx(block.id, 'particles', d));
   return sec;
 }
 

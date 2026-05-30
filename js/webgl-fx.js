@@ -39,7 +39,7 @@ export async function initWebGLFx(blockId, kind, data) {
   try {
     if (kind === 'gradient') effect = createGradient(THREE, renderer, data);
     else if (kind === 'flowmap') effect = createFlowmap(THREE, renderer, canvas, sec, data);
-    // particles added in a later phase
+    else if (kind === 'particles') effect = createParticles(THREE, renderer, canvas, sec, data);
   } catch (e) { console.error('[webgl-fx] effect build failed:', e); renderer.dispose(); return; }
   if (!effect) { renderer.dispose(); return; }
 
@@ -275,6 +275,115 @@ function createFlowmap(THREE, renderer, canvas, sec, data) {
     dispose() {
       (sec || canvas).removeEventListener('pointermove', onMove);
       rtA.dispose(); rtB.dispose(); updMat.dispose(); dispMat.dispose(); tex.dispose();
+    },
+  };
+}
+
+// ───────────────────────── Effect: Particle Dissolve ─────────────────────────
+// Image sampled into GPU points; a scroll-driven progress uniform scatters them.
+// The image assembles as the block centers in the viewport and disperses as it leaves.
+
+const PART_VERT = `
+precision highp float;
+attribute vec3 aRnd;
+uniform float u_progress;
+uniform float u_size;
+varying vec3 vColor;
+varying float vAlpha;
+void main(){
+  vColor = color;
+  vec3 pos = position + aRnd * (u_progress * 1.6);
+  vAlpha = 1.0 - u_progress * 0.9;
+  vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+  gl_PointSize = u_size / max(-mv.z, 0.001);
+  gl_Position = projectionMatrix * mv;
+}`;
+
+const PART_FRAG = `
+precision highp float;
+varying vec3 vColor;
+varying float vAlpha;
+void main(){
+  vec2 c = gl_PointCoord - 0.5;
+  if(dot(c, c) > 0.25) discard;
+  gl_FragColor = vec4(vColor, vAlpha);
+}`;
+
+function createParticles(THREE, renderer, canvas, sec, data) {
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 100);
+  camera.position.set(0, 0, 3.2);
+  camera.lookAt(0, 0, 0);
+
+  const isMobile = window.innerWidth < 768;
+  const densityMap = { low: isMobile ? 10 : 6, medium: isMobile ? 7 : 4, high: isMobile ? 5 : 3 };
+  const step = densityMap[data.density] || densityMap.medium;
+
+  const uniforms = { u_progress: { value: 0 }, u_size: { value: 320 } };
+  const mat = new THREE.ShaderMaterial({
+    uniforms, vertexShader: PART_VERT, fragmentShader: PART_FRAG,
+    vertexColors: true, transparent: true, depthWrite: false, depthTest: false,
+  });
+  let points = null;
+
+  // Load image (CORS) → offscreen 2D canvas → sample pixels → build geometry.
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    const MAXW = 260; // sampling resolution cap
+    const scale = Math.min(1, MAXW / img.width);
+    const iw = Math.max(2, Math.floor(img.width * scale));
+    const ih = Math.max(2, Math.floor(img.height * scale));
+    const oc = document.createElement('canvas'); oc.width = iw; oc.height = ih;
+    const ictx = oc.getContext('2d');
+    ictx.drawImage(img, 0, 0, iw, ih);
+    let px;
+    try { px = ictx.getImageData(0, 0, iw, ih).data; }
+    catch (e) { console.warn('[webgl-fx] particles: image not CORS-readable, skipping', e); return; }
+
+    const imgAspect = iw / ih;
+    const positions = [], colors = [], rnds = [];
+    for (let y = 0; y < ih; y += step) {
+      for (let x = 0; x < iw; x += step) {
+        const i = (y * iw + x) * 4;
+        if (px[i + 3] < 24) continue; // skip transparent
+        const u = x / iw, v = y / ih;
+        // map to a ~2-unit plane centred at origin, preserving aspect (contain)
+        const sx = imgAspect >= 1 ? 1 : imgAspect;
+        const sy = imgAspect >= 1 ? 1 / imgAspect : 1;
+        positions.push((u - 0.5) * 2 * sx, (0.5 - v) * 2 * sy, 0);
+        colors.push(px[i] / 255, px[i + 1] / 255, px[i + 2] / 255);
+        rnds.push((Math.random() - 0.5), (Math.random() - 0.5), (Math.random() - 0.5));
+      }
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3));
+    geo.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+    geo.setAttribute('aRnd', new THREE.Float32BufferAttribute(rnds, 3));
+    points = new THREE.Points(geo, mat);
+    scene.add(points);
+  };
+  img.src = data.imageSrc || '';
+
+  function scrollProgress() {
+    const r = sec.getBoundingClientRect();
+    const center = r.top + r.height / 2;
+    const t = center / Math.max(window.innerHeight, 1); // 1 at bottom, 0.5 centred, 0 at top
+    return Math.min(Math.abs(0.5 - t) * 2.2, 1); // formed when centred, dispersed at edges
+  }
+
+  return {
+    render() {
+      uniforms.u_progress.value += (scrollProgress() - uniforms.u_progress.value) * 0.12; // smooth
+      renderer.render(scene, camera);
+    },
+    resize(w, h) {
+      camera.aspect = w / Math.max(h, 1); camera.updateProjectionMatrix();
+      uniforms.u_size.value = Math.max(h, 1) * (renderer.getPixelRatio()) * 0.006 * 60;
+    },
+    dispose() {
+      if (points) { points.geometry.dispose(); scene.remove(points); }
+      mat.dispose();
     },
   };
 }
