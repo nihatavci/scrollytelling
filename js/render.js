@@ -675,6 +675,17 @@ const COMPONENT_CSS = `
 .scene3d-coming-soon{position:absolute;inset:0;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(248,248,248,.5);z-index:10;pointer-events:none}
 .scene3d--coming-soon .scene3d-coming-soon{display:flex}
 .scene3d-coming-soon span{background:#fa3d1d;color:#fff;font-weight:700;font-size:.875rem;letter-spacing:.08em;padding:10px 24px;border-radius:9999px}
+/* ── WebGL showpiece blocks ── */
+.webgl-fx{position:relative;width:100%;overflow:hidden;background:#f8f8f8}
+.webgl-fx.h-100{height:100vh}.webgl-fx.h-75{height:75vh}.webgl-fx.h-50{height:50vh}
+.webgl-fx--gradient{background:var(--spectrum-gradient,linear-gradient(135deg,#c679c4,#fa3d1d,#ffb005,#0358f7))}
+.webgl-fx-canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.webgl-fx-fallback{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.webgl-fx-overlay{position:absolute;inset:0;z-index:2;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:2rem;pointer-events:none}
+.webgl-fx-overlay.pos-bottom-left{justify-content:flex-end;align-items:flex-start;text-align:left}
+.webgl-fx-overlay.pos-bottom-right{justify-content:flex-end;align-items:flex-end;text-align:right}
+.webgl-fx-title{font-family:var(--font-display);font-size:clamp(2.2rem,6vw,4.5rem);font-weight:300;color:#fff;line-height:1.05;letter-spacing:-.04em;text-shadow:0 2px 24px rgba(0,0,0,.25)}
+.webgl-fx-subtitle{font-family:var(--font-body);font-size:clamp(1rem,2vw,1.3rem);color:rgba(255,255,255,.92);margin-top:.6rem;text-shadow:0 1px 12px rgba(0,0,0,.25)}
 /* ── Premium effects ── */
 .fx-zoom{animation:fxZoom 22s ease-in-out infinite alternate;transform-origin:center}
 @keyframes fxZoom{from{transform:scale(1)}to{transform:scale(1.08)}}
@@ -1543,6 +1554,7 @@ const BLOCK_RENDERERS = {
   FullscreenImage: renderFullscreenImage,
   AudioPlayer:     renderAudioPlayer,
   Scene3D:         renderScene3D,
+  WebGLGradient:   renderWebGLGradient,
   Parallax:        renderParallax,
   LottieScroll:    renderLottieScroll,
 };
@@ -2620,6 +2632,32 @@ async function _initScene3DPublic(blockId, data) {
   } catch (err) {
     console.error('[Scene3D] init failed:', err);
   }
+}
+
+// ───────── WebGL showpiece blocks (gradient / flowmap / particles) ─────────
+let _webglFxModPromise = null;
+async function _initWebGLFx(blockId, kind, data) {
+  try {
+    if (!_webglFxModPromise) _webglFxModPromise = import('./webgl-fx.js');
+    const mod = await _webglFxModPromise;
+    await mod.initWebGLFx(blockId, kind, data);
+  } catch (err) { console.error('[webgl-fx] init failed:', err); }
+}
+
+function _webglHeightCls(h) { return h === '75vh' ? 'h-75' : h === '50vh' ? 'h-50' : 'h-100'; }
+
+function renderWebGLGradient(d, block) {
+  const sec = el('section', { class: `webgl-fx webgl-fx--gradient ${_webglHeightCls(d.height)}`, id: `webglfx-${block.id}` });
+  sec.appendChild(el('canvas', { class: 'webgl-fx-canvas', 'aria-hidden': 'true' }));
+  const pos = d.overlayPosition || 'center';
+  if (d.title || d.subtitle) {
+    const ov = el('div', { class: 'webgl-fx-overlay pos-' + pos });
+    if (d.title) { const h = el('h2', { class: 'webgl-fx-title' }); h.innerHTML = d.title; ov.appendChild(h); }
+    if (d.subtitle) ov.appendChild(el('p', { class: 'webgl-fx-subtitle' }, d.subtitle));
+    sec.appendChild(ov);
+  }
+  Promise.resolve().then(() => _initWebGLFx(block.id, 'gradient', d));
+  return sec;
 }
 
 function renderImageCompare(d) {
