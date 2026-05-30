@@ -203,6 +203,15 @@ const BLOCK_SCHEMAS = {
       { key: 'overlayPosition', label: 'Text position', kind: 'select', group: 'layout', options: ['center','bottom-left','bottom-right'] },
     ],
   },
+  WebGLFlowmap: {
+    name: 'Flowmap Image',
+    description: 'An image that ripples and distorts as the reader moves the pointer — fluid WebGL trail.',
+    fields: [
+      { key: 'imageSrc',  label: 'Image — required', kind: 'image', group: 'media', required: true },
+      { key: 'intensity', label: 'Distortion intensity', kind: 'select', group: 'settings', options: ['0.1','0.18','0.28','0.4'] },
+      { key: 'height',    label: 'Height', kind: 'select', group: 'layout', options: ['100vh','75vh','50vh'] },
+    ],
+  },
 
   // ── Evidence & Proof ─────────────────────────────────────────
   ImageCompare: {
@@ -361,6 +370,7 @@ const BLOCK_ICONS = {
   FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}',
   Scene3D: '🎲',
   WebGLGradient: '\u{1F30C}',
+  WebGLFlowmap: '\u{1F30A}',
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -423,7 +433,7 @@ const PALETTE_CATEGORIES = [
   {
     label: 'Immersive (WebGL)',
     hint: 'GPU-powered showpieces — 3D models and shader scenes',
-    types: ['Scene3D', 'WebGLGradient'],
+    types: ['Scene3D', 'WebGLGradient', 'WebGLFlowmap'],
   },
   {
     label: 'Page Structure',
@@ -654,6 +664,7 @@ const BLOCK_PREVIEWS = {
       </div>
     </div>`,
   WebGLGradient: `<div style="width:100%;height:100%;border-radius:6px;background:linear-gradient(135deg,#c679c4,#fa3d1d 40%,#ffb005 70%,#0358f7);"></div>`,
+  WebGLFlowmap: `<div style="width:100%;height:100%;border-radius:6px;background:linear-gradient(120deg,#2a3a5a,#6a4a7a);position:relative;overflow:hidden"><div style="position:absolute;top:40%;left:10%;width:80%;height:3px;background:rgba(255,255,255,.5);filter:blur(1px);transform:rotate(-8deg)"></div></div>`,
   FullscreenImage: `
     <div style="background:linear-gradient(135deg,#2c1810 0%,#1a1510 100%);border-radius:6px;height:70px;position:relative;overflow:hidden;">
       <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.6) 100%);"></div>
@@ -1653,7 +1664,7 @@ function renderCreationField(fieldDef, data, onChange) {
 function openCreationCard(type, opts = {}) {
   // 3D blocks have no AI-generatable text — skip the Claude modal entirely and
   // open the orbit/upload editor directly by inserting an empty block.
-  if (type === 'Scene3D' || type === 'WebGLGradient') {
+  if (type === 'Scene3D' || type === 'WebGLGradient' || type === 'WebGLFlowmap') {
     addEmptyBlock(type, opts.insertAfter);
     return;
   }
@@ -3310,6 +3321,7 @@ function defaultDataFor(type) {
     case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
     case 'Scene3D': return { glbUrl: '', scenes: [], _comingSoon: 'false' };
     case 'WebGLGradient': return { colorsCsv: '', speed: '0.3', height: '100vh', title: '', subtitle: '', overlayPosition: 'center' };
+    case 'WebGLFlowmap': return { imageSrc: '', intensity: '0.18', height: '100vh' };
     default:          return {};
   }
 }
@@ -3439,7 +3451,7 @@ function renderEditor() {
   const toolbar = document.createElement('div');
   toolbar.className = 'block-actions';
   // Some blocks (e.g. 3D models) have no AI-generatable text — hide Enhance.
-  const noEnhance = block.type === 'Scene3D' || block.type === 'WebGLGradient';
+  const noEnhance = block.type === 'Scene3D' || block.type === 'WebGLGradient' || block.type === 'WebGLFlowmap';
   toolbar.innerHTML = `
     ${noEnhance ? '' : '<button data-act="claude" class="enhance-btn" title="Enhance with Claude">✨ Enhance</button>'}
     <span class="block-actions-spacer"></span>
