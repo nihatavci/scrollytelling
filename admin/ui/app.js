@@ -212,6 +212,15 @@ const BLOCK_SCHEMAS = {
       { key: 'height',    label: 'Height', kind: 'select', group: 'layout', options: ['100vh','75vh','50vh'] },
     ],
   },
+  WebGLParticles: {
+    name: 'Particle Dissolve',
+    description: 'An image that assembles from / dissolves into GPU particles as the reader scrolls.',
+    fields: [
+      { key: 'imageSrc', label: 'Image — required', kind: 'image', group: 'media', required: true },
+      { key: 'density',  label: 'Particle density', kind: 'select', group: 'settings', options: ['low','medium','high'] },
+      { key: 'height',   label: 'Height', kind: 'select', group: 'layout', options: ['100vh','75vh','50vh'] },
+    ],
+  },
 
   // ── Evidence & Proof ─────────────────────────────────────────
   ImageCompare: {
@@ -371,6 +380,7 @@ const BLOCK_ICONS = {
   Scene3D: '🎲',
   WebGLGradient: '\u{1F30C}',
   WebGLFlowmap: '\u{1F30A}',
+  WebGLParticles: '\u{2728}',
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -433,7 +443,7 @@ const PALETTE_CATEGORIES = [
   {
     label: 'Immersive (WebGL)',
     hint: 'GPU-powered showpieces — 3D models and shader scenes',
-    types: ['Scene3D', 'WebGLGradient', 'WebGLFlowmap'],
+    types: ['Scene3D', 'WebGLGradient', 'WebGLFlowmap', 'WebGLParticles'],
   },
   {
     label: 'Page Structure',
@@ -665,6 +675,7 @@ const BLOCK_PREVIEWS = {
     </div>`,
   WebGLGradient: `<div style="width:100%;height:100%;border-radius:6px;background:linear-gradient(135deg,#c679c4,#fa3d1d 40%,#ffb005 70%,#0358f7);"></div>`,
   WebGLFlowmap: `<div style="width:100%;height:100%;border-radius:6px;background:linear-gradient(120deg,#2a3a5a,#6a4a7a);position:relative;overflow:hidden"><div style="position:absolute;top:40%;left:10%;width:80%;height:3px;background:rgba(255,255,255,.5);filter:blur(1px);transform:rotate(-8deg)"></div></div>`,
+  WebGLParticles: `<div style="width:100%;height:100%;border-radius:6px;background:#111;position:relative;overflow:hidden">${Array.from({length:40}).map(()=>`<span style=\"position:absolute;width:2px;height:2px;border-radius:50%;background:#c06830;top:${Math.floor(Math.random()*100)}%;left:${Math.floor(Math.random()*100)}%\"></span>`).join('')}</div>`,
   FullscreenImage: `
     <div style="background:linear-gradient(135deg,#2c1810 0%,#1a1510 100%);border-radius:6px;height:70px;position:relative;overflow:hidden;">
       <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.6) 100%);"></div>
@@ -1664,7 +1675,7 @@ function renderCreationField(fieldDef, data, onChange) {
 function openCreationCard(type, opts = {}) {
   // 3D blocks have no AI-generatable text — skip the Claude modal entirely and
   // open the orbit/upload editor directly by inserting an empty block.
-  if (type === 'Scene3D' || type === 'WebGLGradient' || type === 'WebGLFlowmap') {
+  if (type === 'Scene3D' || type === 'WebGLGradient' || type === 'WebGLFlowmap' || type === 'WebGLParticles') {
     addEmptyBlock(type, opts.insertAfter);
     return;
   }
@@ -3322,6 +3333,7 @@ function defaultDataFor(type) {
     case 'Scene3D': return { glbUrl: '', scenes: [], _comingSoon: 'false' };
     case 'WebGLGradient': return { colorsCsv: '', speed: '0.3', height: '100vh', title: '', subtitle: '', overlayPosition: 'center' };
     case 'WebGLFlowmap': return { imageSrc: '', intensity: '0.18', height: '100vh' };
+    case 'WebGLParticles': return { imageSrc: '', density: 'medium', height: '100vh' };
     default:          return {};
   }
 }
@@ -3451,7 +3463,7 @@ function renderEditor() {
   const toolbar = document.createElement('div');
   toolbar.className = 'block-actions';
   // Some blocks (e.g. 3D models) have no AI-generatable text — hide Enhance.
-  const noEnhance = block.type === 'Scene3D' || block.type === 'WebGLGradient' || block.type === 'WebGLFlowmap';
+  const noEnhance = block.type === 'Scene3D' || block.type === 'WebGLGradient' || block.type === 'WebGLFlowmap' || block.type === 'WebGLParticles';
   toolbar.innerHTML = `
     ${noEnhance ? '' : '<button data-act="claude" class="enhance-btn" title="Enhance with Claude">✨ Enhance</button>'}
     <span class="block-actions-spacer"></span>
