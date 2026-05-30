@@ -4636,7 +4636,7 @@ ${themeLink}
 <body>
 <main id="page-root"></main>
 <script type="module">
-import { render } from '${origin}/js/render.js?v=20260528t';
+import { render } from '${origin}/js/render.js?v=20260528u';
 render();
 <\/script>
 ${veScript}</body></html>`;
