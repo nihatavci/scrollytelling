@@ -81,6 +81,13 @@ export function disposeWebGLFx(blockId) {
   _active.get(blockId)?.dispose();
 }
 
+// Dispose every live WebGL instance — called before an admin soft-refresh wipes
+// the DOM, so GL contexts are released instead of leaking (browser caps ~16).
+export function disposeAllWebGLFx() {
+  for (const inst of [..._active.values()]) { try { inst.dispose(); } catch (_) {} }
+  _active.clear();
+}
+
 // ───────────────────────── Effect: Shader Gradient ─────────────────────────
 // Domain-warped value-noise blend of up to 4 brand colors on a full-screen quad.
 
@@ -369,7 +376,10 @@ function createParticles(THREE, renderer, canvas, sec, data) {
     const r = sec.getBoundingClientRect();
     const center = r.top + r.height / 2;
     const t = center / Math.max(window.innerHeight, 1); // 1 at bottom, 0.5 centred, 0 at top
-    return Math.min(Math.abs(0.5 - t) * 2.2, 1); // formed when centred, dispersed at edges
+    // Hold the image fully formed across a center band (deadzone), then disperse
+    // toward the edges — so it reads as a solid image while in view, not a perpetual cloud.
+    const DEADZONE = 0.22;
+    return Math.min(Math.max(Math.abs(0.5 - t) - DEADZONE, 0) * 3.2, 1);
   }
 
   return {

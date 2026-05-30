@@ -276,3 +276,10 @@ export async function initScene3D(blockId, data) {
 export function dispose(blockId) {
   _active.get(blockId)?.disposeAll();
 }
+
+// Dispose every live Scene3D instance — called before an admin soft-refresh wipes
+// the DOM, so WebGL contexts are released instead of leaking.
+export function disposeAllScene3D() {
+  for (const inst of [..._active.values()]) { try { inst.disposeAll(); } catch (_) {} }
+  _active.clear();
+}

@@ -2624,12 +2624,14 @@ function renderScene3D(d, block) {
 }
 
 let _scene3dModPromise = null;
+let _scene3dMod = null;
 async function _initScene3DPublic(blockId, data) {
   try {
     if (!_scene3dModPromise) {
       _scene3dModPromise = import('./scene3d.js');
     }
     const mod = await _scene3dModPromise;
+    _scene3dMod = mod;
     await mod.initScene3D(blockId, data);
   } catch (err) {
     console.error('[Scene3D] init failed:', err);
@@ -2638,10 +2640,12 @@ async function _initScene3DPublic(blockId, data) {
 
 // ───────── WebGL showpiece blocks (gradient / flowmap / particles) ─────────
 let _webglFxModPromise = null;
+let _webglFxMod = null;
 async function _initWebGLFx(blockId, kind, data) {
   try {
     if (!_webglFxModPromise) _webglFxModPromise = import('./webgl-fx.js');
     const mod = await _webglFxModPromise;
+    _webglFxMod = mod;
     await mod.initWebGLFx(blockId, kind, data);
   } catch (err) { console.error('[webgl-fx] init failed:', err); }
 }
@@ -3396,6 +3400,11 @@ window.addEventListener('message', function (evt) {
     // Preserve the reader's scroll position across the in-place rebuild so editing
     // never jumps the preview to the top.
     var prevScroll = window.scrollY || window.pageYOffset || 0;
+    // Release live WebGL/Scene3D contexts BEFORE wiping the DOM, so they don't
+    // leak (and deleted blocks don't orphan a GL context). Synchronous → runs
+    // before the re-init microtasks scheduled by the render loop below.
+    if (_webglFxMod) { try { _webglFxMod.disposeAllWebGLFx(); } catch (_) {} }
+    if (_scene3dMod) { try { _scene3dMod.disposeAllScene3D(); } catch (_) {} }
     root.innerHTML = '';
     var blocks = doc.blocks || [];
     for (var i = 0; i < blocks.length; i++) {
