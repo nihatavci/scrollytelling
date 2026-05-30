@@ -191,6 +191,19 @@ const BLOCK_SCHEMAS = {
     ],
   },
 
+  WebGLGradient: {
+    name: 'Shader Gradient',
+    description: 'A living, flowing gradient rendered with a WebGL shader. Optional headline overlay.',
+    fields: [
+      { key: 'colorsCsv', label: 'Colors (comma-separated hex)', kind: 'text', group: 'media', hint: 'Up to 4. Default: spectrum #c679c4,#fa3d1d,#ffb005,#0358f7' },
+      { key: 'speed',     label: 'Animation speed', kind: 'select', group: 'settings', options: ['0.15','0.3','0.5','0.8'] },
+      { key: 'height',    label: 'Height', kind: 'select', group: 'layout', options: ['100vh','75vh','50vh'] },
+      { key: 'title',     label: 'Title (HTML)', kind: 'textarea_html', group: 'content' },
+      { key: 'subtitle',  label: 'Subtitle', kind: 'text', group: 'content' },
+      { key: 'overlayPosition', label: 'Text position', kind: 'select', group: 'layout', options: ['center','bottom-left','bottom-right'] },
+    ],
+  },
+
   // ── Evidence & Proof ─────────────────────────────────────────
   ImageCompare: {
     name: 'Before & After',
@@ -347,6 +360,7 @@ const BLOCK_ICONS = {
   EmbedBlock: '\u{1F9E9}', ImageGrid: '\u{1F50D}', Map2D: '\u{1F9ED}',
   FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}',
   Scene3D: '🎲',
+  WebGLGradient: '\u{1F30C}',
 };
 
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
@@ -407,6 +421,11 @@ const EDITORIAL_ITEM_KINDS = [
 // Palette organized by narrative function — what does this moment in your story need?
 const PALETTE_CATEGORIES = [
   {
+    label: 'Immersive (WebGL)',
+    hint: 'GPU-powered showpieces — 3D models and shader scenes',
+    types: ['Scene3D', 'WebGLGradient'],
+  },
+  {
     label: 'Page Structure',
     hint: 'Cover, section breaks, progress bar, and the ending',
     types: ['Hero', 'ChapterDivider', 'ProgressNav', 'Outro'],
@@ -419,7 +438,7 @@ const PALETTE_CATEGORIES = [
   {
     label: 'Images & Media',
     hint: 'Photos, galleries, video, audio, and 3D models',
-    types: ['FullscreenImage', 'FullBleed', 'ImageGrid', 'ImageCompare', 'ImageHotspot', 'VideoEmbed', 'AudioPlayer', 'Scene3D'],
+    types: ['FullscreenImage', 'FullBleed', 'ImageGrid', 'ImageCompare', 'ImageHotspot', 'VideoEmbed', 'AudioPlayer'],
   },
   {
     label: 'Scroll Animations',
@@ -634,6 +653,7 @@ const BLOCK_PREVIEWS = {
         <div style="width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);"></div>
       </div>
     </div>`,
+  WebGLGradient: `<div style="width:100%;height:100%;border-radius:6px;background:linear-gradient(135deg,#c679c4,#fa3d1d 40%,#ffb005 70%,#0358f7);"></div>`,
   FullscreenImage: `
     <div style="background:linear-gradient(135deg,#2c1810 0%,#1a1510 100%);border-radius:6px;height:70px;position:relative;overflow:hidden;">
       <div style="position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(0,0,0,.6) 100%);"></div>
@@ -1633,7 +1653,7 @@ function renderCreationField(fieldDef, data, onChange) {
 function openCreationCard(type, opts = {}) {
   // 3D blocks have no AI-generatable text — skip the Claude modal entirely and
   // open the orbit/upload editor directly by inserting an empty block.
-  if (type === 'Scene3D') {
+  if (type === 'Scene3D' || type === 'WebGLGradient') {
     addEmptyBlock(type, opts.insertAfter);
     return;
   }
@@ -3289,6 +3309,7 @@ function defaultDataFor(type) {
     case 'FullscreenImage': return { imageSrc: '', imageAlt: '', kicker: '', title: 'Title', subtitle: '', body: '', overlayPosition: 'bottom-left', scrimOpacity: 0.45, scrimDirection: 'bottom', kenBurns: true, scrollCue: false, caption: '', credit: '' };
     case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
     case 'Scene3D': return { glbUrl: '', scenes: [], _comingSoon: 'false' };
+    case 'WebGLGradient': return { colorsCsv: '', speed: '0.3', height: '100vh', title: '', subtitle: '', overlayPosition: 'center' };
     default:          return {};
   }
 }
@@ -3418,7 +3439,7 @@ function renderEditor() {
   const toolbar = document.createElement('div');
   toolbar.className = 'block-actions';
   // Some blocks (e.g. 3D models) have no AI-generatable text — hide Enhance.
-  const noEnhance = block.type === 'Scene3D';
+  const noEnhance = block.type === 'Scene3D' || block.type === 'WebGLGradient';
   toolbar.innerHTML = `
     ${noEnhance ? '' : '<button data-act="claude" class="enhance-btn" title="Enhance with Claude">✨ Enhance</button>'}
     <span class="block-actions-spacer"></span>
