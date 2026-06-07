@@ -163,6 +163,11 @@ async function initScene3DEditor(container, blockData, onChange) {
 
   function renderTextPanel() {
     const sc = blockData.scenes[activeSlot];
+    if (blockData.textMode === 'flow') {
+      textPanel.style.display = '';
+      textPanel.innerHTML = `<div class="s3d-text-title">Flowing text mode — edit “Article text” in the block settings on the right. Per-scene captions are disabled in flow mode.</div>`;
+      return;
+    }
     if (!sc) { textPanel.innerHTML = ''; textPanel.style.display = 'none'; return; }
     textPanel.style.display = '';
     textPanel.innerHTML = `

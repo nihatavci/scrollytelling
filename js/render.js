@@ -675,6 +675,13 @@ const COMPONENT_CSS = `
 .scene3d-coming-soon{position:absolute;inset:0;display:none;align-items:center;justify-content:center;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);background:rgba(248,248,248,.5);z-index:10;pointer-events:none}
 .scene3d--coming-soon .scene3d-coming-soon{display:flex}
 .scene3d-coming-soon span{background:#fa3d1d;color:#fff;font-weight:700;font-size:.875rem;letter-spacing:.08em;padding:10px 24px;border-radius:9999px}
+.scene3d-text-canvas{position:absolute;inset:0;width:100%;height:100%;z-index:3;pointer-events:none}
+.scene3d-text-a11y{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+.scene3d-flow-fallback{display:none;max-width:720px;margin:0 auto;padding:6vh 1.25rem;font-family:Georgia,serif;font-size:1.0625rem;line-height:1.6;color:var(--ink-black,#000)}
+.scene3d-flow-fallback p{margin:0 0 1.1em}
+/* Fallback shows (and canvas hides) on mobile / reduced-motion */
+@media(max-width:767px){.scene3d--flow .scene3d-text-canvas{display:none}.scene3d--flow .scene3d-flow-fallback{display:block}}
+@media(prefers-reduced-motion:reduce){.scene3d--flow .scene3d-text-canvas{display:none}.scene3d--flow .scene3d-flow-fallback{display:block}}
 /* ── WebGL showpiece blocks ── */
 .webgl-fx{position:relative;width:100%;overflow:hidden;background:#f8f8f8}
 .webgl-fx.h-100{height:100vh}.webgl-fx.h-75{height:75vh}.webgl-fx.h-50{height:50vh}
@@ -2556,6 +2563,19 @@ function renderScene3D(d, block) {
   const sticky = el('div', { class: 'scene3d-sticky' });
   const canvas = el('canvas', { class: 'scene3d-canvas', 'aria-hidden': 'true' });
   sticky.appendChild(canvas);
+
+  if (d.textMode === 'flow') {
+    sec.classList.add('scene3d--flow');
+    sticky.appendChild(el('canvas', { class: 'scene3d-text-canvas', 'aria-hidden': 'true' }));
+    const a11y = el('div', { class: 'scene3d-text-a11y' });
+    String(d.flowText || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean)
+      .forEach(p => a11y.appendChild(el('p', {}, p)));
+    sticky.appendChild(a11y);
+    const fb = el('div', { class: 'scene3d-flow-fallback' });
+    String(d.flowText || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean)
+      .forEach(p => fb.appendChild(el('p', {}, p)));
+    sec.appendChild(fb);
+  }
 
   // Spatial annotation overlay — dots positioned every frame by scene3d.js
   const annoLayer = el('div', { class: 'scene3d-annotations', 'aria-hidden': 'true' });

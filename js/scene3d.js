@@ -91,6 +91,9 @@ export async function initScene3D(blockId, data) {
   // ── Load model — GLB/GLTF via GLTFLoader, STL via STLLoader (geometry → mesh) ──
   const isSTL = /\.stl(\?|$)/i.test(data.glbUrl);
   let model;
+  // Flowing text controller (flow mode only). Declared early to avoid TDZ in
+  // tweenCamera's step, the ResizeObserver, and disposeAll, which all reference it.
+  let flow = null;
   try {
     if (isSTL) {
       const geo = await new Promise((res, rej) => new STLLoader().load(data.glbUrl, res, undefined, rej));
@@ -126,6 +129,26 @@ export async function initScene3D(blockId, data) {
   requestAnimationFrame(() => { resize(); renderer.render(scene, camera); });
   canvas.style.opacity = '1';
   if (loaderEl) loaderEl.style.display = 'none';
+
+  // Flowing text (pretext) — only in flow mode.
+  if (data.textMode === 'flow') {
+    const textCanvas = sec.querySelector('.scene3d-text-canvas');
+    if (textCanvas && !(window.matchMedia && window.matchMedia('(max-width:767px),(prefers-reduced-motion: reduce)').matches)) {
+      import('./scene3d-flow.js').then(async (FM) => {
+        if (!FM.flowSupported()) return; // fallback CSS shows
+        flow = await FM.createFlowText({
+          THREE, textCanvas,
+          getCamera: () => camera, getModel: () => model,
+          getColor: () => (data.bg === 'dark' ? '#f4f4f5' : '#111'),
+          text: data.flowText || '', columns: data.flowColumns || 2,
+        });
+        if (flow) {
+          const fit = () => { flow.resize(textCanvas.clientWidth, textCanvas.clientHeight, Math.min(window.devicePixelRatio||1, 2)); flow.relayout(); };
+          fit();
+        }
+      }).catch(() => {});
+    }
+  }
 
   // currentIdx is read by updateAnnotations() below; declare before first use.
   let currentIdx = 0;
@@ -204,6 +227,7 @@ export async function initScene3D(blockId, data) {
       resize();
       renderer.render(scene, camera);
       updateAnnotations();
+      if (flow) flow.relayout();
       if (p < 1) { tweenRaf = requestAnimationFrame(step); }
       else { tweenRaf = null; }
     }
@@ -250,7 +274,10 @@ export async function initScene3D(blockId, data) {
   onScroll(); // set initial scene immediately
 
   // ── ResizeObserver — refit canvas when container changes ──
-  const ro = new ResizeObserver(() => { resize(); renderer.render(scene, camera); updateAnnotations(); });
+  const ro = new ResizeObserver(() => {
+    resize(); renderer.render(scene, camera); updateAnnotations();
+    if (flow) { const tc = sec.querySelector('.scene3d-text-canvas'); if (tc) flow.resize(tc.clientWidth, tc.clientHeight, Math.min(window.devicePixelRatio||1,2)); flow.relayout(); }
+  });
   ro.observe(canvas);
 
   // NOTE: no scroll-based auto-dispose. A previous version disposed the renderer
@@ -259,6 +286,7 @@ export async function initScene3D(blockId, data) {
   // teardown (e.g. when the admin soft-refresh re-renders the block).
   function disposeAll() {
     if (tweenRaf) cancelAnimationFrame(tweenRaf);
+    if (flow) flow.dispose();
     window.removeEventListener('scroll', onScroll);
     ro.disconnect();
     scene.traverse(obj => {
