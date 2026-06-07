@@ -64,3 +64,72 @@ export function computeOccupancy(THREE, camera, model, W, H) {
 }
 
 export { FONT, FONT_PX, LINE_H, BANDS, GUTTER, MIN_W };
+
+// createFlowText(opts) — controller that lays out prose into columns and draws it
+// onto a 2D canvas, wrapping around the model's occupancy each call to relayout().
+// opts: { THREE, textCanvas, getCamera, getModel, getColor, text, columns }
+export async function createFlowText(opts) {
+  const { THREE, textCanvas, getCamera, getModel, getColor } = opts;
+  if (!flowSupported()) return null;
+  let P; try { P = await loadPretext(); } catch (_) { return null; }
+  const ctx = textCanvas.getContext('2d');
+  if (!ctx) return null;
+  let columns = Math.max(1, Math.min(3, opts.columns || 2));
+  let W = 1, H = 1;
+  const splitParas = (t) => String(t || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
+  let prepared = splitParas(opts.text).map(p => P.prepareWithSegments(p, FONT));
+
+  function resize(w, h, dpr) {
+    W = Math.max(w, 1); H = Math.max(h, 1);
+    const r = dpr || Math.min(window.devicePixelRatio || 1, 2);
+    textCanvas.width = Math.floor(W * r); textCanvas.height = Math.floor(H * r);
+    ctx.setTransform(r, 0, 0, r, 0, 0);
+  }
+  function setText(t, cols) {
+    if (cols) columns = Math.max(1, Math.min(3, cols));
+    prepared = splitParas(t).map(p => P.prepareWithSegments(p, FONT));
+  }
+
+  // Widest open horizontal segment for a given line-y within a column.
+  function openSegment(occ, y, colX, colW) {
+    const b = Math.max(0, Math.min(BANDS - 1, Math.floor(y / H * BANDS)));
+    const iv = occ[b];
+    const colR = colX + colW;
+    if (!iv || iv[1] <= colX || iv[0] >= colR) return { x: colX, w: colW }; // model misses column
+    const leftW = iv[0] - colX, rightW = colR - iv[1];
+    return leftW >= rightW ? { x: colX, w: Math.max(0, leftW) } : { x: iv[1], w: Math.max(0, rightW) };
+  }
+
+  function relayout() {
+    if (!W || !H || !prepared.length) return;
+    ctx.clearRect(0, 0, W, H);
+    ctx.font = FONT; ctx.textBaseline = 'alphabetic';
+    ctx.fillStyle = (getColor && getColor()) || '#111';
+    const occ = computeOccupancy(THREE, getCamera(), getModel(), W, H);
+    const colW = (W - GUTTER * (columns - 1)) / columns;
+    const topPad = LINE_H + 8, botPad = LINE_H;
+    let pi = 0, col = 0, y = topPad;
+    let cursor = { segmentIndex: 0, graphemeIndex: 0 };
+    let safety = 0;
+    while (pi < prepared.length && col < columns && safety++ < 4000) {
+      const colX = col * (colW + GUTTER);
+      const seg = openSegment(occ, y, colX, colW);
+      if (seg.w < MIN_W) { y += LINE_H; if (y > H - botPad) { col++; y = topPad; } continue; }
+      const range = P.layoutNextLineRange(prepared[pi], cursor, seg.w);
+      if (!range) { pi++; cursor = { segmentIndex: 0, graphemeIndex: 0 }; y += LINE_H * 0.7; continue; }
+      let text = '';
+      try { text = (P.materializeLineRange(prepared[pi], range).text || '').trimEnd(); } catch (_) {}
+      if (text) ctx.fillText(text, seg.x, y);
+      const end = range.end;
+      if (end && end.segmentIndex === cursor.segmentIndex && end.graphemeIndex === cursor.graphemeIndex) {
+        pi++; cursor = { segmentIndex: 0, graphemeIndex: 0 }; y += LINE_H * 0.7; // paragraph done
+      } else {
+        cursor = end; y += LINE_H;
+      }
+      if (y > H - botPad) { col++; y = topPad; }
+    }
+  }
+
+  resize(textCanvas.clientWidth, textCanvas.clientHeight);
+  return { relayout, resize, setText, dispose() { try { ctx.clearRect(0, 0, W, H); } catch (_) {} } };
+}
