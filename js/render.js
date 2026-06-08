@@ -2567,13 +2567,15 @@ function renderScene3D(d, block) {
   if (d.textMode === 'flow') {
     sec.classList.add('scene3d--flow');
     sticky.appendChild(el('canvas', { class: 'scene3d-text-canvas', 'aria-hidden': 'true' }));
+    // a11y/SEO + mobile fallback prose: block default first, then each scene's text.
+    const sceneTexts = (d.scenes || []).filter(Boolean).map(s => s && s.flowText).filter(Boolean);
+    const allProse = [d.flowText, ...sceneTexts].filter(Boolean).join('\n\n');
+    const paras = String(allProse || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
     const a11y = el('div', { class: 'scene3d-text-a11y' });
-    String(d.flowText || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean)
-      .forEach(p => a11y.appendChild(el('p', {}, p)));
+    paras.forEach(p => a11y.appendChild(el('p', {}, p)));
     sticky.appendChild(a11y);
     const fb = el('div', { class: 'scene3d-flow-fallback' });
-    String(d.flowText || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean)
-      .forEach(p => fb.appendChild(el('p', {}, p)));
+    paras.forEach(p => fb.appendChild(el('p', {}, p)));
     sec.appendChild(fb);
   }
 

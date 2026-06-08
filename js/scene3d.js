@@ -136,11 +136,14 @@ export async function initScene3D(blockId, data) {
     if (textCanvas && !(window.matchMedia && window.matchMedia('(max-width:767px),(prefers-reduced-motion: reduce)').matches)) {
       import('./scene3d-flow.js').then(async (FM) => {
         if (!FM.flowSupported()) return; // fallback CSS shows
+        const MARGINS = { tight: 16, normal: 56, wide: 110 };
+        const sceneText = (i) => (scenes[i] && scenes[i].flowText) || data.flowText || '';
         flow = await FM.createFlowText({
           THREE, textCanvas,
           getCamera: () => camera, getModel: () => model,
           getColor: () => (data.bg === 'dark' ? '#f4f4f5' : '#111'),
-          text: data.flowText || '', columns: data.flowColumns || 2,
+          text: sceneText(currentIdx), columns: data.flowColumns || 2,
+          margin: MARGINS[data.flowMargin] != null ? MARGINS[data.flowMargin] : MARGINS.normal,
         });
         if (flow) {
           const fit = () => { flow.resize(textCanvas.clientWidth, textCanvas.clientHeight, Math.min(window.devicePixelRatio||1, 2)); flow.relayout(); };
@@ -249,6 +252,8 @@ export async function initScene3D(blockId, data) {
     }
     tweenCamera(scenes[n], 1600);
     updateAnnotations();
+    // Switch flowing text to this scene's prose (falls back to block default).
+    if (flow) flow.setText((scenes[n] && scenes[n].flowText) || data.flowText || '', data.flowColumns || 2);
   }
 
   // Deterministic scene selection: whichever card's center is nearest the

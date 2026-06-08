@@ -75,9 +75,11 @@ export async function createFlowText(opts) {
   const ctx = textCanvas.getContext('2d');
   if (!ctx) return null;
   let columns = Math.max(1, Math.min(3, opts.columns || 2));
+  let margin = Math.max(0, opts.margin || 0);   // horizontal page inset (px)
   let W = 1, H = 1;
   const splitParas = (t) => String(t || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
   let prepared = splitParas(opts.text).map(p => P.prepareWithSegments(p, FONT));
+  let _lastText = String(opts.text || '');
 
   function resize(w, h, dpr) {
     W = Math.max(w, 1); H = Math.max(h, 1);
@@ -87,8 +89,12 @@ export async function createFlowText(opts) {
   }
   function setText(t, cols) {
     if (cols) columns = Math.max(1, Math.min(3, cols));
-    prepared = splitParas(t).map(p => P.prepareWithSegments(p, FONT));
+    const str = String(t || '');
+    if (str === _lastText && !cols) return; // no-op if unchanged (avoids re-prepare churn)
+    _lastText = str;
+    prepared = splitParas(str).map(p => P.prepareWithSegments(p, FONT));
   }
+  function setMargin(m) { margin = Math.max(0, m || 0); }
 
   // Widest open horizontal segment for a given line-y within a column.
   function openSegment(occ, y, colX, colW) {
@@ -106,13 +112,14 @@ export async function createFlowText(opts) {
     ctx.font = FONT; ctx.textBaseline = 'alphabetic';
     ctx.fillStyle = (getColor && getColor()) || '#111';
     const occ = computeOccupancy(THREE, getCamera(), getModel(), W, H);
-    const colW = (W - GUTTER * (columns - 1)) / columns;
+    const usableW = Math.max(MIN_W, W - margin * 2);
+    const colW = (usableW - GUTTER * (columns - 1)) / columns;
     const topPad = LINE_H + 8, botPad = LINE_H;
     let pi = 0, col = 0, y = topPad;
     let cursor = { segmentIndex: 0, graphemeIndex: 0 };
     let safety = 0;
     while (pi < prepared.length && col < columns && safety++ < 4000) {
-      const colX = col * (colW + GUTTER);
+      const colX = margin + col * (colW + GUTTER);
       const seg = openSegment(occ, y, colX, colW);
       if (seg.w < MIN_W) { y += LINE_H; if (y > H - botPad) { col++; y = topPad; } continue; }
       const range = P.layoutNextLineRange(prepared[pi], cursor, seg.w);
@@ -131,5 +138,5 @@ export async function createFlowText(opts) {
   }
 
   resize(textCanvas.clientWidth, textCanvas.clientHeight);
-  return { relayout, resize, setText, dispose() { try { ctx.clearRect(0, 0, W, H); } catch (_) {} } };
+  return { relayout, resize, setText, setMargin, dispose() { try { ctx.clearRect(0, 0, W, H); } catch (_) {} } };
 }
