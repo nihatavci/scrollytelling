@@ -165,7 +165,14 @@ async function initScene3DEditor(container, blockData, onChange) {
     const sc = blockData.scenes[activeSlot];
     if (blockData.textMode === 'flow') {
       textPanel.style.display = '';
-      textPanel.innerHTML = `<div class="s3d-text-title">Flowing text mode — edit “Article text” in the block settings on the right. Per-scene captions are disabled in flow mode.</div>`;
+      const scn = blockData.scenes[activeSlot];
+      if (!scn) { textPanel.innerHTML = `<div class="s3d-text-title">Flowing text mode — save a scene first, then give it its own article text.</div>`; return; }
+      textPanel.innerHTML = `
+        <div class="s3d-text-title">Scene ${activeSlot + 1} article text <span>— flows around the model on this scene. Empty = uses the block's default Article text.</span></div>
+        <div class="field"><label class="field-label">Article text (this scene)</label><textarea class="s3d-flow-text" rows="5" placeholder="Leave empty to use the block default…"></textarea></div>`;
+      const ta = textPanel.querySelector('.s3d-flow-text');
+      ta.value = scn.flowText || '';
+      ta.addEventListener('input', () => { scn.flowText = ta.value; onChange(); });
       return;
     }
     if (!sc) { textPanel.innerHTML = ''; textPanel.style.display = 'none'; return; }

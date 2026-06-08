@@ -191,6 +191,7 @@ const BLOCK_SCHEMAS = {
       { key: 'textMode',    label: 'Text mode', kind: 'select', group: 'settings', options: ['cards', 'flow'] },
       { key: 'flowText',    label: 'Article text (flow mode)', kind: 'textarea', group: 'content', hint: 'Plain paragraphs, blank line between. Flows around the model.' },
       { key: 'flowColumns', label: 'Columns (flow mode)', kind: 'select', group: 'layout', options: ['1','2','3'] },
+      { key: 'flowMargin',  label: 'Text margin (flow mode)', kind: 'select', group: 'layout', options: ['tight','normal','wide'] },
     ],
   },
 
@@ -3333,7 +3334,7 @@ function defaultDataFor(type) {
     case 'Map2D': return { title: '', subtitle: '', source: '', layout: 'behind', tileStyle: 'default', height: '100vh', maxWidth: '100%', initialCenter: [52.52, 13.405], initialZoom: 6, flyDuration: 2, scrollZoom: false, markers: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', name: 'Berlin', popupHtml: '<strong>Berlin</strong>', color: '#c06830' }], routes: [], areas: [], steps: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }], caption: '', credit: 'OpenStreetMap' };
     case 'FullscreenImage': return { imageSrc: '', imageAlt: '', kicker: '', title: 'Title', subtitle: '', body: '', overlayPosition: 'bottom-left', scrimOpacity: 0.45, scrimDirection: 'bottom', kenBurns: true, scrollCue: false, caption: '', credit: '' };
     case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
-    case 'Scene3D': return { glbUrl: '', scenes: [], _comingSoon: 'false', textMode: 'cards', flowText: '', flowColumns: '2' };
+    case 'Scene3D': return { glbUrl: '', scenes: [], _comingSoon: 'false', textMode: 'cards', flowText: '', flowColumns: '2', flowMargin: 'normal' };
     case 'WebGLGradient': return { colorsCsv: '', speed: '0.3', height: '100vh', title: '', subtitle: '', overlayPosition: 'center' };
     case 'WebGLFlowmap': return { imageSrc: '', intensity: '0.18', height: '100vh' };
     case 'WebGLParticles': return { imageSrc: '', density: 'medium', height: '100vh' };
