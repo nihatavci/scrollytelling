@@ -76,6 +76,8 @@ export async function createFlowText(opts) {
   if (!ctx) return null;
   let columns = Math.max(1, Math.min(3, opts.columns || 2));
   let margin = Math.max(0, opts.margin || 0);   // horizontal page inset (px)
+  let plate = opts.plate != null ? opts.plate : 0.72;   // readability backing alpha (0 = off)
+  let plateColor = opts.plateColor || '#f8f8f8';        // backing color (page bg)
   let W = 1, H = 1;
   const splitParas = (t) => String(t || '').split(/\n\s*\n/).map(s => s.trim()).filter(Boolean);
   let prepared = splitParas(opts.text).map(p => P.prepareWithSegments(p, FONT));
@@ -126,7 +128,18 @@ export async function createFlowText(opts) {
       if (!range) { pi++; cursor = { segmentIndex: 0, graphemeIndex: 0 }; y += LINE_H * 0.7; continue; }
       let text = '';
       try { text = (P.materializeLineRange(prepared[pi], range).text || '').trimEnd(); } catch (_) {}
-      if (text) ctx.fillText(text, seg.x, y);
+      if (text) {
+        if (plate > 0) {
+          const tw = ctx.measureText(text).width;
+          ctx.save();
+          ctx.globalAlpha = plate;
+          ctx.fillStyle = plateColor;
+          ctx.fillRect(seg.x - 6, y - FONT_PX, tw + 12, LINE_H);
+          ctx.restore();
+        }
+        ctx.fillStyle = (getColor && getColor()) || '#111';
+        ctx.fillText(text, seg.x, y);
+      }
       const end = range.end;
       if (end && end.segmentIndex === cursor.segmentIndex && end.graphemeIndex === cursor.graphemeIndex) {
         pi++; cursor = { segmentIndex: 0, graphemeIndex: 0 }; y += LINE_H * 0.7; // paragraph done
