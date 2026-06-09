@@ -2057,12 +2057,18 @@ function setSaveStatus(s) { showSaveIndicator(s); }
 
 // ─────────────────────────── Auth ────────────────────────────
 async function checkSession() {
+  // Password-recovery links land on /admin with a recovery token in the URL hash.
+  // Don't auto-enter the editor — let the recovery handler show the set-password form.
+  if (location.hash.includes('type=recovery')) {
+    showAuth();
+    return;
+  }
   try {
     const { loggedIn } = await SB.checkSession();
     if (loggedIn) { showApp(); return; }
   } catch { /* ignore */ }
-  // Not logged in — show inline login bar inside the app
-  showAppWithAuth();
+  // Not logged in — show the full-screen auth gate.
+  showAuth();
 }
 function showAuth() {
   document.getElementById('auth').classList.remove('hidden');
@@ -2071,57 +2077,7 @@ function showAuth() {
 function showApp() {
   document.getElementById('auth').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
-  dismissInlineAuth();
   loadPages();
-}
-function showAppWithAuth() {
-  // Show the app shell immediately with an inline login bar — no full-screen gate
-  document.getElementById('auth').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  showInlineAuth();
-}
-function showInlineAuth() {
-  if (document.getElementById('inline-auth')) return;
-  const bar = document.createElement('div');
-  bar.id = 'inline-auth';
-  bar.style.cssText = 'background:#1a1a2e;color:#fff;padding:16px 20px;display:flex;flex-wrap:wrap;align-items:center;gap:10px;font-size:13px;position:sticky;top:0;z-index:100;';
-  const lastEmail = localStorage.getItem('scrollycms_email') || '';
-  bar.innerHTML = `
-    <span style="font-weight:500;margin-right:auto;">Sign in to start editing</span>
-    <input id="ia-email" type="email" placeholder="Email" value="${lastEmail}" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:13px;width:200px;font-family:inherit;">
-    <input id="ia-pwd" type="password" placeholder="Password" style="padding:7px 12px;border-radius:8px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.1);color:#fff;font-size:13px;width:160px;font-family:inherit;">
-    <button id="ia-go" style="padding:7px 16px;border-radius:8px;background:#fff;color:#1a1a2e;border:none;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit;">Go</button>
-    <span id="ia-err" style="color:#ff6b6b;font-size:12px;width:100%;display:none;"></span>`;
-  document.getElementById('app').prepend(bar);
-  const goBtn = bar.querySelector('#ia-go');
-  const doLogin = async () => {
-    const email = bar.querySelector('#ia-email').value.trim();
-    const pwd = bar.querySelector('#ia-pwd').value;
-    if (!email || !pwd) return;
-    goBtn.disabled = true;
-    goBtn.textContent = '...';
-    try {
-      await SB.login(email, pwd);
-      localStorage.setItem('scrollycms_email', email);
-      showApp();
-    } catch (e) {
-      const errEl = bar.querySelector('#ia-err');
-      errEl.textContent = e.message;
-      errEl.style.display = 'block';
-      goBtn.disabled = false;
-      goBtn.textContent = 'Go';
-    }
-  };
-  goBtn.addEventListener('click', doLogin);
-  bar.querySelector('#ia-pwd').addEventListener('keydown', (e) => { if (e.key === 'Enter') doLogin(); });
-  bar.querySelector('#ia-email').addEventListener('keydown', (e) => { if (e.key === 'Enter') bar.querySelector('#ia-pwd').focus(); });
-  // Auto-focus the right field
-  if (lastEmail) bar.querySelector('#ia-pwd').focus();
-  else bar.querySelector('#ia-email').focus();
-}
-function dismissInlineAuth() {
-  const bar = document.getElementById('inline-auth');
-  if (bar) bar.remove();
 }
 
 // Tab switcher
