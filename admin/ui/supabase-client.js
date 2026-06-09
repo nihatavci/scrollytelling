@@ -569,6 +569,11 @@
 
   // ── Auth state listener ───────────────────────────────
   client.auth.onAuthStateChange((event, session) => {
+    if (event === 'PASSWORD_RECOVERY') {
+      _user = session?.user || null;
+      window.dispatchEvent(new CustomEvent('scrollycms:password-recovery'));
+      return;
+    }
     if (event === 'SIGNED_OUT' || event === 'USER_DELETED') {
       _user = null;
       _profile = null;
