@@ -2339,3 +2339,12 @@ main.editor { display: none; }
   outline-offset: 2px;
   border-radius: 8px;
 }
+
+/* Desktop toolbar declutter: surface the ⋮ menu, hide secondary actions
+   (the buttons stay in the DOM so the overflow menu can click them by id). */
+.topbar-overflow-btn { display: inline-flex; align-items: center; justify-content: center; }
+#btn-history,
+#btn-settings,
+#btn-logout,
+#btn-delete-page,
+#btn-rename-page { display: none; }
