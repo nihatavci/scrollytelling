@@ -2105,7 +2105,11 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
     document.getElementById('login-pwd').value = '';
     showApp();
   } catch (err) {
-    document.getElementById('login-error').textContent = err.message || 'Login failed';
+    const raw = err.message || 'Login failed';
+    document.getElementById('login-error').textContent =
+      /not confirmed|confirm/i.test(raw)
+        ? 'Please confirm your email first — check your inbox for the confirmation link.'
+        : raw;
   }
 });
 

@@ -311,32 +311,34 @@
     },
 
     async createPage(slug, title, theme) {
-      const user = await getUser();
-      const content = {
-        id: slug,
-        version: 1,
-        lang: 'de',
-        theme: theme || 'dia',
-        meta: { title: title || slug },
-        blocks: [],
-      };
-      const { data, error } = await client
-        .from('pages')
-        .insert({
-          user_id: user.id,
-          slug,
-          title: title || slug,
-          content,
+      return withRetry(async () => {
+        const user = await getUser();
+        const content = {
+          id: slug,
+          version: 1,
           lang: 'de',
+          theme: theme || 'dia',
           meta: { title: title || slug },
-        })
-        .select()
-        .single();
-      if (error) {
-        if (error.code === '23505') throw new Error('A page with this URL already exists.');
-        throw new Error(error.message);
-      }
-      return { ok: true, id: data.slug, version: 1 };
+          blocks: [],
+        };
+        const { data, error } = await client
+          .from('pages')
+          .insert({
+            user_id: user.id,
+            slug,
+            title: title || slug,
+            content,
+            lang: 'de',
+            meta: { title: title || slug },
+          })
+          .select()
+          .single();
+        if (error) {
+          if (error.code === '23505') throw new Error('A page with this URL already exists.');
+          throw new Error(error.message);
+        }
+        return { ok: true, id: data.slug, version: 1 };
+      });
     },
 
     async renamePage(slug, newTitle) {
