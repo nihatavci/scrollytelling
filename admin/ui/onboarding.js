@@ -5,7 +5,7 @@
   'use strict';
 
   const STEPS = [
-    { sel: '#page-select',        text: "This is a demo page we made for you. Open it, edit it, break it — it's yours to experiment with." },
+    { sel: '#page-title-wrap',    text: "This is a demo page we made for you. Click the title to rename it, use ▾ to switch pages — it's yours to experiment with." },
     { sel: '#btn-new-page',       text: "Create your own page here. Just type a title; the URL is generated for you." },
     { sel: '#btn-preview',        text: "Preview shows your page live in a new tab before you publish." },
     { sel: '#btn-publish',        text: "Publish pushes your page to its public URL so anyone can read it." },

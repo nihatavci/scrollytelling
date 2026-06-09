@@ -2254,15 +2254,22 @@ async function loadPages(preferId) {
   let { pages, pageRows } = await SB.listPages();
 
   // First-login onboarding: zero pages + not yet onboarded → seed a demo page.
+  // Uses getSession() (cached, no network) rather than the unauthenticated getUser endpoint.
   try {
-    const uid_ = (await SB.client.auth.getUser()).data.user?.id;
+    const uid_ = (await SB.client.auth.getSession()).data.session?.user?.id;
     const flagKey = uid_ ? `scrollycms_onboarded_${uid_}` : null;
-    if (uid_ && pages.length === 0 && !localStorage.getItem(flagKey)) {
-      const seeded = await SB.seedDemoPage(buildDemoContent());
-      localStorage.setItem(flagKey, '1');
-      preferId = seeded.id || 'welcome';
-      ({ pages, pageRows } = await SB.listPages());
-      if (window.Onboarding) window.Onboarding.maybeRun(uid_);
+    if (uid_ && flagKey && !localStorage.getItem(flagKey)) {
+      if (pages.length === 0) {
+        const seeded = await SB.seedDemoPage(buildDemoContent());
+        preferId = seeded.id || 'welcome';
+        ({ pages, pageRows } = await SB.listPages());
+        localStorage.setItem(flagKey, '1');
+        if (window.Onboarding) window.Onboarding.maybeRun(uid_);
+      } else {
+        // Existing user who already has pages — mark onboarded so that deleting
+        // every page later never re-triggers the demo seed / welcome modal.
+        localStorage.setItem(flagKey, '1');
+      }
     }
   } catch (e) {
     console.warn('[onboarding] seeding skipped:', e?.message || e);
@@ -2313,7 +2320,7 @@ function beginRenameTitle() {
     restore.title = 'Click to rename';
     restore.addEventListener('click', beginRenameTitle);
     input.replaceWith(restore);
-    if (commit && newTitle && newTitle !== currentTitle) {
+    if (commit && newTitle && newTitle !== currentTitle && sel.value === slug) {
       try {
         await SB.renamePage(slug, newTitle);
         const row = (state.pageRows || []).find(r => r.slug === slug);
@@ -2413,9 +2420,6 @@ $('#btn-new-page').addEventListener('click', () => {
       if (!slugTouched) slugInp.value = slugify(titleInp.value);
     });
     slugInp.addEventListener('input', () => { slugTouched = true; });
-
-    // Focus the title field so typing starts there.
-    setTimeout(() => titleInp.focus(), 0);
 
     const err = document.createElement('div');
     err.className = 'error';
