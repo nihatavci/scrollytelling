@@ -148,6 +148,27 @@
       return { ok: true, needsConfirmation: !data.session };
     },
 
+    async resendConfirmation(email) {
+      const { error } = await client.auth.resend({ type: 'signup', email });
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    },
+
+    async requestPasswordReset(email) {
+      const { error } = await client.auth.resetPasswordForEmail(email, {
+        redirectTo: `${location.origin}/admin`,
+      });
+      if (error) throw new Error(error.message);
+      return { ok: true };
+    },
+
+    async updatePassword(newPassword) {
+      const { data, error } = await client.auth.updateUser({ password: newPassword });
+      if (error) throw new Error(error.message);
+      _user = data.user;
+      return { ok: true };
+    },
+
     async logout() {
       await client.auth.signOut();
       _user = null;

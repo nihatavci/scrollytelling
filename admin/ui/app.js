@@ -2131,6 +2131,31 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   }
 });
 
+// Resend confirmation
+document.getElementById('resend-confirm').addEventListener('click', async (e) => {
+  const btn = e.currentTarget;
+  const msg = document.getElementById('resend-msg');
+  if (!_pendingConfirmEmail) {
+    msg.textContent = 'Sign up first, then resend.';
+    msg.style.display = 'block';
+    return;
+  }
+  btn.disabled = true;
+  const original = btn.textContent;
+  btn.textContent = 'Sending…';
+  try {
+    await SB.resendConfirmation(_pendingConfirmEmail);
+    msg.style.color = '#1a7f37';
+    msg.textContent = 'Sent. Check your inbox (and spam).';
+  } catch (err) {
+    msg.style.color = '';
+    msg.textContent = err.message || 'Could not resend right now.';
+  }
+  msg.style.display = 'block';
+  // Respect Supabase rate limits — re-enable after a short delay.
+  setTimeout(() => { btn.disabled = false; btn.textContent = original; }, 20000);
+});
+
 // Logout
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await SB.logout().catch(() => {});
