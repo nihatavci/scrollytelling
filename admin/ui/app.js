@@ -5451,9 +5451,13 @@ startAutosave();
     var btn = e.target.closest('[data-overflow]');
     if (!btn) return;
     closeMenu();
+    // Rename now happens via the inline click-to-edit page title.
+    if (btn.getAttribute('data-overflow') === 'rename') {
+      if (typeof beginRenameTitle === 'function') beginRenameTitle();
+      return;
+    }
     var map = {
       'new-page':    'btn-new-page',
-      'rename':      'btn-rename-page',
       'delete-page': 'btn-delete-page',
       'view':     'link-view-page',
       'preview':  'btn-preview',
