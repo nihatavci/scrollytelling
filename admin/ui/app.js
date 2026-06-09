@@ -2110,6 +2110,7 @@ document.getElementById('login-form').addEventListener('submit', async (e) => {
 });
 
 // Signup
+let _pendingConfirmEmail = '';
 document.getElementById('signup-form').addEventListener('submit', async (e) => {
   e.preventDefault();
   const name = document.getElementById('signup-name').value.trim();
@@ -2119,6 +2120,7 @@ document.getElementById('signup-form').addEventListener('submit', async (e) => {
   try {
     const r = await SB.signup(email, pwd, name);
     if (r.needsConfirmation) {
+      _pendingConfirmEmail = email;
       document.getElementById('signup-form').classList.add('hidden');
       document.getElementById('auth-success').classList.remove('hidden');
     } else {

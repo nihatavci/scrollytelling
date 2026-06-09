@@ -136,11 +136,14 @@
       const { data, error } = await client.auth.signUp({
         email,
         password,
-        options: { data: { display_name: displayName } },
+        options: {
+          data: { display_name: displayName },
+          emailRedirectTo: `${location.origin}/admin`,
+        },
       });
       if (error) throw new Error(error.message);
-      // If email confirmation is off, user is immediately logged in
-      _user = data.user;
+      // With "Confirm email" ON, data.session is null until the user confirms.
+      _user = data.session ? data.user : null;
       _profile = null;
       return { ok: true, needsConfirmation: !data.session };
     },
