@@ -341,6 +341,32 @@
       });
     },
 
+    async seedDemoPage(content) {
+      return withRetry(async () => {
+        const user = await getUser();
+        const slug = content.id || 'welcome';
+        const title = content.meta?.title || 'Welcome to ScrollyCMS';
+        const { data, error } = await client
+          .from('pages')
+          .insert({
+            user_id: user.id,
+            slug,
+            title,
+            content: { ...content, id: slug },
+            lang: content.lang || 'de',
+            meta: content.meta || { title },
+          })
+          .select()
+          .single();
+        if (error) {
+          // Already seeded (slug collision) — treat as success, not an error.
+          if (error.code === '23505') return { ok: true, id: slug, already: true };
+          throw new Error(error.message);
+        }
+        return { ok: true, id: data.slug };
+      });
+    },
+
     async renamePage(slug, newTitle) {
       return withRetry(async () => {
         const row = await getPageRow(slug);
