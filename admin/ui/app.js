@@ -448,7 +448,7 @@ const PALETTE_CATEGORIES = [
   {
     label: 'Immersive (WebGL)',
     hint: 'GPU-powered showpieces — 3D models and shader scenes',
-    types: ['Scene3D', 'WebGLGradient', 'WebGLFlowmap', 'WebGLParticles'],
+    types: ['Scene3D'],
   },
   {
     label: 'Page Structure',
@@ -479,6 +479,11 @@ const PALETTE_CATEGORIES = [
     label: 'Embeds',
     hint: 'Embed an external interactive page or widget',
     types: ['EmbedBlock'],
+  },
+  {
+    label: 'Advanced effects (experimental)',
+    hint: 'Shader and particle effects — powerful but fiddly. Skip these while you get started.',
+    types: ['WebGLGradient', 'WebGLFlowmap', 'WebGLParticles'],
   },
 ];
 // Flat list for backward compat (used by DIRECT_MODE_DISABLED check etc.)
