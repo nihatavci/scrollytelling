@@ -29,7 +29,24 @@
       <input id="login-email" type="email" placeholder="Email" autocomplete="email" required>
       <input id="login-pwd" type="password" placeholder="Password" autocomplete="current-password" required>
       <button type="submit" class="primary">Sign in</button>
+      <button type="button" id="forgot-link" class="small" style="background:none;border:none;cursor:pointer;text-decoration:underline;">Forgot password?</button>
       <div id="login-error" class="error"></div>
+    </form>
+
+    <!-- Forgot-password request form -->
+    <form id="reset-request-form" class="auth-form hidden">
+      <input id="reset-email" type="email" placeholder="Your account email" autocomplete="email" required>
+      <button type="submit" class="primary">Send reset link</button>
+      <button type="button" id="reset-cancel" class="small">Back to sign in</button>
+      <div id="reset-request-msg" class="error"></div>
+    </form>
+
+    <!-- Set a new password (shown on recovery link) -->
+    <form id="set-password-form" class="auth-form hidden">
+      <p style="font-size:13px;color:#57606a;">Choose a new password for your account.</p>
+      <input id="new-pwd" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password" minlength="6" required>
+      <button type="submit" class="primary">Set password &amp; continue</button>
+      <div id="set-password-error" class="error"></div>
     </form>
 
     <!-- Signup form -->

@@ -2156,6 +2156,55 @@ document.getElementById('resend-confirm').addEventListener('click', async (e) =>
   setTimeout(() => { btn.disabled = false; btn.textContent = original; }, 20000);
 });
 
+// Forgot password — toggle the request form
+document.getElementById('forgot-link').addEventListener('click', () => {
+  document.getElementById('login-form').classList.add('hidden');
+  document.getElementById('reset-request-form').classList.remove('hidden');
+  document.getElementById('reset-email').value =
+    document.getElementById('login-email').value.trim();
+  document.getElementById('reset-email').focus();
+});
+document.getElementById('reset-cancel').addEventListener('click', () => {
+  document.getElementById('reset-request-form').classList.add('hidden');
+  document.getElementById('login-form').classList.remove('hidden');
+});
+document.getElementById('reset-request-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('reset-email').value.trim();
+  const msg = document.getElementById('reset-request-msg');
+  try {
+    await SB.requestPasswordReset(email);
+  } catch { /* ignore — never reveal whether the account exists */ }
+  // Neutral message regardless of outcome (no account enumeration).
+  msg.style.color = '#1a7f37';
+  msg.textContent = 'If that email has an account, we sent a reset link.';
+});
+
+// Password recovery — show the set-password form when the recovery link is used
+window.addEventListener('scrollycms:password-recovery', () => {
+  showAuth();
+  document.getElementById('login-form').classList.add('hidden');
+  document.getElementById('signup-form').classList.add('hidden');
+  document.getElementById('reset-request-form').classList.add('hidden');
+  document.getElementById('auth-success').classList.add('hidden');
+  document.getElementById('set-password-form').classList.remove('hidden');
+  document.getElementById('new-pwd').focus();
+});
+document.getElementById('set-password-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const pwd = document.getElementById('new-pwd').value;
+  document.getElementById('set-password-error').textContent = '';
+  try {
+    await SB.updatePassword(pwd);
+    // Clear the recovery token from the URL, then enter the editor.
+    history.replaceState(null, '', '/admin');
+    document.getElementById('new-pwd').value = '';
+    showApp();
+  } catch (err) {
+    document.getElementById('set-password-error').textContent = err.message || 'Could not update password.';
+  }
+});
+
 // Logout
 document.getElementById('btn-logout').addEventListener('click', async () => {
   await SB.logout().catch(() => {});
