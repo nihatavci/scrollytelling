@@ -2227,8 +2227,47 @@ document.getElementById('btn-logout').addEventListener('click', async () => {
 });
 
 // ─────────────────────────── Pages ───────────────────────────
+// Build a small, valid demo page from default block data (+ Hero overrides).
+function buildDemoContent() {
+  const mk = (type, over) => ({ id: uid('b'), type, data: { ...defaultDataFor(type), ...(over || {}) } });
+  return {
+    id: 'welcome',
+    version: 1,
+    lang: 'de',
+    theme: 'claude',
+    meta: { title: 'Welcome to ScrollyCMS' },
+    blocks: [
+      mk('Hero', {
+        brand: 'GETTING STARTED',
+        titleHtml: 'Welcome to <span>ScrollyCMS</span>',
+        subtitle: 'This is a demo page we made for you. Open the blocks on the left, edit them, add new ones with "+ Add", then hit Publish. Delete this page whenever you like.',
+        scrollCueText: 'Scroll to explore',
+      }),
+      mk('Editorial'),
+      mk('Quote'),
+      mk('ImageGrid'),
+    ],
+  };
+}
+
 async function loadPages(preferId) {
-  const { pages, pageRows } = await SB.listPages();
+  let { pages, pageRows } = await SB.listPages();
+
+  // First-login onboarding: zero pages + not yet onboarded → seed a demo page.
+  try {
+    const uid_ = (await SB.client.auth.getUser()).data.user?.id;
+    const flagKey = uid_ ? `scrollycms_onboarded_${uid_}` : null;
+    if (uid_ && pages.length === 0 && !localStorage.getItem(flagKey)) {
+      const seeded = await SB.seedDemoPage(buildDemoContent());
+      localStorage.setItem(flagKey, '1');
+      preferId = seeded.id || 'welcome';
+      ({ pages, pageRows } = await SB.listPages());
+      if (window.Onboarding) window.Onboarding.maybeRun(uid_);
+    }
+  } catch (e) {
+    console.warn('[onboarding] seeding skipped:', e?.message || e);
+  }
+
   state.pages = pages;
   state.pageRows = pageRows;
   const sel = $('#page-select');
@@ -2238,6 +2277,7 @@ async function loadPages(preferId) {
     sel.value = toLoad;
     loadPage(toLoad);
   }
+  if (typeof updatePageTitleUI === 'function') updatePageTitleUI();
 }
 $('#page-select').addEventListener('change', (e) => loadPage(e.target.value));
 
