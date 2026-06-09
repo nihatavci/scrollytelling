@@ -2247,27 +2247,30 @@ $('#btn-new-page').addEventListener('click', () => {
     body.innerHTML = '';
     const hint = document.createElement('p');
     hint.style.cssText = 'color:#57606a;font-size:12.5px;margin-bottom:12px;line-height:1.5;';
-    hint.innerHTML = `Each page has its own URL. Use lowercase letters, numbers and dashes only.<br>Example: <code>pressefreiheit</code> → reachable at <code>http://localhost:4000/pressefreiheit</code>`;
+    hint.innerHTML = `Give your page a title — we'll turn it into a web address (URL) for you.<br>You can edit the URL below. Lowercase letters, numbers and dashes only.`;
     body.appendChild(hint);
 
+    // 1) Page title (first field)
+    const titleLabel = document.createElement('label');
+    titleLabel.className = 'field-label';
+    titleLabel.textContent = 'Page title';
+    body.appendChild(titleLabel);
+    const titleInp = document.createElement('input');
+    titleInp.type = 'text';
+    titleInp.placeholder = 'My new page';
+    titleInp.style.marginBottom = '12px';
+    body.appendChild(titleInp);
+
+    // 2) Page ID / slug (second field, auto-derived from title)
     const slugLabel = document.createElement('label');
     slugLabel.className = 'field-label';
-    slugLabel.textContent = 'Page ID (URL slug)';
+    slugLabel.textContent = 'Page URL (auto-generated)';
     body.appendChild(slugLabel);
     const slugInp = document.createElement('input');
     slugInp.type = 'text';
     slugInp.placeholder = 'my-new-page';
     slugInp.style.marginBottom = '12px';
     body.appendChild(slugInp);
-
-    const titleLabel = document.createElement('label');
-    titleLabel.className = 'field-label';
-    titleLabel.textContent = 'Page title (shown in browser tab)';
-    body.appendChild(titleLabel);
-    const titleInp = document.createElement('input');
-    titleInp.type = 'text';
-    titleInp.placeholder = 'My new page';
-    body.appendChild(titleInp);
 
     // Theme picker
     const themeLabel = document.createElement('label');
@@ -2285,12 +2288,16 @@ $('#btn-new-page').addEventListener('click', () => {
     themeSel.style.marginBottom = '12px';
     body.appendChild(themeSel);
 
-    // Live slugify hint
+    // Auto-slug from title until the user manually edits the slug.
+    let slugTouched = false;
+    const slugify = (s) => s.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
     titleInp.addEventListener('input', () => {
-      if (!slugInp.value && titleInp.value) {
-        slugInp.value = titleInp.value.toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40);
-      }
+      if (!slugTouched) slugInp.value = slugify(titleInp.value);
     });
+    slugInp.addEventListener('input', () => { slugTouched = true; });
+
+    // Focus the title field so typing starts there.
+    setTimeout(() => titleInp.focus(), 0);
 
     const err = document.createElement('div');
     err.className = 'error';
