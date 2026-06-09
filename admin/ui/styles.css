@@ -2330,3 +2330,12 @@ main.editor { display: none; }
 .fx-tile.active { border-color:var(--signal-blue,#0358f7); box-shadow:0 0 0 2px rgba(3,88,247,.15); }
 .fx-tile.active .fx-tile-label { color:var(--signal-blue,#0358f7); font-weight:700; }
 .fx-opts { margin-top:10px; }
+
+/* Onboarding tour highlight */
+.onboarding-hl {
+  position: relative;
+  z-index: 4001 !important;
+  outline: 3px solid #4f6bed;
+  outline-offset: 2px;
+  border-radius: 8px;
+}
