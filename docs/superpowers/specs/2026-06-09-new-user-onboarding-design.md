@@ -61,6 +61,19 @@ All four ship together as one improvement to the new-user experience.
 - Add a new category at the **end** of the picker list: `{ label: 'Advanced effects (experimental)', types: ['WebGLGradient','WebGLFlowmap','WebGLParticles'] }`.
 - No block types are removed — they remain fully functional, just relocated to the bottom so newcomers aren't confused. Plain group (no collapse toggle).
 
+## Section 5 — Toolbar declutter + click-to-edit page title (full declutter)
+
+Goal: a smarter, less cluttered top bar. **Primary actions stay visible; secondary/destructive ones collapse into the existing `⋮` overflow menu (`#btn-overflow`).**
+
+- **Always-visible (primary):** brand, the editable page-title control + page switcher, `+ New page`, `⚡ Full Article`, `Preview`, `Publish`, `View ↗`.
+- **Moved into the `⋮` overflow menu:** `History`, `⚙ Settings`, `🗑 Delete page`, `Logout`. Their existing click handlers are reused — only the trigger element moves into the menu. (Inspect the current `#btn-overflow` menu during planning; extend it rather than rebuild it.)
+- **Click-to-edit page title (replaces the ✏️ rename button):**
+  - The current page name renders as a text label that, on click, becomes an inline text input. **Enter** or **blur** commits the rename via `SB.renamePage(slug, newTitle)` and refreshes the label/selector; **Esc** cancels.
+  - A small `▾` switcher beside the title opens a lightweight dropdown of the user's pages (from `state.pageRows`); choosing one calls `loadPage(slug)`. The native `#page-select` may be kept visually hidden and used as the data source/driver, or replaced — implementation detail for the plan.
+  - Remove `#btn-rename-page` (✏️) and its standalone handler (rename now lives in the title).
+- **Editor-area buttons** (`+ Add`, `✏️ Edit`, `⛶`, `Reload`, `☰`) are **unchanged** in this scope.
+- Empty/zero-page state: the editable title shows a muted placeholder (e.g. "No page selected") and is non-editable until a page exists.
+
 ## Files touched
 
 | File | Change |
@@ -68,8 +81,8 @@ All four ship together as one improvement to the new-user experience.
 | `admin/ui/demo-page.js` (new) | `DEMO_PAGE_CONTENT` block JSON |
 | `admin/ui/onboarding.js` (new) | Welcome modal + tour walker |
 | `admin/ui/supabase-client.js` | `seedDemoPage()` |
-| `admin/ui/app.js` | first-login trigger in `loadPages`; modal field reorder + `slugTouched`; block-picker categories |
-| `admin/ui/index.html` | load `demo-page.js` and `onboarding.js` script tags |
+| `admin/ui/app.js` | first-login trigger in `loadPages`; modal field reorder + `slugTouched`; block-picker categories; toolbar declutter + click-to-edit title + overflow-menu wiring |
+| `admin/ui/index.html` | load `demo-page.js` and `onboarding.js` script tags; top-bar markup (editable title, switcher, overflow menu items); remove `#btn-rename-page` |
 
 ## Out of scope
 
@@ -77,6 +90,7 @@ All four ship together as one improvement to the new-user experience.
 - Server/DB tracking of onboarding state (localStorage only for v1).
 - Re-runnable tour / "replay tour" button.
 - Editing or removing the advanced WebGL block implementations.
+- Tidying the editor-area buttons (Edit / fullscreen / Reload) — deferred; top bar only.
 
 ## Testing (browser, via dev server)
 
