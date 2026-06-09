@@ -2348,3 +2348,32 @@ main.editor { display: none; }
 #btn-logout,
 #btn-delete-page,
 #btn-rename-page { display: none; }
+
+.page-select-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
+.page-title-wrap { display: inline-flex; align-items: center; gap: 2px; position: relative; }
+.page-title-text {
+  font-size: 14px; font-weight: 600; color: var(--ink, #1a1a2e);
+  padding: 4px 8px; border-radius: 7px; cursor: text; max-width: 320px;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.page-title-text:hover { background: var(--fog, #f1f2f4); }
+.page-title-input {
+  font-size: 14px; font-weight: 600; padding: 4px 8px; border-radius: 7px;
+  border: 1px solid #4f6bed; outline: none; font-family: inherit; min-width: 200px;
+}
+.page-switcher-btn {
+  border: none; background: none; cursor: pointer; font-size: 13px; color: #57606a;
+  padding: 4px 6px; border-radius: 6px;
+}
+.page-switcher-btn:hover { background: var(--fog, #f1f2f4); }
+.page-switcher-menu {
+  position: absolute; top: 100%; left: 0; margin-top: 4px; z-index: 3000;
+  background: #fff; border: 1px solid #e1e4e8; border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0,0,0,.16); padding: 6px; min-width: 220px; max-height: 60vh; overflow: auto;
+}
+.page-switcher-menu button {
+  display: block; width: 100%; text-align: left; border: none; background: none;
+  padding: 8px 10px; border-radius: 7px; cursor: pointer; font: inherit; font-size: 13px; color: #1a1a2e;
+}
+.page-switcher-menu button:hover { background: var(--fog, #f1f2f4); }
+.page-switcher-menu button.active { background: #eef1fd; font-weight: 600; }

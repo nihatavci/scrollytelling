@@ -2281,6 +2281,84 @@ async function loadPages(preferId) {
 }
 $('#page-select').addEventListener('change', (e) => loadPage(e.target.value));
 
+// ── Click-to-edit page title + custom page switcher ─────────────────
+function updatePageTitleUI() {
+  const txt = document.getElementById('page-title-text');
+  if (!txt) return;
+  const sel = document.getElementById('page-select');
+  const current = (state.pageRows || []).find(r => r.slug === (sel && sel.value));
+  txt.textContent = current ? (current.title || current.slug) : 'No page selected';
+  txt.classList.toggle('page-title-text--empty', !current);
+}
+
+function beginRenameTitle() {
+  const txt = document.getElementById('page-title-text');
+  const sel = document.getElementById('page-select');
+  if (!txt || !sel || !sel.value) return;
+  const slug = sel.value;
+  const currentTitle = txt.textContent;
+  const input = document.createElement('input');
+  input.className = 'page-title-input';
+  input.value = currentTitle;
+  txt.replaceWith(input);
+  input.focus();
+  input.select();
+  let done = false;
+  const finish = async (commit) => {
+    if (done) return; done = true;
+    const newTitle = input.value.trim();
+    const restore = document.createElement('span');
+    restore.id = 'page-title-text';
+    restore.className = 'page-title-text';
+    restore.title = 'Click to rename';
+    restore.addEventListener('click', beginRenameTitle);
+    input.replaceWith(restore);
+    if (commit && newTitle && newTitle !== currentTitle) {
+      try {
+        await SB.renamePage(slug, newTitle);
+        const row = (state.pageRows || []).find(r => r.slug === slug);
+        if (row) row.title = newTitle;
+        const opt = [...sel.options].find(o => o.value === slug);
+        if (opt) opt.textContent = newTitle;
+        toast('Page renamed', 'success');
+      } catch (e) { toast(e.message || 'Rename failed', 'error'); }
+    }
+    updatePageTitleUI();
+  };
+  input.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+    else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+  });
+  input.addEventListener('blur', () => finish(true));
+}
+
+function togglePageSwitcher(forceClose) {
+  const menu = document.getElementById('page-switcher-menu');
+  const sel = document.getElementById('page-select');
+  if (!menu || !sel) return;
+  if (forceClose || !menu.hidden) { menu.hidden = true; return; }
+  menu.innerHTML = '';
+  (state.pageRows || []).forEach(r => {
+    const b = document.createElement('button');
+    b.textContent = r.title || r.slug;
+    if (r.slug === sel.value) b.classList.add('active');
+    b.addEventListener('click', () => {
+      menu.hidden = true;
+      sel.value = r.slug;
+      loadPage(r.slug);
+      updatePageTitleUI();
+    });
+    menu.appendChild(b);
+  });
+  menu.hidden = false;
+}
+
+document.getElementById('page-title-text').addEventListener('click', beginRenameTitle);
+document.getElementById('page-switcher-btn').addEventListener('click', (e) => { e.stopPropagation(); togglePageSwitcher(); });
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#page-title-wrap')) togglePageSwitcher(true);
+});
+
 // + New page
 $('#btn-new-page').addEventListener('click', () => {
   openModal('Create a new page', (body) => {
@@ -2380,8 +2458,8 @@ $('#btn-new-page').addEventListener('click', () => {
   }, '');
 });
 
-// ── Rename page ──
-$('#btn-rename-page').addEventListener('click', () => {
+// ── Rename page ── (btn-rename-page removed from DOM in Task 7; guard against null)
+$('#btn-rename-page')?.addEventListener('click', () => {
   if (!state.currentPageId) return;
   const row = state.pageRows?.find(r => r.slug === state.currentPageId);
   const currentTitle = row?.title || state.currentPageId;
@@ -2518,6 +2596,7 @@ async function loadPage(id) {
   // Reload the preview iframe to show the new page
   const iframe = $('#preview-frame');
   iframe.src = pageUrl();
+  if (typeof updatePageTitleUI === 'function') updatePageTitleUI();
 }
 
 // ─────────────────────────── Blocks list (with drag & drop) ──

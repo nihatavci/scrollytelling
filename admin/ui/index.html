@@ -73,10 +73,13 @@
   <header class="topbar">
     <div class="brand">ScrollyCMS</div>
     <div class="topbar-page">
-      <label>Page:</label>
-      <select id="page-select"></select>
+      <select id="page-select" class="page-select-hidden"></select>
+      <div id="page-title-wrap" class="page-title-wrap">
+        <span id="page-title-text" class="page-title-text" title="Click to rename"></span>
+        <button id="page-switcher-btn" class="page-switcher-btn" title="Switch page" aria-label="Switch page">▾</button>
+        <div id="page-switcher-menu" class="page-switcher-menu" hidden></div>
+      </div>
       <button id="btn-new-page" class="small" title="Create a new page">+ New page</button>
-      <button id="btn-rename-page" class="small" title="Rename page">✏️</button>
       <button id="btn-delete-page" class="small danger" title="Delete page">🗑</button>
       <a id="link-view-page" href="#" target="_blank" class="small view-link">View ↗</a>
       <div id="save-indicator" class="save-indicator" aria-live="polite">
