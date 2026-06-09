@@ -2089,6 +2089,8 @@ document.querySelectorAll('.auth-tab').forEach(tab => {
     document.getElementById('login-form').classList.toggle('hidden', which !== 'login');
     document.getElementById('signup-form').classList.toggle('hidden', which !== 'signup');
     document.getElementById('auth-success').classList.add('hidden');
+    document.getElementById('reset-request-form').classList.add('hidden');
+    document.getElementById('set-password-form').classList.add('hidden');
   });
 });
 
@@ -2151,9 +2153,10 @@ document.getElementById('resend-confirm').addEventListener('click', async (e) =>
     await SB.resendConfirmation(_pendingConfirmEmail);
     msg.style.color = '#1a7f37';
     msg.textContent = 'Sent. Check your inbox (and spam).';
-  } catch (err) {
+  } catch {
+    // Generic message — don't surface raw errors that could reveal account state.
     msg.style.color = '';
-    msg.textContent = err.message || 'Could not resend right now.';
+    msg.textContent = 'Could not resend right now. Please try again in a moment.';
   }
   msg.style.display = 'block';
   // Respect Supabase rate limits — re-enable after a short delay.
@@ -2174,8 +2177,10 @@ document.getElementById('reset-cancel').addEventListener('click', () => {
 });
 document.getElementById('reset-request-form').addEventListener('submit', async (e) => {
   e.preventDefault();
+  const btn = e.currentTarget.querySelector('button[type=submit]');
   const email = document.getElementById('reset-email').value.trim();
   const msg = document.getElementById('reset-request-msg');
+  btn.disabled = true;
   try {
     await SB.requestPasswordReset(email);
   } catch { /* ignore — never reveal whether the account exists */ }
