@@ -2304,6 +2304,26 @@ async function loadPages(preferId) {
   }
   if (typeof updatePageTitleUI === 'function') updatePageTitleUI();
 }
+function renderPagesPane(){
+  const box = document.getElementById('pages-pane');
+  if (!box) return;
+  const rows = state.pageRows || [];
+  const cur = document.getElementById('page-select') ? document.getElementById('page-select').value : null;
+  box.innerHTML = '';
+  rows.forEach(r => {
+    const el = document.createElement('div');
+    el.className = 'side-row' + (r.slug === cur ? ' active' : '');
+    const home = r.slug === cur;
+    el.innerHTML = '<span class="lucide-box ' + (home ? 'ti-blu' : 'ti-slate') + '">' +
+      (home
+        ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 10.6 12 3.5l9 7.1"/><path d="M5 9.4V20h14V9.4"/></svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h9l5 5v11H5z"/><path d="M14 4v6h5"/></svg>') +
+      '</span><span class="side-row-name">' + escapeText(r.title || r.slug) + '</span>';
+    el.addEventListener('click', () => { const sel = document.getElementById('page-select'); if (sel) { sel.value = r.slug; } loadPage(r.slug); renderPagesPane(); if (typeof updatePageTitleUI==='function') updatePageTitleUI(); });
+    box.appendChild(el);
+  });
+  if (!rows.length) box.innerHTML = '<div class="side-empty">No pages yet.</div>';
+}
 $('#page-select').addEventListener('change', (e) => loadPage(e.target.value));
 
 // ── Click-to-edit page title + custom page switcher ─────────────────
@@ -5516,6 +5536,7 @@ startAutosave();
   tabs.querySelectorAll('.side-tab').forEach(btn => btn.addEventListener('click', () => show(btn.getAttribute('data-pane'), btn)));
   requestAnimationFrame(() => place(tabs.querySelector('.side-tab.on')));
 })();
+document.getElementById('side-new-page')?.addEventListener('click', () => document.getElementById('btn-new-page')?.click());
 
 // ── Sidebar toggle (glass pill ☰) ────────────────────────────────────────────
 (function initSidebarToggle() {

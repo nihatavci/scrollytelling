@@ -2402,3 +2402,11 @@ main.editor { display: none; }
 .side-pane[hidden] { display:none; }
 @keyframes sidefade { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
 .pane-body { overflow:auto; padding:4px 8px 10px; }
+/* sidebar generic rows */
+.side-row { display:flex; align-items:center; gap:10px; padding:8px 9px; border-radius:9px; cursor:pointer;
+  font:500 13px/1.2 var(--font); color:#33333b; transition:background .12s; }
+.side-row:hover { background:#f6f6f9; }
+.side-row.active { background:#eef1fe; color:#2440c4; font-weight:600; }
+.side-row .lucide-box { width:24px; height:24px; }
+.side-row-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.side-empty { padding:18px 10px; text-align:center; color:#b0b0b8; font:500 12.5px var(--font); }
