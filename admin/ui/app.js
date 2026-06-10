@@ -490,9 +490,15 @@ const CAT_META = {
   'Embeds':              { key:'embeds', tint:'ti-slate', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-12"/><path d="m6 9-4 3 4 3"/><path d="m18 9 4 3-4 3"/></svg>' },
 };
 // Map a block type to its category metadata (falls back to a neutral icon).
+const _CAT_FALLBACK = { key:'other', tint:'ti-slate', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>' };
+// type → CAT_META, built once at module load (avoids a linear scan per block render).
+const _CAT_BY_TYPE = (() => {
+  const m = {};
+  PALETTE_CATEGORIES.forEach(c => { const meta = CAT_META[c.label]; if (meta) c.types.forEach(t => { m[t] = meta; }); });
+  return m;
+})();
 function categoryOf(type) {
-  const cat = PALETTE_CATEGORIES.find(c => c.types.includes(type));
-  return (cat && CAT_META[cat.label]) || { key:'other', tint:'ti-slate', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>' };
+  return _CAT_BY_TYPE[type] || _CAT_FALLBACK;
 }
 
 // Tiny inline mockups shown inside the palette cards and at the top of the
@@ -3275,9 +3281,6 @@ function renderLibrary(body, afterBlockId) {
     fly.style.display = 'flex';
   }
 }
-// Back-compat wrappers (legacy callers, if any)
-function renderPalette(body) { renderLibrary(body); }
-function renderPaletteWithInsert(body, afterBlockId) { renderLibrary(body, afterBlockId); }
 // Legacy name kept for backwards-compat; routes through the Claude flow.
 function addBlock(type) { openCreationCard(type); }
 
@@ -5587,6 +5590,7 @@ window.addEventListener('pagehide', () => { if (state.dirty) backupToLocal(); })
 // Does NOT publish or create history — just persists so you never lose work.
 let _autosaveDebounce = null;
 let _autosaving = false;
+let _autosavePromise = null;
 let _autosaveFailCount = 0;
 
 function scheduleAutosave() {
@@ -5595,35 +5599,40 @@ function scheduleAutosave() {
 }
 
 // Cancel the pending debounce and persist immediately (used before switching pages).
+// Awaits any in-flight save too, so the "flush before switch" guarantee actually holds.
 async function flushAutosave() {
   clearTimeout(_autosaveDebounce);
   await runAutosave();
 }
 
-async function runAutosave() {
-  if (!state.dirty || !state.doc || !state.currentPageId || _autosaving) return;
-  if (_autosaveFailCount >= 3) return;
+function runAutosave() {
+  if (_autosaving) return _autosavePromise || Promise.resolve();   // await the in-flight save
+  if (!state.dirty || !state.doc || !state.currentPageId) return Promise.resolve();
+  if (_autosaveFailCount >= 3) return Promise.resolve();
   _autosaving = true;
   showSaveIndicator('saving');
-  try {
-    await SB.autoSave(state.currentPageId, state.doc);
-    clearLocalBackup(state.currentPageId);
-    _autosaveFailCount = 0;
-    showSaveIndicator('saved');
-  } catch (e) {
-    console.error('Autosave failed:', e.message);
-    _autosaveFailCount++;
-    showSaveIndicator('error');
-    if (_autosaveFailCount >= 3) {
-      toast('Autosave paused — changes backed up locally. Check connection.', 'error');
+  // Snapshot the target at fire time so a page swap mid-flight can't mismatch page↔doc.
+  const pageId = state.currentPageId;
+  const doc = state.doc;
+  _autosavePromise = (async () => {
+    try {
+      await SB.autoSave(pageId, doc);
+      clearLocalBackup(pageId);
+      _autosaveFailCount = 0;
+      showSaveIndicator('saved');
+    } catch (e) {
+      console.error('Autosave failed:', e.message);
+      _autosaveFailCount++;
+      showSaveIndicator('error');
+      if (_autosaveFailCount >= 3) {
+        toast('Autosave paused — changes backed up locally. Check connection.', 'error');
+      }
+    } finally {
+      _autosaving = false;
     }
-  } finally {
-    _autosaving = false;
-  }
+  })();
+  return _autosavePromise;
 }
-
-// startAutosave is now a no-op (kept for backward compat with existing call sites)
-function startAutosave() {}
 
 // Auth expiry — save locally before showing login prompt
 window.addEventListener('scrollycms:auth-expired', () => {
@@ -5631,9 +5640,6 @@ window.addEventListener('scrollycms:auth-expired', () => {
   toast('Session expired — your work is saved locally. Please log in again.', 'error');
   setTimeout(() => { location.reload(); }, 3000);
 });
-
-// Start autosave once authenticated
-startAutosave();
 
 // ── Mobile overflow menu (bottom sheet) ───────────────────────────────────────
 (function initOverflowMenu() {

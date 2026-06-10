@@ -457,11 +457,12 @@
       const hashArray = await crypto.subtle.digest('SHA-256', buf);
       const hash = Array.from(new Uint8Array(hashArray)).map(b => b.toString(16).padStart(2, '0')).join('').slice(0, 16);
       const ext = (file.name.match(/\.[a-z0-9]+$/i) || ['.bin'])[0].toLowerCase();
-      // Preserve the original filename for display: `${safeBase}-${hash}${ext}`.
-      // The hash keeps the key unique; the base lets the Assets list show a real name.
+      // Preserve the original filename for display: `${hash}-${safeBase}${ext}`.
+      // Hash FIRST so the display name can strip a fixed leading `${hash}-` unambiguously
+      // (a name-first scheme could over-strip when the base itself ends in 16 hex chars).
       const base = file.name.replace(/\.[a-z0-9]+$/i, '');
       const safeBase = (base.normalize('NFKD').replace(/[^\w.-]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 48)) || 'file';
-      const path = `${user.id}/${safeBase}-${hash}${ext}`;
+      const path = `${user.id}/${hash}-${safeBase}${ext}`;
 
       const endpoint = `${SUPABASE_URL}/storage/v1/object/page-images/${path}`;
 
@@ -559,9 +560,9 @@
           const { data: { publicUrl } } = client.storage
             .from('page-images')
             .getPublicUrl(`${user.id}/${f.name}`);
-          // Display name: strip the `-<16hexhash>` we append on upload so the real
-          // original filename shows. Older hash-only files keep showing their hash.
-          const displayName = f.name.replace(/-[0-9a-f]{16}(\.[a-z0-9]+)$/i, '$1');
+          // Display name: strip the leading `${hash}-` we prepend on upload so the real
+          // original filename shows. Older hash-only files (no dash) keep showing their hash.
+          const displayName = f.name.replace(/^[0-9a-f]{16}-/i, '');
           return { url: publicUrl, size: f.metadata?.size || 0, name: f.name, displayName };
         });
 

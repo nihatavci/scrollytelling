@@ -3546,8 +3546,14 @@ function sanitizeUrl(url) {
 
   document.addEventListener('dragover', onDragOver);
   document.addEventListener('drop', onDrop);
-  // If the cursor leaves the document entirely, hide the line (drag may end outside).
-  document.addEventListener('dragleave', function(e){ if (dragging && (e.clientX <= 0 || e.clientY <= 0)) { if (line) line.style.display = 'none'; } });
+  // Hide the line when the cursor leaves the viewport on ANY edge (not just top/left).
+  document.addEventListener('dragleave', function(e){
+    if (dragging && (e.clientX <= 0 || e.clientY <= 0 || e.clientX >= window.innerWidth || e.clientY >= window.innerHeight)) {
+      if (line) line.style.display = 'none';
+    }
+  });
+  // Safety net: if the drag ends without a drop on us, clear the line.
+  document.addEventListener('dragend', function(){ if (dragging && line) line.style.display = 'none'; });
 
   window.addEventListener('message', function(e){
     if (!e.data || e.data.type !== 'visual-edit') return;
