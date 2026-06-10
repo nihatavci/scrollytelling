@@ -3473,3 +3473,85 @@ function sanitizeUrl(url) {
   if (s.startsWith('javascript:') || s.startsWith('data:')) return '#';
   return url;
 }
+
+// ─────────────── Drag-to-insert from the editor's component library ───────────────
+// Activated only by a postMessage from the admin parent ('lib-drag-start'); inert otherwise.
+(function initLibraryDrop(){
+  var dragging = false;
+  var dragType = null;
+  var line = null;
+  var afterId = null; // id of the block the new one will be inserted AFTER (null = at very top)
+
+  function ensureLine(){
+    if (line) return line;
+    line = document.createElement('div');
+    line.id = 'scrolly-drop-line';
+    line.style.cssText = 'position:fixed;left:0;right:0;height:3px;background:#2f6bd6;' +
+      'box-shadow:0 0 0 4px rgba(47,107,214,.18);border-radius:2px;z-index:2147483646;' +
+      'pointer-events:none;display:none;transition:top .06s linear;';
+    var dot = document.createElement('div');
+    dot.style.cssText = 'position:absolute;left:14px;top:-3.5px;width:10px;height:10px;' +
+      'border-radius:50%;background:#2f6bd6;';
+    line.appendChild(dot);
+    document.body.appendChild(line);
+    return line;
+  }
+
+  // Given a cursor Y (viewport coords), find the gap between blocks and return
+  // { afterId, lineY }. afterId is null when inserting before the first block.
+  function computeDrop(clientY){
+    var blocks = Array.prototype.slice.call(document.querySelectorAll('#page-root > [data-block-id]'));
+    if (!blocks.length) {
+      var root = document.querySelector('#page-root');
+      var rr = root ? root.getBoundingClientRect() : { top: 0 };
+      return { afterId: null, lineY: rr.top };
+    }
+    for (var i = 0; i < blocks.length; i++) {
+      var r = blocks[i].getBoundingClientRect();
+      var mid = r.top + r.height / 2;
+      if (clientY < mid) {
+        return { afterId: i === 0 ? null : blocks[i - 1].getAttribute('data-block-id'), lineY: r.top };
+      }
+    }
+    var last = blocks[blocks.length - 1].getBoundingClientRect();
+    return { afterId: blocks[blocks.length - 1].getAttribute('data-block-id'), lineY: last.bottom };
+  }
+
+  function onDragOver(e){
+    if (!dragging) return;
+    e.preventDefault();                 // allow the drop
+    e.dataTransfer.dropEffect = 'copy';
+    var res = computeDrop(e.clientY);
+    afterId = res.afterId;
+    var l = ensureLine();
+    l.style.display = 'block';
+    l.style.top = Math.round(res.lineY) + 'px';
+  }
+
+  function onDrop(e){
+    if (!dragging) return;
+    e.preventDefault();
+    var type = (e.dataTransfer.getData('application/x-scrolly-block') ||
+                e.dataTransfer.getData('text/plain') || dragType);
+    clear();
+    if (type) {
+      window.parent.postMessage({ type: 'visual-edit', action: 'drop-block', blockType: type, afterBlockId: afterId }, '*');
+    }
+  }
+
+  function clear(){
+    dragging = false; dragType = null; afterId = null;
+    if (line) line.style.display = 'none';
+  }
+
+  document.addEventListener('dragover', onDragOver);
+  document.addEventListener('drop', onDrop);
+  // If the cursor leaves the document entirely, hide the line (drag may end outside).
+  document.addEventListener('dragleave', function(e){ if (dragging && (e.clientX <= 0 || e.clientY <= 0)) { if (line) line.style.display = 'none'; } });
+
+  window.addEventListener('message', function(e){
+    if (!e.data || e.data.type !== 'visual-edit') return;
+    if (e.data.action === 'lib-drag-start') { dragging = true; dragType = e.data.blockType || null; ensureLine(); }
+    else if (e.data.action === 'lib-drag-end') { clear(); }
+  });
+})();
