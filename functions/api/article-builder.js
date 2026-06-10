@@ -369,23 +369,38 @@ async function handleAnalyze(env, body) {
   }
 
   const allText = sources.map((s, i) => `[Source: ${s.label || `Source ${i + 1}`}]\n${s.content}`).join('\n\n');
-  const chunks = chunkText(allText);
+  let chunks = chunkText(allText);
+
+  // Bound the work so the request always finishes within Cloudflare's request-duration
+  // limit. Long sources produced many sequential 70B calls that blew past it, so the edge
+  // closed the connection (ERR_CONNECTION_CLOSED / "Failed to fetch").
+  const MAX_CHUNKS = 10;
+  const chunksTruncated = chunks.length > MAX_CHUNKS;
+  if (chunksTruncated) chunks = chunks.slice(0, MAX_CHUNKS);
 
   const allFacts = [];
   const summaries = [];
 
-  for (let i = 0; i < chunks.length; i++) {
-    try {
-      const raw = await summarizeChunk(env, chunks[i], i, lang);
-      const parsed = parseAIResponse(raw);
-      if (parsed.facts) allFacts.push(...parsed.facts);
-      if (parsed.summary) summaries.push(parsed.summary);
-    } catch (chunkErr) {
-      console.error(`Chunk ${i} parse failed:`, chunkErr.message);
-      // Extract what we can from the raw text as a fallback
-      summaries.push(`Section ${i + 1} (parse error — facts may be incomplete)`);
+  // Summarize all chunks in PARALLEL — total wall-clock ≈ one call instead of N sequential
+  // calls. Per-chunk failures are tolerated (allSettled) so one bad chunk can't kill analysis.
+  const chunkResults = await Promise.allSettled(
+    chunks.map((c, i) => summarizeChunk(env, c, i, lang))
+  );
+  chunkResults.forEach((r, i) => {
+    if (r.status === 'fulfilled') {
+      try {
+        const parsed = parseAIResponse(r.value);
+        if (parsed.facts) allFacts.push(...parsed.facts);
+        if (parsed.summary) summaries.push(parsed.summary);
+      } catch (parseErr) {
+        console.error(`Chunk ${i} parse failed:`, parseErr.message);
+        summaries.push(`Section ${i + 1} (parse error — facts may be incomplete)`);
+      }
+    } else {
+      console.error(`Chunk ${i} AI call failed:`, r.reason && r.reason.message);
+      summaries.push(`Section ${i + 1} (AI error — skipped)`);
     }
-  }
+  });
 
   if (allFacts.length === 0 && summaries.every(s => s.includes('parse error'))) {
     return new Response(JSON.stringify({ error: 'AI failed to parse all source chunks. Try shorter or simpler text.' }), {
@@ -414,6 +429,9 @@ async function handleAnalyze(env, body) {
   }
 
   const warnings = planParsed.warnings || [];
+  if (chunksTruncated) {
+    warnings.push(`Sources are very long — only the first ${MAX_CHUNKS} sections were analyzed. Trim sources for full coverage.`);
+  }
   const totalWords = allText.split(/\s+/).length;
   if (totalWords > 10000) {
     warnings.push(`Source material is ${totalWords.toLocaleString()} words — article may need to be selective`);
