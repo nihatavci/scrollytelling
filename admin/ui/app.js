@@ -2813,14 +2813,23 @@ function renderBlockList() {
   ol.innerHTML = '';
   if (!state.doc) return;
 
+  // Number repeated section types so duplicates are distinguishable (e.g. Text 1, Text 2).
+  // Unique types stay unnumbered. Custom labels are never numbered.
+  const _typeTotals = {};
+  state.doc.blocks.forEach(b => { _typeTotals[b.type] = (_typeTotals[b.type] || 0) + 1; });
+  const _typeSeen = {};
+
   state.doc.blocks.forEach((block, idx) => {
     const li = document.createElement('li');
     li.className = 'block-item' + (block.id === state.selectedBlockId ? ' active' : '');
     li.draggable = true;
     li.dataset.idx = idx;
+    li.dataset.blockId = block.id;
     const schemaName = BLOCK_SCHEMAS[block.type]?.name || block.type;
     const cm = categoryOf(block.type);
     const label = block.data?._label || '';
+    _typeSeen[block.type] = (_typeSeen[block.type] || 0) + 1;
+    const displayName = label || (_typeTotals[block.type] > 1 ? `${schemaName} ${_typeSeen[block.type]}` : schemaName);
     const conf = block.data?._confidence;
     const confBadge = conf === 'low' ? '<span class="conf-badge conf-low" title="Low confidence — AI filled gaps">🔴</span>'
       : conf === 'medium' ? '<span class="conf-badge conf-medium" title="Medium confidence — AI performed synthesis">🟡</span>'
@@ -2829,7 +2838,7 @@ function renderBlockList() {
       <div class="block-header">
         <span class="drag-handle" title="Drag to reorder">⠿</span>
         <span class="block-icon lucide-box ${cm.tint}">${cm.icon}</span>
-        <span class="block-name" title="Double-click to rename">${escapeText(label || schemaName)}</span>
+        <span class="block-name" title="Double-click to rename">${escapeText(displayName)}</span>
         ${label ? `<span class="block-type-badge">${escapeText(schemaName)}</span>` : ''}
         ${confBadge}
         <span class="block-chevron">›</span>
@@ -5206,6 +5215,20 @@ window.addEventListener('message', async (evt) => {
   if (action === 'insert-block') {
     const afterId = evt.data.afterBlockId;
     openLibrary(afterId);
+  }
+
+  // Scroll-spy: highlight the Sections row matching the block currently in view in the preview
+  if (action === 'active-block') {
+    const id = evt.data.blockId;
+    let row = null;
+    document.querySelectorAll('#block-list .block-item').forEach(li => {
+      const on = li.dataset.blockId === id;
+      li.classList.toggle('in-view', on);
+      if (on) row = li;
+    });
+    // Keep the highlighted row visible in the sidebar without yanking it around.
+    if (row && !row.classList.contains('active')) row.scrollIntoView({ block: 'nearest' });
+    return;
   }
 
   // Drag-and-drop from the component library onto the preview

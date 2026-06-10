@@ -332,6 +332,8 @@ main.editor { display: none; }
   box-shadow: var(--shadow-sm);
   background: var(--snow);
 }
+/* Scroll-spy: the section currently in view in the preview gets a blue left bar */
+.block-item.in-view > .block-header { box-shadow: inset 3px 0 0 var(--signal-blue, #0358f7); }
 
 /* Block header — clean, tappable accordion trigger */
 .block-header {

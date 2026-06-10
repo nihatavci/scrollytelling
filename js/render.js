@@ -3533,9 +3533,10 @@ function sanitizeUrl(url) {
     e.preventDefault();
     var type = (e.dataTransfer.getData('application/x-scrolly-block') ||
                 e.dataTransfer.getData('text/plain') || dragType);
+    var aid = afterId;   // capture BEFORE clear() resets it (otherwise every drop appends to the end)
     clear();
     if (type) {
-      window.parent.postMessage({ type: 'visual-edit', action: 'drop-block', blockType: type, afterBlockId: afterId }, '*');
+      window.parent.postMessage({ type: 'visual-edit', action: 'drop-block', blockType: type, afterBlockId: aid }, '*');
     }
   }
 
@@ -3560,4 +3561,41 @@ function sanitizeUrl(url) {
     if (e.data.action === 'lib-drag-start') { dragging = true; dragType = e.data.blockType || null; ensureLine(); }
     else if (e.data.action === 'lib-drag-end') { clear(); }
   });
+})();
+
+// ─────────────── Scroll-spy: tell the editor which section is in view ───────────────
+// Runs only inside the editor preview iframe; posts the most-visible block id to the
+// parent so it can highlight the matching row in the Sections list.
+(function initScrollSpy(){
+  if (window.parent === window) return; // top-level public page — nothing to report to
+  var io = null, active = null;
+  var ratios = new Map();
+  function emit(){
+    var best = null, bestR = 0;
+    ratios.forEach(function(r, el){ if (r > bestR) { bestR = r; best = el; } });
+    var id = best ? best.getAttribute('data-block-id') : null;
+    if (id && id !== active) {
+      active = id;
+      window.parent.postMessage({ type: 'visual-edit', action: 'active-block', blockId: id }, '*');
+    }
+  }
+  function observe(){
+    if (io) io.disconnect();
+    ratios.clear();
+    // Bias toward the block occupying the upper-middle of the viewport (reading position).
+    io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){ ratios.set(en.target, en.isIntersecting ? en.intersectionRatio : 0); });
+      emit();
+    }, { threshold: [0, 0.25, 0.5, 0.75, 1], rootMargin: '-8% 0px -55% 0px' });
+    document.querySelectorAll('#page-root > [data-block-id]').forEach(function(el){ io.observe(el); });
+  }
+  function boot(){
+    var root = document.querySelector('#page-root');
+    if (!root) return;
+    observe();
+    // Re-observe whenever blocks re-render (soft-refresh rebuilds #page-root).
+    new MutationObserver(function(){ active = null; observe(); }).observe(root, { childList: true });
+  }
+  if (document.readyState === 'loading') window.addEventListener('DOMContentLoaded', boot);
+  else boot();
 })();
