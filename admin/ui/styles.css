@@ -2528,7 +2528,8 @@ main.editor { display: none; }
 }
 
 /* Sidebar footer — holds the collapse toggle (moved off the floating overlay) */
-.sidebar-foot { margin-top:auto; flex:none; padding:8px 10px; border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:center; }
+.sidebar-foot { margin-top:auto; flex:none; padding:8px 10px; border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:center;
+  background:#fff; position:relative; z-index:3; }   /* always visible above pane/library content */
 .sidebar-foot-btn { display:grid; place-items:center; width:30px; height:30px; border:none; background:none; border-radius:8px; color:var(--graphite); cursor:pointer; transition:background .12s, color .12s; }
 .sidebar-foot-btn:hover { background:rgba(0,0,0,.05); color:var(--ink-black,#16161d); }
 .sidebar-foot-btn svg { width:17px; height:17px; display:block; }
