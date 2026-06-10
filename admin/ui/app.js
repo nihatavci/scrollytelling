@@ -4808,18 +4808,45 @@ function openFilePicker(filter, onSelect) {
 }
 
 // Upload one or more files via Supabase; calls onUrl(url) for each successful upload.
+// Live upload-progress pill (bottom-center). Returns { set(pct), done(), fail() }.
+function uploadProgressUI(label) {
+  let el = document.getElementById('upload-progress');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = 'upload-progress';
+    el.className = 'upload-progress';
+    el.innerHTML = '<div class="up-bar"><div class="up-fill"></div></div><div class="up-label"></div>';
+    document.body.appendChild(el);
+  }
+  el.classList.remove('err');
+  const fill = el.querySelector('.up-fill');
+  const lab = el.querySelector('.up-label');
+  const base = label || 'Uploading…';
+  fill.style.width = '2%';
+  lab.textContent = base;
+  requestAnimationFrame(() => el.classList.add('show'));
+  return {
+    set(pct){ fill.style.width = Math.max(2, pct) + '%'; lab.textContent = base + ' · ' + pct + '%'; },
+    done(){ fill.style.width = '100%'; lab.textContent = 'Uploaded'; setTimeout(() => el.classList.remove('show'), 900); },
+    fail(){ el.classList.add('err'); lab.textContent = 'Upload failed'; setTimeout(() => el.classList.remove('show'), 1800); },
+  };
+}
+
 async function uploadPickedFiles(files, onUrl) {
   const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
-  for (const f of Array.from(files)) {
+  const arr = Array.from(files);
+  for (let i = 0; i < arr.length; i++) {
+    const f = arr[i];
     if (f.size > MAX_UPLOAD_SIZE) {
       toast(`File too large (${(f.size / 1024 / 1024).toFixed(1)} MB). Maximum is 50 MB.`, 'error');
       continue;
     }
+    const prog = uploadProgressUI(arr.length > 1 ? `Uploading ${i + 1}/${arr.length}` : 'Uploading');
     try {
-      const r = await SB.uploadFile(f);
-      toast('Uploaded · ' + (r.url.split('/').pop()), 'success');
+      const r = await SB.uploadFile(f, (pct) => prog.set(pct));
+      prog.done();
       if (onUrl) onUrl(r.url);
-    } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
+    } catch (err) { prog.fail(); toast('Upload failed: ' + err.message, 'error'); }
   }
 }
 

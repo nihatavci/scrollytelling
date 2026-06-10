@@ -2437,12 +2437,13 @@ main.editor { display: none; }
 /* ── Component library (palette modal body) ── */
 .lib-dock { display:flex; align-items:flex-start; gap:10px; }
 .lib-list { width:240px; flex:none; }
-.lib-cat { display:flex; align-items:center; gap:11px; padding:9px 12px; border-radius:9px; cursor:pointer; font:600 13.5px/1.2 var(--font); color:#3a3a42; }
-.lib-cat:hover, .lib-cat.on { background:#f3f3f6; }
-.lib-cat .lucide-box { width:28px; height:28px; }
-.lib-cat .lucide-box svg { width:16px; height:16px; }
-.lib-cat-label { flex:1; }
-.lib-chev { color:#cdcdd5; } .lib-chev svg { width:15px; height:15px; }
+/* Category rows mirror the Sections block rows (.block-header/.block-name) */
+.lib-cat { display:flex; align-items:center; gap:8px; padding:9px 12px; border-radius:12px; cursor:pointer; font:500 13px/1.2 var(--font); color:var(--ink-black); }
+.lib-cat:hover, .lib-cat.on { background:var(--fog); }
+.lib-cat .lucide-box { width:24px; height:24px; }
+.lib-cat .lucide-box svg { width:15px; height:15px; }
+.lib-cat-label { flex:1; min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.lib-chev { color:var(--ash); flex-shrink:0; } .lib-chev svg { width:13px; height:13px; }
 .lib-flyout { width:262px; flex:none; display:flex; flex-direction:column; gap:10px; max-height:360px; overflow:auto;
   background:#fff; border:1px solid #ececef; border-radius:14px; box-shadow:0 14px 40px rgba(20,20,40,.14); padding:12px; }
 .lib-card { border-radius:13px; padding:13px; cursor:grab; background:#f7f7f9; transition:transform .12s, box-shadow .12s; }
@@ -2509,3 +2510,14 @@ main.editor { display: none; }
    which reads as flicker. Hiding them keeps widths stable. */
 * { scrollbar-width: none; -ms-overflow-style: none; }
 *::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none; }
+
+/* ── Live upload progress pill (bottom-center) ── */
+.upload-progress { position:fixed; left:50%; bottom:24px; transform:translateX(-50%) translateY(8px); z-index:6000;
+  background:#16161d; color:#fff; border-radius:12px; padding:11px 15px; min-width:210px;
+  box-shadow:0 10px 30px rgba(0,0,0,.22); font:600 12px/1.2 var(--font);
+  opacity:0; pointer-events:none; transition:opacity .2s, transform .2s; }
+.upload-progress.show { opacity:1; transform:translateX(-50%) translateY(0); }
+.upload-progress .up-bar { height:5px; border-radius:3px; background:rgba(255,255,255,.18); overflow:hidden; margin-bottom:7px; }
+.upload-progress .up-fill { height:100%; width:2%; background:#fff; border-radius:3px; transition:width .15s ease; }
+.upload-progress.err .up-fill { background:#ff6b6b; }
+.upload-progress .up-label { letter-spacing:.01em; }
