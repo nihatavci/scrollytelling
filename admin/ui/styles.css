@@ -110,6 +110,7 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; border-radius: 
   -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid rgba(0,0,0,.06);
   flex-shrink: 0;
+  position: relative; z-index: 30;   /* above the sidebar (z-index:20) so the page-switcher dropdown shows */
 }
 .brand { font-weight: 500; font-size: 14px; color: var(--ink-black); letter-spacing: -.01em; }
 .topbar-page { display: flex; align-items: center; gap: 8px; flex: 1; }
@@ -2463,10 +2464,10 @@ main.editor { display: none; }
 .lib-chev { color:var(--ash); flex-shrink:0; } .lib-chev svg { width:13px; height:13px; }
 .lib-flyout { width:262px; flex:none; display:flex; flex-direction:column; gap:10px; max-height:360px; overflow:auto;
   background:#fff; border:1px solid #ececef; border-radius:14px; box-shadow:0 14px 40px rgba(20,20,40,.14); padding:12px; }
-.lib-card { display:flex; flex-direction:column; flex:1 1 auto; min-height:96px; border-radius:13px; padding:13px; cursor:grab; background:#f7f7f9; transition:transform .12s, box-shadow .12s; }
+.lib-card { border-radius:13px; padding:13px; cursor:grab; background:#f7f7f9; transition:transform .12s, box-shadow .12s; }
 .lib-card:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(20,20,40,.12); }
 .lib-card:active { cursor:grabbing; }
-.lib-shot { flex:1; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:10px; padding:11px; box-shadow:0 3px 12px rgba(20,20,40,.07); overflow:hidden; }
+.lib-shot { background:#fff; border-radius:10px; padding:11px; box-shadow:0 3px 12px rgba(20,20,40,.07); overflow:hidden; }
 .lib-shot > * { max-width:100%; }
 .lib-name { text-align:center; font:600 12px/1 var(--font); margin-top:9px; color:#555; }
 
@@ -2497,9 +2498,8 @@ main.editor { display: none; }
 /* Flyout is appended to <body> (escapes the sidebar's backdrop-filter clip) */
 .lib-flyout.lib-pop {
   position:fixed; width:250px; max-height:none; z-index:200;   /* height set inline = same as the category list */
-  border-left:1px solid #ececef;
-  border-top-left-radius:0; border-bottom-left-radius:0;
-  box-shadow:10px 0 30px -8px rgba(20,20,40,.16);  /* shadow only to the right */
+  border:none; border-left:1px solid #ececef; border-radius:0; /* flush docked panel, not a floating card */
+  box-shadow:8px 0 24px -16px rgba(20,20,40,.12);              /* barely-there right edge */
 }
 
 /* Sidebar footer — holds the collapse toggle (moved off the floating overlay) */
