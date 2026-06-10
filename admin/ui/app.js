@@ -5500,6 +5500,23 @@ startAutosave();
   fab.addEventListener('click', function() { addBtn.click(); });
 })();
 
+// ── Sidebar tabs (Sections / Pages / Assets) ──
+(function initSideTabs(){
+  const tabs = document.getElementById('side-tabs');
+  const ind = document.getElementById('side-ind');
+  if (!tabs || !ind) return;
+  function place(btn){ ind.style.width = btn.offsetWidth + 'px'; ind.style.transform = 'translateX(' + (btn.offsetLeft - 4) + 'px)'; }
+  function show(name, btn){
+    tabs.querySelectorAll('.side-tab').forEach(b => b.classList.toggle('on', b===btn));
+    place(btn);
+    document.querySelectorAll('.side-pane').forEach(p => { p.hidden = (p.getAttribute('data-pane') !== name); });
+    if (name === 'pages' && typeof renderPagesPane === 'function') renderPagesPane();
+    if (name === 'assets' && typeof renderAssetsPane === 'function') renderAssetsPane();
+  }
+  tabs.querySelectorAll('.side-tab').forEach(btn => btn.addEventListener('click', () => show(btn.getAttribute('data-pane'), btn)));
+  requestAnimationFrame(() => place(tabs.querySelector('.side-tab.on')));
+})();
+
 // ── Sidebar toggle (glass pill ☰) ────────────────────────────────────────────
 (function initSidebarToggle() {
   var btn = document.getElementById('btn-sidebar-toggle');
