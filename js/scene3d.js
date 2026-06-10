@@ -71,12 +71,25 @@ export async function initScene3D(blockId, data) {
 
   // ── Scene + lights ──
   const scene = new THREE.Scene();
-  // Image-based lighting from a neutral studio environment gives PBR materials realistic
-  // reflections and shading — this is what makes a GLB look great instead of flat/dark.
+  // Image-based lighting gives PBR materials realistic reflections and shading — this is what
+  // makes a GLB look great instead of flat/dark. A real studio HDRI (warm, directional) reads
+  // far closer to Sketchfab than the neutral procedural RoomEnvironment; fall back to it if the
+  // HDRI can't load, and to lights-only if even that fails.
   try {
-    const { RoomEnvironment } = await import(`${_CDN}/examples/jsm/environments/RoomEnvironment.js`);
     const pmrem = new THREE.PMREMGenerator(renderer);
-    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.compileEquirectangularShader();
+    let envTex = null;
+    try {
+      const { RGBELoader } = await import(`${_CDN}/examples/jsm/loaders/RGBELoader.js`);
+      const hdr = await new RGBELoader().loadAsync('/assets/hdri/studio.hdr');
+      hdr.mapping = THREE.EquirectangularReflectionMapping;
+      envTex = pmrem.fromEquirectangular(hdr).texture;
+      hdr.dispose();
+    } catch (hdrErr) {
+      const { RoomEnvironment } = await import(`${_CDN}/examples/jsm/environments/RoomEnvironment.js`);
+      envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    }
+    scene.environment = envTex;
     pmrem.dispose();
   } catch (e) { /* environment optional — fall back to lights only */ }
   scene.add(new THREE.AmbientLight(0xffffff, 0.25));   // low fill; the env map does the heavy lifting

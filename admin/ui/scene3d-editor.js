@@ -409,10 +409,23 @@ async function initScene3DEditor(container, blockData, onChange) {
 
     threeScene = new THREE.Scene();
     // Studio environment (IBL) — realistic PBR reflections/shading, matching the live renderer.
+    // Real studio HDRI for a Sketchfab-like look; fall back to procedural RoomEnvironment, then
+    // to lights-only.
     try {
-      const { RoomEnvironment } = await import(`${CDN}/examples/jsm/environments/RoomEnvironment.js`);
       const pmrem = new THREE.PMREMGenerator(renderer);
-      threeScene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      pmrem.compileEquirectangularShader();
+      let envTex = null;
+      try {
+        const { RGBELoader } = await import(`${CDN}/examples/jsm/loaders/RGBELoader.js`);
+        const hdr = await new RGBELoader().loadAsync('/assets/hdri/studio.hdr');
+        hdr.mapping = THREE.EquirectangularReflectionMapping;
+        envTex = pmrem.fromEquirectangular(hdr).texture;
+        hdr.dispose();
+      } catch (hdrErr) {
+        const { RoomEnvironment } = await import(`${CDN}/examples/jsm/environments/RoomEnvironment.js`);
+        envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      }
+      threeScene.environment = envTex;
       pmrem.dispose();
     } catch (e) { /* environment optional — fall back to lights only */ }
     threeScene.add(new THREE.AmbientLight(0xffffff, 0.25)); // low fill; env does the heavy lifting
