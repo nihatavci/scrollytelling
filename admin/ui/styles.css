@@ -2389,7 +2389,7 @@ main.editor { display: none; }
 .lucide-box svg{width:15px;height:15px}
 
 /* ── Editor sidebar shell ── */
-.sidebar { display:flex; flex-direction:column; }
+.sidebar { display:flex; flex-direction:column; background:#fff; }
 .sidebar #ai-slot:empty { display:none; }   /* reserved for AI cycle */
 .side-tabs { position:relative; display:flex; margin:10px; padding:4px; background:#f1f1f4; border-radius:11px; }
 .side-ind { position:absolute; top:4px; bottom:4px; left:4px; width:96px; background:#fff; border-radius:8px;
