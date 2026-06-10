@@ -247,7 +247,7 @@ main.editor { display: none; }
 .blocks {
   position: absolute;
   top: 0; left: 0; bottom: 0;
-  width: 380px;
+  width: 256px;
   z-index: 20;
   background: rgba(255, 255, 255, 0.72);
   backdrop-filter: blur(40px) saturate(1.8);
@@ -262,7 +262,7 @@ main.editor { display: none; }
   will-change: left;
 }
 .blocks.is-collapsed {
-  left: -380px;
+  left: -256px;
   pointer-events: none;
   opacity: 0;
 }
@@ -275,7 +275,7 @@ main.editor { display: none; }
 }
 
 /* Fullscreen mode — hide sidebar toggle area */
-.layout.preview-fullscreen > .blocks { left: -380px; opacity: 0; pointer-events: none; }
+.layout.preview-fullscreen > .blocks { left: -256px; opacity: 0; pointer-events: none; }
 .layout.preview-fullscreen > .preview { border: 0; }
 
 .aside-head {
@@ -313,7 +313,7 @@ main.editor { display: none; }
 .sidebar-toggle:hover { background: rgba(255,255,255,.95); box-shadow: 0 4px 16px rgba(0,0,0,.14); }
 .sidebar-toggle:active { transform: scale(.95); }
 /* Move toggle right when sidebar is visible */
-.blocks:not(.is-collapsed) ~ .sidebar-toggle { left: 390px; }
+.blocks:not(.is-collapsed) ~ .sidebar-toggle { left: 266px; }
 .blocks:not(.is-collapsed) ~ .sidebar-toggle { transition: left .35s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s; }
 .blocks.is-collapsed ~ .sidebar-toggle { transition: left .35s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s; }
 
@@ -1037,15 +1037,15 @@ main.editor { display: none; }
 
 /* ── Responsive: Tablet (≤1100px) ── */
 @media (max-width: 1100px) {
-  .blocks { width: 320px; }
-  .blocks:not(.is-collapsed) ~ .sidebar-toggle { left: 330px; }
+  .blocks { width: 240px; }
+  .blocks:not(.is-collapsed) ~ .sidebar-toggle { left: 250px; }
   .topbar-page select { min-width: 140px; }
 }
 
 /* ── Responsive: Small tablet (≤900px) ── */
 @media (max-width: 900px) {
-  .blocks { width: 280px; }
-  .blocks:not(.is-collapsed) ~ .sidebar-toggle { left: 290px; }
+  .blocks { width: 240px; }
+  .blocks:not(.is-collapsed) ~ .sidebar-toggle { left: 250px; }
   .topbar {
     flex-wrap: wrap;
     gap: 8px;
