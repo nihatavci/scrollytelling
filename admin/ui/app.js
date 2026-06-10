@@ -3238,10 +3238,9 @@ function renderLibrary(body, afterBlockId) {
     // Fixed positioning avoids clipping by the sidebar's overflow.
     const sb = document.querySelector('.blocks.sidebar');
     const sRect = sb.getBoundingClientRect();
-    const bRect = body.getBoundingClientRect();          // the lib-body (category list area)
     fly.style.left = Math.round(sRect.right) + 'px';     // flush to the sidebar edge (no gap)
-    fly.style.top = Math.round(bRect.top) + 'px';        // SAME level as the category list
-    fly.style.height = Math.round(bRect.height) + 'px';  // SAME height as the list — reachable from any row
+    fly.style.top = Math.round(sRect.top) + 'px';        // full height: fill from the sidebar's top…
+    fly.style.height = Math.round(sRect.height) + 'px';  // …to its bottom (fills the top & bottom gaps)
     fly.innerHTML = '';
     cat.types.forEach(type => {
       const schema = BLOCK_SCHEMAS[type];
@@ -5625,24 +5624,26 @@ startAutosave();
   var backdrop = document.getElementById('overflow-backdrop');
   if (!trigger || !menu) return;
 
+  var isSheet = function() { return window.innerWidth <= 900; }; // mobile = bottom sheet, desktop = dropdown
   function openMenu() {
     if (backdrop) { backdrop.classList.add('open'); backdrop.style.visibility = 'visible'; }
     menu.classList.add('open');
     menu.style.visibility = 'visible';
     trigger.classList.add('active');
-    if (window.MX) MX.animateSheetOpen(menu, backdrop);
+    if (window.MX && isSheet()) MX.animateSheetOpen(menu, backdrop);
   }
   function closeMenu() {
     trigger.classList.remove('active');
-    if (window.MX) {
+    if (window.MX && isSheet()) {
       MX.animateSheetClose(menu, backdrop).then(() => {
         menu.classList.remove('open');
         menu.style.visibility = 'hidden';
         if (backdrop) { backdrop.classList.remove('open'); backdrop.style.visibility = 'hidden'; }
       });
     } else {
-      if (backdrop) backdrop.classList.remove('open');
+      if (backdrop) { backdrop.classList.remove('open'); backdrop.style.visibility = 'hidden'; }
       menu.classList.remove('open');
+      menu.style.visibility = 'hidden';
     }
   }
 

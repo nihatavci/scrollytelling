@@ -2364,6 +2364,28 @@ main.editor { display: none; }
 #btn-delete-page,
 #btn-rename-page { display: none; }
 
+/* Desktop: the ⋮ overflow menu opens as a top-right dropdown (mobile uses the bottom sheet). */
+@media (min-width: 901px) {
+  .overflow-menu.open {
+    display: flex; flex-direction: column; gap: 2px;
+    position: fixed; top: 56px; right: 16px; left: auto; bottom: auto;
+    width: 224px; max-width: calc(100vw - 32px);
+    background: #fff; border: 1px solid #e1e4e8; border-radius: 12px;
+    box-shadow: 0 16px 40px rgba(0,0,0,.18); padding: 6px;
+    z-index: 4000; visibility: visible;
+  }
+  .overflow-menu.open .overflow-handle { display: none; }
+  .overflow-menu.open .overflow-divider { height: 1px; background: rgba(0,0,0,.07); margin: 4px 6px; }
+  .overflow-menu.open button {
+    display: block; width: 100%; text-align: left; border: none; background: none;
+    padding: 9px 12px; border-radius: 8px; cursor: pointer;
+    font: inherit; font-size: 13px; color: var(--ink-black);
+  }
+  .overflow-menu.open button:hover { background: var(--fog); }
+  .overflow-menu.open button.danger { color: var(--spectrum-red); }
+  .overflow-backdrop.open { display: block; position: fixed; inset: 0; z-index: 3999; background: transparent; }
+}
+
 .page-select-hidden { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .page-title-wrap { display: inline-flex; align-items: center; gap: 2px; position: relative; }
 .page-title-text {
