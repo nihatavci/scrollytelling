@@ -2324,6 +2324,41 @@ function renderPagesPane(){
   });
   if (!rows.length) box.innerHTML = '<div class="side-empty">No pages yet.</div>';
 }
+
+function _assetKind(name){
+  if (/\.(gif)$/i.test(name)) return ['GIF','b-gif'];
+  if (/\.(mp4|webm|mov|m4v)$/i.test(name)) return ['VIDEO','b-vid'];
+  if (/\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(name)) return ['AUDIO','b-aud'];
+  if (/\.(png|jpe?g|webp|avif|svg)$/i.test(name)) return ['IMAGE','b-img'];
+  return ['FILE','b-file'];
+}
+function _fmtSize(b){ return b > 1048576 ? (b/1048576).toFixed(1)+' MB' : b > 1024 ? Math.round(b/1024)+' KB' : (b||0)+' B'; }
+async function renderAssetsPane(){
+  const box = document.getElementById('assets-pane');
+  if (!box) return;
+  box.innerHTML = '<div class="side-empty">Loading…</div>';
+  try {
+    const { files } = await SB.listFiles('all');
+    if (!files || !files.length) { box.innerHTML = '<div class="side-empty">No uploads yet.</div>'; return; }
+    box.innerHTML = '';
+    files.forEach(f => {
+      const [badge, cls] = _assetKind(f.name);
+      const isImg = badge === 'IMAGE' || badge === 'GIF';
+      const row = document.createElement('div');
+      row.className = 'asset-row';
+      const thumb = isImg
+        ? '<div class="asset-thumb" style="background-image:url(\'' + encodeURI(f.url) + '\')"></div>'
+        : '<div class="asset-thumb asset-thumb--icon ' + cls + '">' + (badge==='VIDEO'?'▶':badge==='AUDIO'?'♪':'⎙') + '</div>';
+      row.innerHTML = thumb +
+        '<div class="asset-meta"><div class="asset-name">' + escapeText(f.name) + '</div><div class="asset-sub">' + _fmtSize(f.size) + '</div></div>' +
+        '<span class="asset-badge ' + cls + '">' + badge + '</span>';
+      box.appendChild(row);
+    });
+  } catch (e) {
+    box.innerHTML = '<div class="side-empty">Couldn\'t load files.</div>';
+  }
+}
+
 $('#page-select').addEventListener('change', (e) => loadPage(e.target.value));
 
 // ── Click-to-edit page title + custom page switcher ─────────────────
@@ -5537,6 +5572,10 @@ startAutosave();
   requestAnimationFrame(() => place(tabs.querySelector('.side-tab.on')));
 })();
 document.getElementById('side-new-page')?.addEventListener('click', () => document.getElementById('btn-new-page')?.click());
+document.getElementById('side-upload')?.addEventListener('click', () => {
+  // Reuse the existing image picker / upload entry point.
+  if (typeof openImagePicker === 'function') openImagePicker(() => renderAssetsPane());
+});
 
 // ── Sidebar toggle (glass pill ☰) ────────────────────────────────────────────
 (function initSidebarToggle() {
