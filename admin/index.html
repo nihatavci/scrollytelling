@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="theme-color" content="#f8f8f8">
+<title>ScrollyCMS · Admin</title>
+<!-- Supabase config — replaced at deploy or set in env -->
+<meta name="supabase-url" content="https://dwdwrmdqdqikiryhgqtm.supabase.co">
+<meta name="supabase-key" content="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR3ZHdybWRxZHFpa2lyeWhncXRtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2ODk2ODAsImV4cCI6MjA5NDI2NTY4MH0.28-7FMq74AOo_4cD8EbOxdC6DV3Sg5ZZBjH794rNwOQ">
+<link rel="stylesheet" href="/admin/ui/styles.css?v=20260608a">
+</head>
+<body>
+
+<!-- ───────── Auth screen ───────── -->
+<div id="auth" class="auth-screen hidden">
+  <div class="auth-card">
+    <div class="auth-brand">ScrollyCMS</div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" data-tab="login">Sign in</button>
+      <button class="auth-tab" data-tab="signup">Create account</button>
+    </div>
+
+    <!-- Login form -->
+    <form id="login-form" class="auth-form">
+      <input id="login-email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="login-pwd" type="password" placeholder="Password" autocomplete="current-password" required>
+      <button type="submit" class="primary">Sign in</button>
+      <button type="button" id="forgot-link" class="small" style="background:none;border:none;cursor:pointer;text-decoration:underline;">Forgot password?</button>
+      <div id="login-error" class="error"></div>
+    </form>
+
+    <!-- Forgot-password request form -->
+    <form id="reset-request-form" class="auth-form hidden">
+      <input id="reset-email" type="email" placeholder="Your account email" autocomplete="email" required>
+      <button type="submit" class="primary">Send reset link</button>
+      <button type="button" id="reset-cancel" class="small">Back to sign in</button>
+      <div id="reset-request-msg" class="error"></div>
+    </form>
+
+    <!-- Set a new password (shown on recovery link) -->
+    <form id="set-password-form" class="auth-form hidden">
+      <p style="font-size:13px;color:#57606a;">Choose a new password for your account.</p>
+      <input id="new-pwd" type="password" placeholder="New password (min 6 chars)" autocomplete="new-password" minlength="6" required>
+      <button type="submit" class="primary">Set password &amp; continue</button>
+      <div id="set-password-error" class="error"></div>
+    </form>
+
+    <!-- Signup form -->
+    <form id="signup-form" class="auth-form hidden">
+      <input id="signup-name" type="text" placeholder="Display name" autocomplete="name" required>
+      <input id="signup-email" type="email" placeholder="Email" autocomplete="email" required>
+      <input id="signup-pwd" type="password" placeholder="Password (min 6 chars)" autocomplete="new-password" minlength="6" required>
+      <button type="submit" class="primary">Create account</button>
+      <div id="signup-error" class="error"></div>
+    </form>
+
+    <div id="auth-success" class="auth-success hidden">
+      <p>Check your email for a confirmation link, then sign in.</p>
+      <button id="resend-confirm" class="small">Resend confirmation email</button>
+      <p id="resend-msg" class="error" style="display:none;"></p>
+      <button onclick="document.querySelector('[data-tab=login]').click()" class="small">Go to sign in</button>
+    </div>
+  </div>
+</div>
+
+<!-- ───────── Dashboard ───────── -->
+<div id="app" class="app hidden">
+
+  <header class="topbar">
+    <!-- Left: brand -->
+    <div class="tb-left">
+      <div class="brand">ScrollyCMS</div>
+    </div>
+
+    <!-- Center: project identity (page name · live url) -->
+    <div class="topbar-page">
+      <select id="page-select" class="page-select-hidden"></select>
+      <div id="page-title-wrap" class="page-title-wrap">
+        <span id="page-title-text" class="page-title-text" title="Click to rename"></span>
+        <button id="page-switcher-btn" class="page-switcher-btn" title="Switch page" aria-label="Switch page">▾</button>
+        <div id="page-switcher-menu" class="page-switcher-menu" hidden></div>
+      </div>
+      <a id="link-view-page" href="#" target="_blank" class="tb-url" title="View the live page"></a>
+    </div>
+
+    <!-- Right: actions -->
+    <div class="topbar-actions">
+      <div id="save-indicator" class="save-indicator" aria-live="polite">
+        <span class="save-indicator__icon"></span>
+        <span class="save-indicator__text"></span>
+      </div>
+      <button id="btn-new-page" class="tb-icon" title="Create a new page" aria-label="New page">+</button>
+      <button id="btn-article-builder" class="tb-icon" title="Build a full article from source material" aria-label="Full Article">⚡</button>
+      <button id="btn-preview" class="tb-icon" title="Open rendered page in a new tab" aria-label="Preview">▶</button>
+      <button id="btn-visual-edit" class="tb-icon ve-toggle" title="Edit text & images directly on the preview" aria-label="Visual edit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+      </button>
+      <button id="btn-refresh-preview" class="tb-icon" title="Reload the preview" aria-label="Reload preview">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-3-6.7L21 8"/><path d="M21 3v5h-5"/></svg>
+      </button>
+      <button id="btn-history" class="small" title="Snapshots history">History</button>
+      <button id="btn-delete-page" class="small danger" title="Delete page">🗑</button>
+      <button id="btn-publish" class="primary publish-btn">Publish<span id="publish-dot" class="publish-dot"></span></button>
+      <button id="btn-settings" class="ghost" title="Site settings">⚙</button>
+      <button id="btn-logout" class="ghost">Logout</button>
+      <button id="btn-overflow" class="topbar-overflow-btn" title="More options" aria-label="More options">⋮</button>
+    </div>
+  </header>
+
+  <!-- Bottom sheet — MUST live outside .topbar to avoid backdrop-filter containing block -->
+  <div id="overflow-backdrop" class="overflow-backdrop"></div>
+  <!-- Slimmed: New page (+), Preview (▶), Rename (click title), View live (click url) all
+       have direct affordances now — the menu keeps only what has no other home. -->
+  <div id="overflow-menu" class="overflow-menu">
+    <div class="overflow-handle"></div>
+    <button data-overflow="history">Version history</button>
+    <button data-overflow="settings">Page settings</button>
+    <div class="overflow-divider"></div>
+    <button data-overflow="delete-page" class="danger">Delete page</button>
+    <button data-overflow="logout" class="muted">Log out</button>
+  </div>
+
+  <div class="layout">
+    <!-- Left sidebar: Pages · Sections · Assets -->
+    <aside class="blocks sidebar">
+      <!-- Reserved for the AI panel (Compose / Improve) — built in a later cycle -->
+      <div id="ai-slot"></div>
+
+      <div class="side-tabs" id="side-tabs">
+        <div class="side-ind" id="side-ind"></div>
+        <button class="side-tab on" data-pane="sections">Sections</button>
+        <button class="side-tab" data-pane="pages">Pages</button>
+        <button class="side-tab" data-pane="assets">Assets</button>
+      </div>
+
+      <div class="side-pane" data-pane="sections">
+        <div class="aside-head">
+          <span>Sections</span>
+          <button id="btn-add-block" class="small" title="Add a section">+ Add</button>
+        </div>
+        <ol id="block-list" class="block-list"></ol>
+      </div>
+
+      <div class="side-pane" data-pane="pages" hidden>
+        <div class="aside-head"><span>Pages</span><button id="side-new-page" class="small" title="New page">+ New</button></div>
+        <div id="pages-pane" class="pane-body"></div>
+      </div>
+
+      <div class="side-pane" data-pane="assets" hidden>
+        <div class="aside-head"><span>Assets</span><button id="side-upload" class="small" title="Upload a file">+ Upload</button></div>
+        <div id="assets-pane" class="pane-body"></div>
+      </div>
+
+      <!-- Component library replaces the sidebar in-place (no popup); hover opens a flyout over the canvas -->
+      <div class="side-library" id="side-library" hidden>
+        <div class="lib-head">
+          <button class="lib-back" id="lib-back" title="Back" aria-label="Back">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+          </button>
+          <span class="lib-head-title">Add a section</span>
+        </div>
+        <div class="lib-body" id="lib-body"></div>
+      </div>
+
+      <!-- Sidebar footer: collapse toggle (moved off the floating overlay) -->
+      <div class="sidebar-foot">
+        <button id="btn-sidebar-toggle" class="sidebar-foot-btn" title="Hide panel" aria-expanded="true" aria-label="Hide panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+      </div>
+    </aside>
+
+    <!-- Editor / preview area -->
+    <main class="editor">
+      <div id="editor-empty" class="empty">
+        Select a block on the left to edit it.
+      </div>
+      <div id="editor-form" class="form hidden"></div>
+    </main>
+
+    <!-- Live preview (toolbar moved into the topbar; no floating overlay) -->
+    <aside class="preview">
+      <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin" allow="autoplay"></iframe>
+    </aside>
+
+    <!-- Floating reopen button — only visible when the sidebar is collapsed -->
+    <button id="btn-sidebar-reopen" class="sidebar-reopen" title="Show panel" aria-label="Show panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
+
+    <!-- Mobile FAB -->
+    <button id="fab-add" class="fab-add" aria-label="Add block">+</button>
+  </div>
+</div>
+
+<!-- ───────── Modals ───────── -->
+<div id="modal-root"></div>
+
+<!-- ───────── Scripts ───────── -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/motion@11.18.2/dist/motion.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/mammoth@1/mammoth.browser.min.js"></script>
+<script type="module">
+  import * as pdfjsLib from 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4/build/pdf.min.mjs';
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@4/build/pdf.worker.min.mjs';
+  window.pdfjsLib = pdfjsLib;
+</script>
+<script src="/admin/ui/motion.js?v=20260608a"></script>
+<script src="/admin/ui/supabase-client.js?v=20260608a"></script>
+<script src="/admin/ui/onboarding.js?v=20260608a"></script>
+<script src="/admin/ui/app.js?v=20260608a"></script>
+<script src="/admin/ui/scene3d-editor.js?v=20260608a"></script>
+<script src="/admin/ui/article-builder.js?v=20260608a"></script>
+</body>
+</html>

@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "node dev-server.js",
     "dev:pages": "npx wrangler pages dev . --port 4000",
+    "predeploy": "cp admin/ui/index.html admin/index.html",
     "deploy": "npx wrangler pages deploy . --project-name scrollycms",
     "test": "node --test 'tests/*.test.js'"
   },
