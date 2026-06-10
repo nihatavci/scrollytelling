@@ -2450,3 +2450,18 @@ main.editor { display: none; }
 .lib-card:active { cursor:grabbing; }
 .lib-shot { background:#fff; border-radius:10px; padding:11px; box-shadow:0 3px 12px rgba(20,20,40,.07); overflow:hidden; }
 .lib-name { text-align:center; font:600 12px/1 var(--font); margin-top:9px; color:#555; }
+
+/* ── Component library docked IN the sidebar (replaces panes; flyout overlaps canvas) ── */
+.side-library { flex:1; min-height:0; display:flex; flex-direction:column; animation:sidefade .16s cubic-bezier(.4,0,.2,1); }
+.side-library[hidden] { display:none; }
+.lib-head { display:flex; align-items:center; gap:9px; padding:6px 10px 8px; }
+.lib-back { display:grid; place-items:center; width:28px; height:28px; flex:none; border:none; background:#f1f1f4; border-radius:8px; color:#33333b; cursor:pointer; transition:background .12s; }
+.lib-back:hover { background:#e7e7ec; }
+.lib-back svg { width:16px; height:16px; }
+.lib-head-title { font:600 13.5px/1 var(--font); color:#16161d; }
+.lib-body { flex:1; min-height:0; overflow:auto; padding:2px 8px 12px; }
+.side-tabs[hidden] { display:none; }
+.side-library .lib-dock { display:block; }
+.side-library .lib-list { width:auto; flex:none; }
+/* Flyout is appended to <body> (escapes the sidebar's backdrop-filter clip) */
+.lib-flyout.lib-pop { position:fixed; width:252px; max-height:60vh; z-index:200; }

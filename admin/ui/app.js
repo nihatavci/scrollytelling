@@ -3143,20 +3143,55 @@ if (btnArticleBuilder) {
   });
 }
 
-// Add block palette
-$('#btn-add-block').addEventListener('click', () => {
-  openModal('Add to your story', renderPalette, '');
-});
+// ── Component library (in-sidebar, Framer-style — no popup) ──
+// Opening replaces the sidebar tabs/panes with the categorized list; hovering a
+// category opens a flyout of real-preview cards that overlaps the canvas.
+function openLibrary(afterBlockId) {
+  const lib = document.getElementById('side-library');
+  if (!lib) return;
+  state._libAfterId = afterBlockId || null;
+  const tabs = document.getElementById('side-tabs');
+  if (tabs) tabs.hidden = true;
+  document.querySelectorAll('.side-pane').forEach(p => { p.hidden = true; });
+  lib.hidden = false;
+  const title = lib.querySelector('.lib-head-title');
+  if (title) title.textContent = afterBlockId ? 'Insert a section' : 'Add a section';
+  renderLibrary(document.getElementById('lib-body'), afterBlockId);
+}
+
+function closeLibrary() {
+  const lib = document.getElementById('side-library');
+  if (lib) lib.hidden = true;
+  state._libAfterId = null;
+  document.querySelectorAll('.lib-flyout.lib-pop').forEach(f => f.remove()); // remove body-level flyout
+  const tabs = document.getElementById('side-tabs');
+  if (tabs) tabs.hidden = false;
+  const activeName = tabs?.querySelector('.side-tab.on')?.getAttribute('data-pane') || 'sections';
+  document.querySelectorAll('.side-pane').forEach(p => { p.hidden = (p.getAttribute('data-pane') !== activeName); });
+}
+
+document.getElementById('lib-back')?.addEventListener('click', closeLibrary);
+
+// "+ Add" opens the library in the sidebar (replaces the old popup)
+$('#btn-add-block').addEventListener('click', () => openLibrary());
+
 function renderLibrary(body, afterBlockId) {
   body.innerHTML = '';
+  document.querySelectorAll('.lib-flyout.lib-pop').forEach(f => f.remove()); // clear any stale flyout
   const dock = document.createElement('div');
   dock.className = 'lib-dock';
   const list = document.createElement('div');
   list.className = 'lib-list';
+  // Flyout lives on <body> so the sidebar's backdrop-filter can't clip it.
   const fly = document.createElement('div');
-  fly.className = 'lib-flyout';
+  fly.className = 'lib-flyout lib-pop';
   fly.style.display = 'none';
-  dock.appendChild(list); dock.appendChild(fly); body.appendChild(dock);
+  dock.appendChild(list); body.appendChild(dock); document.body.appendChild(fly);
+
+  let closeTimer = null;
+  const cancelClose = () => { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; } };
+  function hideFly(){ fly.style.display = 'none'; list.querySelectorAll('.lib-cat').forEach(r => r.classList.remove('on')); }
+  const scheduleClose = () => { cancelClose(); closeTimer = setTimeout(hideFly, 160); };
 
   PALETTE_CATEGORIES.forEach(cat => {
     const meta = CAT_META[cat.label] || categoryOf(cat.types[0]);
@@ -3165,12 +3200,22 @@ function renderLibrary(body, afterBlockId) {
     row.innerHTML = '<span class="lucide-box ' + meta.tint + '">' + meta.icon + '</span>' +
       '<span class="lib-cat-label">' + cat.label + '</span>' +
       '<span class="lib-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>';
-    row.addEventListener('mouseenter', () => openFly(cat, row));
+    row.addEventListener('mouseenter', () => { cancelClose(); openFly(cat, row); });
     list.appendChild(row);
   });
+  list.addEventListener('mouseleave', scheduleClose);
+  fly.addEventListener('mouseenter', cancelClose);
+  fly.addEventListener('mouseleave', scheduleClose);
 
   function openFly(cat, row){
     list.querySelectorAll('.lib-cat').forEach(r => r.classList.toggle('on', r===row));
+    // Position the flyout just right of the sidebar, aligned to the hovered row.
+    // Fixed positioning avoids clipping by the sidebar's overflow.
+    const sb = document.querySelector('.blocks.sidebar');
+    const sRect = sb.getBoundingClientRect();
+    const rRect = row.getBoundingClientRect();
+    fly.style.left = (sRect.right + 10) + 'px';
+    fly.style.top = Math.max(12, Math.min(rRect.top, window.innerHeight - 440)) + 'px';
     fly.innerHTML = '';
     cat.types.forEach(type => {
       const schema = BLOCK_SCHEMAS[type];
@@ -3180,14 +3225,13 @@ function renderLibrary(body, afterBlockId) {
       card.setAttribute('draggable', 'true');             // hook for the drag-engine cycle
       card.setAttribute('data-block-type', type);
       card.innerHTML = '<div class="lib-shot">' + (BLOCK_PREVIEWS[type] || '') + '</div><div class="lib-name">' + schema.name + '</div>';
-      card.addEventListener('click', () => { closeModal(); openCreationCard(type, afterBlockId ? { insertAfter: afterBlockId } : undefined); });
+      card.addEventListener('click', () => { const after = afterBlockId; closeLibrary(); openCreationCard(type, after ? { insertAfter: after } : undefined); });
       fly.appendChild(card);
     });
     fly.style.display = 'flex';
   }
-  dock.addEventListener('mouseleave', () => { fly.style.display = 'none'; list.querySelectorAll('.lib-cat').forEach(r => r.classList.remove('on')); });
 }
-// Back-compat wrappers (existing callers pass body, or body+afterId)
+// Back-compat wrappers (legacy callers, if any)
 function renderPalette(body) { renderLibrary(body); }
 function renderPaletteWithInsert(body, afterBlockId) { renderLibrary(body, afterBlockId); }
 // Legacy name kept for backwards-compat; routes through the Claude flow.
@@ -5077,12 +5121,10 @@ window.addEventListener('message', async (evt) => {
     }
   }
 
-  // Insert block at position (from visual-edit hover zones)
+  // Insert block at position (from visual-edit hover zones) — open the in-sidebar library
   if (action === 'insert-block') {
     const afterId = evt.data.afterBlockId;
-    openModal('Add a block', (body) => {
-      renderPaletteWithInsert(body, afterId);
-    }, '');
+    openLibrary(afterId);
   }
 });
 
