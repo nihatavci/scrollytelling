@@ -319,7 +319,7 @@ main.editor { display: none; }
 .blocks.is-collapsed ~ .sidebar-toggle { transition: left .35s cubic-bezier(.4,0,.2,1), background .15s, box-shadow .15s; }
 
 /* ── Block list (accordion) ── */
-.block-list { list-style: none; padding: 8px; }
+.block-list { list-style: none; padding: 8px; flex:1; min-height:0; overflow-y:auto; }
 .block-item {
   border: 1px solid transparent;
   border-radius: 12px;
@@ -2430,6 +2430,9 @@ main.editor { display: none; }
 
 /* ── Editor sidebar shell ── */
 .sidebar { display:flex; flex-direction:column; background:#fff; }
+/* The sidebar shell itself does NOT scroll — only the active content region does,
+   so the tab strip and the footer (hamburger) stay fixed in place. */
+.blocks.sidebar { overflow: hidden; }
 .sidebar #ai-slot:empty { display:none; }   /* reserved for AI cycle */
 .side-tabs { position:relative; display:flex; margin:10px; padding:4px; background:#f1f1f4; border-radius:11px; }
 .side-ind { position:absolute; top:4px; bottom:4px; left:4px; width:96px; background:#fff; border-radius:8px;
@@ -2443,7 +2446,7 @@ main.editor { display: none; }
 .side-pane { flex:1; min-height:0; display:flex; flex-direction:column; animation:sidefade .16s cubic-bezier(.4,0,.2,1); }
 .side-pane[hidden] { display:none; }
 @keyframes sidefade { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
-.pane-body { overflow:auto; padding:4px 8px 10px; }
+.pane-body { flex:1; min-height:0; overflow:auto; padding:4px 8px 10px; }
 /* sidebar generic rows */
 .side-row { display:flex; align-items:center; gap:10px; padding:8px 9px; border-radius:9px; cursor:pointer;
   font:500 13px/1.2 var(--font); color:#33333b; transition:background .12s; }
@@ -2528,8 +2531,9 @@ main.editor { display: none; }
 }
 
 /* Sidebar footer — holds the collapse toggle (moved off the floating overlay) */
-.sidebar-foot { margin-top:auto; flex:none; padding:8px 10px; border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:center;
-  background:#fff; position:relative; z-index:3; }   /* always visible above pane/library content */
+/* Fixed at the bottom of the sidebar shell — only the content region above scrolls. */
+.sidebar-foot { flex:none; padding:8px 10px; border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:center;
+  background:#fff; position:relative; z-index:10; }
 .sidebar-foot-btn { display:grid; place-items:center; width:30px; height:30px; border:none; background:none; border-radius:8px; color:var(--graphite); cursor:pointer; transition:background .12s, color .12s; }
 .sidebar-foot-btn:hover { background:rgba(0,0,0,.05); color:var(--ink-black,#16161d); }
 .sidebar-foot-btn svg { width:17px; height:17px; display:block; }
