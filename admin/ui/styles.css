@@ -2465,3 +2465,9 @@ main.editor { display: none; }
 .side-library .lib-list { width:auto; flex:none; }
 /* Flyout is appended to <body> (escapes the sidebar's backdrop-filter clip) */
 .lib-flyout.lib-pop { position:fixed; width:252px; max-height:60vh; z-index:200; }
+
+/* ── Hide scrollbars everywhere (content still scrolls via wheel/trackpad). ──
+   Visible scrollbars reserve gutter width that toggles as the sidebar opens/closes,
+   which reads as flicker. Hiding them keeps widths stable. */
+* { scrollbar-width: none; -ms-overflow-style: none; }
+*::-webkit-scrollbar { width: 0 !important; height: 0 !important; display: none; }
