@@ -2782,7 +2782,7 @@ function renderBlockList() {
     li.draggable = true;
     li.dataset.idx = idx;
     const schemaName = BLOCK_SCHEMAS[block.type]?.name || block.type;
-    const icon = BLOCK_ICONS[block.type] || '';
+    const cm = categoryOf(block.type);
     const label = block.data?._label || '';
     const conf = block.data?._confidence;
     const confBadge = conf === 'low' ? '<span class="conf-badge conf-low" title="Low confidence — AI filled gaps">🔴</span>'
@@ -2791,7 +2791,7 @@ function renderBlockList() {
     li.innerHTML = `
       <div class="block-header">
         <span class="drag-handle" title="Drag to reorder">⠿</span>
-        <span class="block-icon">${icon}</span>
+        <span class="block-icon lucide-box ${cm.tint}">${cm.icon}</span>
         <span class="block-name">${escapeText(label || schemaName)}</span>
         ${label ? `<span class="block-type-badge">${escapeText(schemaName)}</span>` : ''}
         ${confBadge}

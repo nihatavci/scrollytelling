@@ -2410,3 +2410,6 @@ main.editor { display: none; }
 .side-row .lucide-box { width:24px; height:24px; }
 .side-row-name { white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .side-empty { padding:18px 10px; text-align:center; color:#b0b0b8; font:500 12.5px var(--font); }
+
+.block-item .block-icon.lucide-box { width:24px; height:24px; }
+.block-item .block-icon.lucide-box svg { width:15px; height:15px; }
