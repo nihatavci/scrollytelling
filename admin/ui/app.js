@@ -491,6 +491,24 @@ const PALETTE_BLOCKS = PALETTE_CATEGORIES.flatMap(c => c.types.map(type => ({
   type, desc: BLOCK_SCHEMAS[type]?.description || ''
 })));
 
+// Category metadata — Lucide line icons (inline SVG) + tint class per category.
+// Keyed by the PALETTE_CATEGORIES label. Reused by the Sections list and the library.
+const CAT_META = {
+  'Page Structure':      { key:'structure', tint:'ti-slate', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="7" rx="1.5"/><rect x="3" y="14" width="18" height="7" rx="1.5"/></svg>' },
+  'Text':                { key:'text', tint:'ti-org', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M5 7V5h14v2"/><path d="M12 5v14"/><path d="M9 19h6"/></svg>' },
+  'Scroll Animations':   { key:'scroll', tint:'ti-blu', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v14"/><path d="m7 12 5 5 5-5"/><path d="M5 21h14"/></svg>' },
+  'Images & Media':      { key:'media', tint:'ti-grn', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.6"/><path d="m21 15-5-5L5 21"/></svg>' },
+  'Data & Facts':        { key:'data', tint:'ti-amb', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>' },
+  'Immersive (WebGL)':   { key:'immersive', tint:'ti-vio', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2 3 7v10l9 5 9-5V7z"/><path d="M3 7l9 5 9-5M12 12v10"/></svg>' },
+  'Advanced effects (experimental)': { key:'advanced', tint:'ti-vio', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m12 3 2.2 6.3L21 11l-6.8 1.7L12 19l-2.2-6.3L3 11l6.8-1.7z"/></svg>' },
+  'Embeds':              { key:'embeds', tint:'ti-slate', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-12"/><path d="m6 9-4 3 4 3"/><path d="m18 9 4 3-4 3"/></svg>' },
+};
+// Map a block type to its category metadata (falls back to a neutral icon).
+function categoryOf(type) {
+  const cat = PALETTE_CATEGORIES.find(c => c.types.includes(type));
+  return (cat && CAT_META[cat.label]) || { key:'other', tint:'ti-slate', icon:'<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/></svg>' };
+}
+
 // Tiny inline mockups shown inside the palette cards and at the top of the
 // Claude-generation modal so the user sees what the component looks like
 // before generating. Each is plain HTML using common admin colors — NOT the

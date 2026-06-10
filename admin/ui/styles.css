@@ -2377,3 +2377,13 @@ main.editor { display: none; }
 }
 .page-switcher-menu button:hover { background: var(--fog, #f1f2f4); }
 .page-switcher-menu button.active { background: #eef1fd; font-weight: 600; }
+
+/* ── Editor sidebar: shared Lucide icon tints ── */
+.ti-slate{background:#e7eaf0;color:#5b6472}
+.ti-org{background:#fbe4cf;color:#c2641f}
+.ti-blu{background:#dde9ff;color:#2f6bd6}
+.ti-grn{background:#d4efdf;color:#1d8a57}
+.ti-amb{background:#fbeccb;color:#bf8a18}
+.ti-vio{background:#e6dbff;color:#6a45cf}
+.lucide-box{display:grid;place-items:center;border-radius:7px;flex:none}
+.lucide-box svg{width:15px;height:15px}
