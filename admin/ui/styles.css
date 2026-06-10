@@ -117,6 +117,31 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; border-radius: 
 .topbar-page label { font-size: 12px; color: var(--graphite); }
 .topbar-page select { width: auto; min-width: 200px; }
 .topbar-actions { display: flex; gap: 8px; }
+
+/* ── Framer-style topbar: brand left · identity centered · actions right ── */
+.tb-left { display:flex; align-items:center; gap:10px; min-width:0; }
+.tb-url { color:var(--ash); font-size:12.5px; text-decoration:none; max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.tb-url::before { content:'·'; margin:0 7px 0 1px; color:var(--pebble); }
+.tb-url:hover { color:var(--graphite); text-decoration:underline; text-underline-offset:2px; }
+.tb-url:empty { display:none; }
+.tb-icon { width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:9px; font-size:14px; line-height:1; background:transparent; border:1px solid transparent;
+  color:var(--graphite); cursor:pointer; transition:background .12s, color .12s; }
+.tb-icon:hover { background:var(--fog); color:var(--ink-black); }
+
+@media (min-width: 901px) {
+  .topbar { gap:12px; padding:10px 16px; }
+  .tb-left { flex:0 0 auto; }
+  .topbar-actions { flex:0 0 auto; margin-left:auto; gap:6px; align-items:center; }
+  /* identity truly centered over the bar (like Framer) */
+  .topbar-page { position:absolute; left:50%; top:50%; transform:translate(-50%,-50%);
+    flex:0 0 auto; gap:7px; max-width:44vw; }
+  .topbar-page .page-title-text { font-weight:600; font-size:14px; }
+  /* prominent, refined Publish pill (.topbar prefix beats button.primary specificity) */
+  .topbar .publish-btn { background:var(--ink-black); color:#fff; border-color:var(--ink-black);
+    border-radius:9px; padding:7px 16px; font-weight:600; }
+  .topbar .publish-btn:hover:not(:disabled) { background:#1a1a1a; color:#fff; border-color:#1a1a1a; }
+}
 /* ── Save indicator pill (Webflow-style) ── */
 .save-indicator {
   display: inline-flex;

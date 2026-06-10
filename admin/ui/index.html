@@ -71,7 +71,12 @@
 <div id="app" class="app hidden">
 
   <header class="topbar">
-    <div class="brand">ScrollyCMS</div>
+    <!-- Left: brand -->
+    <div class="tb-left">
+      <div class="brand">ScrollyCMS</div>
+    </div>
+
+    <!-- Center: project identity (page name · live url) -->
     <div class="topbar-page">
       <select id="page-select" class="page-select-hidden"></select>
       <div id="page-title-wrap" class="page-title-wrap">
@@ -79,23 +84,25 @@
         <button id="page-switcher-btn" class="page-switcher-btn" title="Switch page" aria-label="Switch page">▾</button>
         <div id="page-switcher-menu" class="page-switcher-menu" hidden></div>
       </div>
-      <button id="btn-new-page" class="small" title="Create a new page">+ New page</button>
-      <button id="btn-delete-page" class="small danger" title="Delete page">🗑</button>
-      <a id="link-view-page" href="#" target="_blank" class="small view-link">View ↗</a>
+      <a id="link-view-page" href="#" target="_blank" class="tb-url" title="View the live page"></a>
+    </div>
+
+    <!-- Right: actions -->
+    <div class="topbar-actions">
       <div id="save-indicator" class="save-indicator" aria-live="polite">
         <span class="save-indicator__icon"></span>
         <span class="save-indicator__text"></span>
       </div>
-    </div>
-    <div class="topbar-actions">
-      <button id="btn-article-builder" title="Build a full article from source material">⚡ Full Article</button>
-      <button id="btn-preview" title="Open rendered page in a new tab">Preview</button>
-      <button id="btn-history" title="Snapshots history">History</button>
+      <button id="btn-new-page" class="tb-icon" title="Create a new page" aria-label="New page">+</button>
+      <button id="btn-article-builder" class="tb-icon" title="Build a full article from source material" aria-label="Full Article">⚡</button>
+      <button id="btn-preview" class="tb-icon" title="Open rendered page in a new tab" aria-label="Preview">▶</button>
+      <button id="btn-history" class="small" title="Snapshots history">History</button>
+      <button id="btn-delete-page" class="small danger" title="Delete page">🗑</button>
       <button id="btn-publish" class="primary publish-btn">Publish<span id="publish-dot" class="publish-dot"></span></button>
       <button id="btn-settings" class="ghost" title="Site settings">⚙</button>
       <button id="btn-logout" class="ghost">Logout</button>
+      <button id="btn-overflow" class="topbar-overflow-btn" title="More options" aria-label="More options">⋮</button>
     </div>
-    <button id="btn-overflow" class="topbar-overflow-btn" title="More options" aria-label="More options">⋮</button>
   </header>
 
   <!-- Bottom sheet — MUST live outside .topbar to avoid backdrop-filter containing block -->

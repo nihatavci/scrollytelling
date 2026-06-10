@@ -2624,8 +2624,11 @@ async function updateViewLink() {
   try {
     const url = await getPublicUrl();
     link.href = url || '#';
+    // Show the bare host+path (no protocol) as the centered identity url, Framer-style.
+    link.textContent = url ? url.replace(/^https?:\/\//, '').replace(/\/$/, '') : '';
   } catch {
     link.href = '#';
+    link.textContent = '';
   }
 }
 
