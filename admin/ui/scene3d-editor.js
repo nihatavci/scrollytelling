@@ -400,12 +400,24 @@ async function initScene3DEditor(container, blockData, onChange) {
     renderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0); // transparent → CSS gradient shows behind model
+    renderer.toneMapping = THREE.ACESFilmicToneMapping;
+    renderer.toneMappingExposure = 1.1;
+    if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
     applyViewportBg();
 
     threeScene = new THREE.Scene();
-    threeScene.add(new THREE.AmbientLight(0xffffff, 0.8));
-    const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+    // Studio environment (IBL) — realistic PBR reflections/shading, matching the live renderer.
+    try {
+      const { RoomEnvironment } = await import(`${CDN}/examples/jsm/environments/RoomEnvironment.js`);
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      threeScene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      pmrem.dispose();
+    } catch (e) { /* environment optional — fall back to lights only */ }
+    threeScene.add(new THREE.AmbientLight(0xffffff, 0.25)); // low fill; env does the heavy lifting
+    const dir = new THREE.DirectionalLight(0xffffff, 1.6);
     dir.position.set(5, 10, 7); threeScene.add(dir);
+    const dir2 = new THREE.DirectionalLight(0xffffff, 0.5);
+    dir2.position.set(-6, 4, -5); threeScene.add(dir2);
 
     const w = Math.max(canvas.clientWidth, 1), h = Math.max(canvas.clientHeight, 1);
     camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 1000);
@@ -540,6 +552,8 @@ async function initScene3DEditor(container, blockData, onChange) {
     const tc = document.createElement('canvas'); tc.width = 128; tc.height = 96;
     const tr = new THREE_LIB.WebGLRenderer({ canvas: tc, antialias: false });
     tr.setPixelRatio(1); tr.setClearColor(0x1a1a1a, 1); tr.setSize(128, 96, false);
+    tr.toneMapping = THREE_LIB.ACESFilmicToneMapping; tr.toneMappingExposure = 1.1;
+    if ('outputColorSpace' in tr) tr.outputColorSpace = THREE_LIB.SRGBColorSpace;
     const tc2 = camera.clone(); tc2.aspect = 128 / 96; tc2.updateProjectionMatrix();
     tr.render(threeScene, tc2); tr.dispose();
     const thumb = tc.toDataURL('image/jpeg', 0.8);
