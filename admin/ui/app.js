@@ -4757,7 +4757,8 @@ function mediaField(initial, onChange, opts = {}) {
 
   box.appendChild(thumb);
   const col = document.createElement('div');
-  col.style.cssText = 'flex:1;display:flex;flex-direction:column;gap:4px;';
+  col.className = 'img-field-col';
+  col.style.cssText = 'display:flex;flex-direction:column;gap:4px;';
   col.appendChild(inp);
   box.appendChild(col);
   box.appendChild(actions);
