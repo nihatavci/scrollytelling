@@ -5079,8 +5079,9 @@ $('#btn-refresh-preview').addEventListener('click', () => {
 });
 $('#btn-visual-edit').addEventListener('click', () => {
   state.visualEditMode = !state.visualEditMode;
-  $('#btn-visual-edit').classList.toggle('active', state.visualEditMode);
-  $('#btn-visual-edit').textContent = state.visualEditMode ? '✏️ Editing' : '✏️ Edit';
+  const b = $('#btn-visual-edit');
+  b.classList.toggle('active', state.visualEditMode); // icon-only button — toggle highlight, keep the SVG
+  b.title = state.visualEditMode ? 'Editing on the preview — click to stop' : 'Edit text & images directly on the preview';
   refreshPreview({ reload: true }); // toggling VE injects/removes a script → needs reload
 });
 
@@ -5089,6 +5090,7 @@ $('#btn-visual-edit').addEventListener('click', () => {
   const layout = document.querySelector('.layout');
   const previewAside = layout.querySelector('.preview');
   const btn = $('#btn-fullscreen-preview');
+  if (!btn) return; // fullscreen toggle removed from the toolbar
 
   // Create floating back toolbar inside the preview aside
   const backToolbar = document.createElement('div');
