@@ -63,13 +63,28 @@ export async function initScene3D(blockId, data) {
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
   renderer.setClearColor(0x000000, 0);
   renderer.shadowMap.enabled = false;
+  // Filmic tone mapping + sRGB output — the difference between washed-out and rich, like Sketchfab.
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.1;
+  if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   // ── Scene + lights ──
   const scene = new THREE.Scene();
-  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
-  const dir = new THREE.DirectionalLight(0xffffff, 1.2);
+  // Image-based lighting from a neutral studio environment gives PBR materials realistic
+  // reflections and shading — this is what makes a GLB look great instead of flat/dark.
+  try {
+    const { RoomEnvironment } = await import(`${_CDN}/examples/jsm/environments/RoomEnvironment.js`);
+    const pmrem = new THREE.PMREMGenerator(renderer);
+    scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+    pmrem.dispose();
+  } catch (e) { /* environment optional — fall back to lights only */ }
+  scene.add(new THREE.AmbientLight(0xffffff, 0.25));   // low fill; the env map does the heavy lifting
+  const dir = new THREE.DirectionalLight(0xffffff, 1.6);
   dir.position.set(5, 10, 7);
   scene.add(dir);
+  const dir2 = new THREE.DirectionalLight(0xffffff, 0.5); // soft rim from the opposite side
+  dir2.position.set(-6, 4, -5);
+  scene.add(dir2);
 
   // ── Camera ──
   const s0 = scenes[0] || DEFAULT_SCENE;

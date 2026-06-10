@@ -4193,6 +4193,46 @@ function renderField(field, data, onChange) {
       wrap.appendChild(mf);
       break;
     }
+    case 'array': {
+      // Generic list of objects defined by field.itemFields (e.g. ImageGrid images: {src,alt,caption}).
+      const list = Array.isArray(val) ? val : [];
+      data[field.key] = list;
+      const itemFields = field.itemFields || [];
+      const singular = (field.label || 'Item').replace(/s$/, '');
+      list.forEach((item, i) => {
+        const row = document.createElement('div');
+        row.className = 'subitem';
+        row.innerHTML = `<div class="subitem-head"><span class="drag-handle" title="Drag to reorder">⠿</span><span class="subitem-kind">${escapeText(singular)} ${i + 1}</span><span class="subitem-actions"><button data-a="up" title="Move up">↑</button><button data-a="down" title="Move down">↓</button><button data-a="del" title="Delete">✕</button></span></div>`;
+        const fieldsWrap = document.createElement('div');
+        fieldsWrap.style.cssText = 'display:flex;flex-direction:column;gap:6px;margin-top:6px;';
+        itemFields.forEach(itf => {
+          const fl = document.createElement('label'); fl.className = 'field-label'; fl.textContent = itf.label || itf.key;
+          fieldsWrap.appendChild(fl);
+          const isImg = itf.kind === 'image' || /(^|_)(src|image|img|photo|url)$/i.test(itf.key);
+          if (isImg) {
+            fieldsWrap.appendChild(mediaField(item[itf.key] || '', (v) => { item[itf.key] = v; onChange(); }, { accept: 'image/*', kind: 'image', browseFilter: 'image' }));
+          } else {
+            const inp = document.createElement('input');
+            inp.type = 'text'; inp.value = item[itf.key] || '';
+            if (itf.hint) inp.placeholder = itf.hint;
+            inp.addEventListener('input', () => { item[itf.key] = inp.value; onChange(); });
+            fieldsWrap.appendChild(inp);
+          }
+        });
+        row.appendChild(fieldsWrap);
+        row.querySelector('[data-a="up"]').addEventListener('click', (e) => { e.preventDefault(); if (i > 0) { const t = list[i-1]; list[i-1] = list[i]; list[i] = t; onChange(); renderEditor(); } });
+        row.querySelector('[data-a="down"]').addEventListener('click', (e) => { e.preventDefault(); if (i < list.length-1) { const t = list[i+1]; list[i+1] = list[i]; list[i] = t; onChange(); renderEditor(); } });
+        row.querySelector('[data-a="del"]').addEventListener('click', (e) => { e.preventDefault(); list.splice(i, 1); onChange(); renderEditor(); });
+        attachSubitemDrag(row, list, i, onChange);
+        wrap.appendChild(row);
+      });
+      const addBtn = document.createElement('button');
+      addBtn.className = 'small';
+      addBtn.textContent = '+ Add ' + singular.toLowerCase();
+      addBtn.addEventListener('click', (e) => { e.preventDefault(); const blank = {}; itemFields.forEach(itf => { blank[itf.key] = ''; }); list.push(blank); onChange(); renderEditor(); });
+      wrap.appendChild(addBtn);
+      break;
+    }
     default:
       wrap.appendChild(document.createTextNode(`Unsupported field kind: ${field.kind}`));
   }
