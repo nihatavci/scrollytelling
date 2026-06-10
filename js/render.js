@@ -1707,9 +1707,11 @@ export async function render(jsonUrl, rootSelector = '#page-root') {
     }
     const node = fn(block.data || {}, block);
     if (node) {
-      // Tag each rendered section with block id + bg opacity for the observer
+      // Tag each rendered section with block id + a data signature (for keyed
+      // reconciliation on soft-refresh) + bg opacity for the observer.
       if (node.nodeType === 1) {
         node.dataset.blockId = block.id;
+        node.dataset.sig = _blockSig(block);
         if (block.data && block.data.bgOpacity != null) {
           node.dataset.bgOpacity = String(block.data.bgOpacity);
         }
@@ -3379,6 +3381,25 @@ function renderVideoEmbed(d) {
 }
 
 // ───────── Tiny DOM helpers ─────────
+// Signature of a block's renderable state — changes iff the block needs re-rendering.
+function _blockSig(block) {
+  try { return (block.type || '') + ':' + JSON.stringify(block.data || {}); }
+  catch (_) { return (block.type || '') + ':' + Date.now(); }
+}
+// Render one block to a tagged DOM node (id + signature + bg-opacity + fx), mirroring render().
+function _renderBlockNode(block, sig) {
+  var fn = BLOCK_RENDERERS[block.type];
+  if (!fn) return null;
+  var node = fn(block.data || {}, block);
+  if (node && node.nodeType === 1) {
+    node.dataset.blockId = block.id;
+    node.dataset.sig = sig != null ? sig : _blockSig(block);
+    if (block.data && block.data.bgOpacity != null) node.dataset.bgOpacity = String(block.data.bgOpacity);
+    applyBlockFx(node, block);
+  }
+  return node;
+}
+
 // ── Hot-swap: re-render a single block in-place without page reload ──────────
 // The admin panel sends a postMessage with the block's updated data.
 // We re-render just that block and swap the DOM node. Scroll position is
@@ -3405,13 +3426,15 @@ window.addEventListener('message', function (evt) {
     return;
   }
 
-  // Tier 2 — soft refresh: re-render ALL blocks without iframe navigation
-  // Used for structural changes (add / delete / reorder).
+  // Tier 2 — soft refresh: KEYED RECONCILIATION (not a full rebuild).
+  // Diff incoming blocks against the live DOM by id + data signature and apply only the
+  // minimal DOM ops: add inserts ONE node, delete removes ONE, edit replaces just that
+  // block, reorder moves nodes. Unchanged blocks (maps / 3D / scrolly) are never touched,
+  // so they keep their live state — no flashing, no scroll jump.
   if (evt.data.type === 'soft-refresh') {
     var doc = evt.data.doc;
     if (!doc) return;
     window.__PAGE_DATA__ = doc;
-    // Apply page-level settings — Lenis smooth scroll
     if (doc.smoothScroll && !window.__lenis) {
       initLenis();
     } else if (!doc.smoothScroll && window.__lenis) {
@@ -3419,51 +3442,60 @@ window.addEventListener('message', function (evt) {
     }
     var root = document.querySelector('#page-root');
     if (!root) return;
-    // Preserve the reader's scroll position across the in-place rebuild so editing
-    // never jumps the preview to the top.
     var prevScroll = window.scrollY || window.pageYOffset || 0;
-    // Release live WebGL/Scene3D contexts BEFORE wiping the DOM, so they don't
-    // leak (and deleted blocks don't orphan a GL context). Synchronous → runs
-    // before the re-init microtasks scheduled by the render loop below.
-    if (_webglFxMod) { try { _webglFxMod.disposeAllWebGLFx(); } catch (_) {} }
-    if (_scene3dMod) { try { _scene3dMod.disposeAllScene3D(); } catch (_) {} }
-    root.innerHTML = '';
-    var blocks = doc.blocks || [];
+
+    var blocks = (doc.blocks || []).filter(function (b) { return BLOCK_RENDERERS[b.type]; });
+    var newIds = {};
+    blocks.forEach(function (b) { newIds[b.id] = true; });
+
+    var existing = {};
+    Array.prototype.forEach.call(root.children, function (n) {
+      if (n.dataset && n.dataset.blockId) existing[n.dataset.blockId] = n;
+    });
+
+    var domNode = root.firstElementChild;
     for (var i = 0; i < blocks.length; i++) {
       var block = blocks[i];
-      var renderFn = BLOCK_RENDERERS[block.type];
-      if (!renderFn) continue;
-      var node = renderFn(block.data || {}, block);
-      if (node && node.nodeType === 1) {
-        node.dataset.blockId = block.id;
-        if (block.data && block.data.bgOpacity != null) {
-          node.dataset.bgOpacity = String(block.data.bgOpacity);
-        }
-        applyBlockFx(node, block);
+      var sig = _blockSig(block);
+      var prev = existing[block.id];
+
+      // Drop any leading DOM nodes that are no longer in the doc (deleted blocks).
+      while (domNode && domNode.dataset && domNode.dataset.blockId !== block.id && !newIds[domNode.dataset.blockId]) {
+        var gone = domNode; domNode = domNode.nextElementSibling; gone.remove();
       }
-      if (node) root.appendChild(node);
+
+      var reuse = prev && prev.dataset.sig === sig;
+      var want = reuse ? prev : _renderBlockNode(block, sig);
+      if (!want) continue;
+
+      if (!reuse && prev) {
+        // Block content changed → replace only this node (advance cursor past the stale one first).
+        if (domNode === prev) domNode = domNode.nextElementSibling;
+        prev.remove();
+      }
+
+      if (domNode === want) {
+        domNode = domNode.nextElementSibling;   // already in place — untouched
+      } else {
+        root.insertBefore(want, domNode);        // insert new / move into position (null → append)
+      }
     }
-    // Restore scroll synchronously (same document, no navigation → no flash).
+    // Remove any trailing leftover block nodes (deleted from the end).
+    while (domNode) {
+      var nx = domNode.nextElementSibling;
+      if (domNode.dataset && domNode.dataset.blockId) domNode.remove();
+      domNode = nx;
+    }
+
+    // Scroll safety net — with reconciliation unchanged blocks don't move, so this is
+    // rarely needed, but keep it for the case where the edited block changed height.
     var restoreScroll = function () {
-      if (Math.abs((window.scrollY || window.pageYOffset || 0) - prevScroll) > 2) {
-        window.scrollTo(0, prevScroll);
-      }
-      if (window.__lenis && typeof window.__lenis.scrollTo === 'function') {
-        window.__lenis.scrollTo(prevScroll, { immediate: true });
-      }
+      if (Math.abs((window.scrollY || window.pageYOffset || 0) - prevScroll) > 2) window.scrollTo(0, prevScroll);
+      if (window.__lenis && typeof window.__lenis.scrollTo === 'function') window.__lenis.scrollTo(prevScroll, { immediate: true });
     };
     restoreScroll();
     document.dispatchEvent(new CustomEvent('content:ready', { detail: { doc: doc } }));
-    // Re-assert over the next few frames: scroll-driven blocks (Map2D / Scene3D / Scrolly)
-    // and Lenis re-initialise asynchronously and can yank scroll to the top — snap it back
-    // so no edit/duplicate/delete/publish ever jumps the preview to the beginning.
-    requestAnimationFrame(function () {
-      restoreScroll();
-      requestAnimationFrame(function () {
-        restoreScroll();
-        setTimeout(restoreScroll, 120);
-      });
-    });
+    requestAnimationFrame(function () { restoreScroll(); requestAnimationFrame(restoreScroll); });
     return;
   }
 });
