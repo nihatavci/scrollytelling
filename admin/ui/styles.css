@@ -2464,7 +2464,12 @@ main.editor { display: none; }
 .side-library .lib-dock { display:block; }
 .side-library .lib-list { width:auto; flex:none; }
 /* Flyout is appended to <body> (escapes the sidebar's backdrop-filter clip) */
-.lib-flyout.lib-pop { position:fixed; width:252px; max-height:60vh; z-index:200; }
+.lib-flyout.lib-pop {
+  position:fixed; width:230px; max-height:72vh; z-index:200;
+  border-left:1px solid #ececef;
+  border-top-left-radius:0; border-bottom-left-radius:0;
+  box-shadow:10px 0 30px -8px rgba(20,20,40,.16);  /* shadow only to the right */
+}
 
 /* ── Hide scrollbars everywhere (content still scrolls via wheel/trackpad). ──
    Visible scrollbars reserve gutter width that toggles as the sidebar opens/closes,

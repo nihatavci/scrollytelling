@@ -3209,13 +3209,12 @@ function renderLibrary(body, afterBlockId) {
 
   function openFly(cat, row){
     list.querySelectorAll('.lib-cat').forEach(r => r.classList.toggle('on', r===row));
-    // Position the flyout just right of the sidebar, aligned to the hovered row.
+    // Position the flyout flush to the sidebar's right edge, top-aligned.
     // Fixed positioning avoids clipping by the sidebar's overflow.
     const sb = document.querySelector('.blocks.sidebar');
     const sRect = sb.getBoundingClientRect();
-    const rRect = row.getBoundingClientRect();
-    fly.style.left = (sRect.right + 10) + 'px';
-    fly.style.top = Math.max(12, Math.min(rRect.top, window.innerHeight - 440)) + 'px';
+    fly.style.left = Math.round(sRect.right) + 'px';   // flush to the sidebar edge (no gap)
+    fly.style.top = Math.round(sRect.top + 8) + 'px';  // start from the top, not the hovered row
     fly.innerHTML = '';
     cat.types.forEach(type => {
       const schema = BLOCK_SCHEMAS[type];
