@@ -2282,7 +2282,7 @@ async function loadPages(preferId) {
   state.pages = pages;
   state.pageRows = pageRows;
   const sel = $('#page-select');
-  sel.innerHTML = pageRows.map(r => `<option value="${r.slug}">${r.title || r.slug}</option>`).join('');
+  sel.innerHTML = pageRows.map(r => `<option value="${escapeAttr(r.slug)}">${escapeText(r.title || r.slug)}</option>`).join('');
   const toLoad = preferId && pages.includes(preferId) ? preferId : (state.currentPageId && pages.includes(state.currentPageId) ? state.currentPageId : pages[0]);
   if (toLoad) {
     sel.value = toLoad;
@@ -2333,7 +2333,7 @@ async function renderAssetsPane(){
       const row = document.createElement('div');
       row.className = 'asset-row';
       const thumb = isImg
-        ? '<div class="asset-thumb" style="background-image:url(\'' + encodeURI(f.url) + '\')"></div>'
+        ? '<div class="asset-thumb" style="background-image:url(\'' + encodeURI(f.url).replace(/'/g, '%27') + '\')"></div>'
         : '<div class="asset-thumb asset-thumb--icon ' + cls + '">' + (badge==='VIDEO'?'▶':badge==='AUDIO'?'♪':'⎙') + '</div>';
       row.innerHTML = thumb +
         '<div class="asset-meta"><div class="asset-name">' + escapeText(f.displayName || f.name) + '</div><div class="asset-sub">' + _fmtSize(f.size) + '</div></div>' +
@@ -2630,17 +2630,25 @@ async function loadPage(id) {
   state.doc = await SB.getPage(id);
   state.savedVersion = state.doc.version || 0;
 
-  // Silently recover a newer local backup (e.g. a reload that beat the autosave debounce).
-  // Backups are cleared on every successful autosave, so one existing here means it's unsaved work.
+  // Silently recover a local backup of unsaved work (e.g. a reload that beat the autosave
+  // debounce). Backups are cleared on every successful autosave, so one existing here means
+  // there were edits not yet confirmed-saved. Guard against rolling back a newer published
+  // version (e.g. published from another tab/device): only restore if the backup is at least
+  // as new as the server doc; otherwise it's stale — discard it.
   const backup = getLocalBackup(id);
-  if (backup && backup.doc) {
+  let restored = false;
+  if (backup && backup.doc && (backup.version || 0) >= (state.doc.version || 0)) {
     state.doc = backup.doc;
-    setDirty(true); // re-persists on the autosave tick
+    restored = true;
+  } else if (backup) {
+    clearLocalBackup(id);
   }
 
   state.selectedBlockId = null;
   state.selectedItemIdx = null;
-  setDirty(false);
+  // Dirty only when we recovered unsaved work — that re-arms autosave so the recovered
+  // doc is actually re-persisted (a plain server load stays clean).
+  setDirty(restored);
   _animateNextBlockList = true; // entrance animation on page switch
   renderBlockList();
   renderEditor();
@@ -2835,7 +2843,10 @@ function renderBlockList() {
       nameEl.focus();
       const sel = window.getSelection(); const range = document.createRange();
       range.selectNodeContents(nameEl); sel.removeAllRanges(); sel.addRange(range);
+      let committed = false;
       const commit = (save) => {
+        if (committed) return;   // Enter then blur both fire — only commit once
+        committed = true;
         nameEl.contentEditable = 'false';
         nameEl.classList.remove('editing');
         delete nameEl.dataset.editing;
@@ -3237,6 +3248,7 @@ function renderLibrary(body, afterBlockId) {
     // Position the flyout flush to the sidebar's right edge, top-aligned.
     // Fixed positioning avoids clipping by the sidebar's overflow.
     const sb = document.querySelector('.blocks.sidebar');
+    if (!sb) return;
     const sRect = sb.getBoundingClientRect();
     fly.style.left = Math.round(sRect.right) + 'px';     // flush to the sidebar edge (no gap)
     fly.style.top = Math.round(sRect.top) + 'px';        // full height: fill from the sidebar's top…
@@ -4901,7 +4913,7 @@ async function openImagePicker(cb) {
       images.forEach(img => {
         const card = document.createElement('button');
         card.style.cssText = 'border:1px solid #d0d7de;border-radius:6px;padding:4px;background:#fff;cursor:pointer;display:flex;flex-direction:column;gap:4px;text-align:center;';
-        card.innerHTML = `<div style="width:100%;height:80px;background:#eaeef2 center/cover no-repeat;background-image:url('${encodeURI(img.url)}');border-radius:4px;"></div>
+        card.innerHTML = `<div style="width:100%;height:80px;background:#eaeef2 center/cover no-repeat;background-image:url('${encodeURI(img.url).replace(/'/g, '%27')}');border-radius:4px;"></div>
                           <div style="font-size:10px;color:#57606a;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${img.url.split('/').pop()}</div>`;
         card.title = img.url;
         card.addEventListener('click', () => { closeModal(); cb(img.url); });
@@ -5092,6 +5104,11 @@ $('#btn-visual-edit').addEventListener('click', () => {
 
 // Visual edit postMessage handler (receives events from visual-edit.js inside the preview iframe)
 window.addEventListener('message', async (evt) => {
+  // Only accept editor messages from our own preview iframe's window — not any other
+  // frame/popup. (Checked by source rather than origin: the preview is a blob: URL whose
+  // reported origin is unreliable across browsers.)
+  const _pf = document.getElementById('preview-frame');
+  if (!_pf || evt.source !== _pf.contentWindow) return;
   if (!evt.data || evt.data.type !== 'visual-edit') return;
   const { action, blockId, field, subfield, index, value, valueType, currentSrc } = evt.data;
 
@@ -5192,7 +5209,8 @@ window.addEventListener('message', async (evt) => {
   if (action === 'drop-block') {
     const blockType = evt.data.blockType;
     const afterId = evt.data.afterBlockId || null;
-    if (blockType) {
+    // Only insert known block types — never persist an unrenderable junk block.
+    if (blockType && BLOCK_SCHEMAS[blockType]) {
       closeLibrary();
       await addEmptyBlock(blockType, afterId);
     }
