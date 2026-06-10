@@ -3155,83 +3155,49 @@ if (btnArticleBuilder) {
 $('#btn-add-block').addEventListener('click', () => {
   openModal('Add to your story', renderPalette, '');
 });
-function renderPalette(body) {
+function renderLibrary(body, afterBlockId) {
   body.innerHTML = '';
-  const intro = document.createElement('p');
-  intro.style.cssText = 'margin-bottom:14px;color:#57606a;font-size:12.5px;';
-  intro.textContent = 'What does this moment in your story need?';
-  body.appendChild(intro);
+  const dock = document.createElement('div');
+  dock.className = 'lib-dock';
+  const list = document.createElement('div');
+  list.className = 'lib-list';
+  const fly = document.createElement('div');
+  fly.className = 'lib-flyout';
+  fly.style.display = 'none';
+  dock.appendChild(list); dock.appendChild(fly); body.appendChild(dock);
+
   PALETTE_CATEGORIES.forEach(cat => {
-    const section = document.createElement('div');
-    section.className = 'palette-section';
-    const head = document.createElement('div');
-    head.className = 'palette-section-head';
-    head.innerHTML = `<div class="palette-section-label">${cat.label}</div><div class="palette-section-hint">${cat.hint}</div>`;
-    section.appendChild(head);
-    const grid = document.createElement('div');
-    grid.className = 'palette-grid';
+    const meta = CAT_META[cat.label] || categoryOf(cat.types[0]);
+    const row = document.createElement('div');
+    row.className = 'lib-cat';
+    row.innerHTML = '<span class="lucide-box ' + meta.tint + '">' + meta.icon + '</span>' +
+      '<span class="lib-cat-label">' + cat.label + '</span>' +
+      '<span class="lib-chev"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m9 6 6 6-6 6"/></svg></span>';
+    row.addEventListener('mouseenter', () => openFly(cat, row));
+    list.appendChild(row);
+  });
+
+  function openFly(cat, row){
+    list.querySelectorAll('.lib-cat').forEach(r => r.classList.toggle('on', r===row));
+    fly.innerHTML = '';
     cat.types.forEach(type => {
       const schema = BLOCK_SCHEMAS[type];
       if (!schema) return;
-      const card = document.createElement('button');
-      card.className = 'palette-card with-preview';
-      card.innerHTML = `
-        <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
-        <span class="name">${schema.name}</span>
-`;
-      card.addEventListener('click', () => {
-        closeModal();
-        openCreationCard(type);
-      });
-      grid.appendChild(card);
+      const card = document.createElement('div');
+      card.className = 'lib-card';
+      card.setAttribute('draggable', 'true');             // hook for the drag-engine cycle
+      card.setAttribute('data-block-type', type);
+      card.innerHTML = '<div class="lib-shot">' + (BLOCK_PREVIEWS[type] || '') + '</div><div class="lib-name">' + schema.name + '</div>';
+      card.addEventListener('click', () => { closeModal(); openCreationCard(type, afterBlockId ? { insertAfter: afterBlockId } : undefined); });
+      fly.appendChild(card);
     });
-    section.appendChild(grid);
-    body.appendChild(section);
-  });
-  // Animate cards in
-  requestAnimationFrame(() => {
-    if (window.MX) MX.animatePaletteIn(body.querySelectorAll('.palette-card'));
-  });
+    fly.style.display = 'flex';
+  }
+  dock.addEventListener('mouseleave', () => { fly.style.display = 'none'; list.querySelectorAll('.lib-cat').forEach(r => r.classList.remove('on')); });
 }
-// Palette variant that inserts after a specific block ID
-function renderPaletteWithInsert(body, afterBlockId) {
-  body.innerHTML = '';
-  const intro = document.createElement('p');
-  intro.style.cssText = 'margin-bottom:14px;color:#57606a;font-size:12.5px;';
-  intro.textContent = 'What does this moment in your story need?';
-  body.appendChild(intro);
-  PALETTE_CATEGORIES.forEach(cat => {
-    const section = document.createElement('div');
-    section.className = 'palette-section';
-    const head = document.createElement('div');
-    head.className = 'palette-section-head';
-    head.innerHTML = `<div class="palette-section-label">${cat.label}</div><div class="palette-section-hint">${cat.hint}</div>`;
-    section.appendChild(head);
-    const grid = document.createElement('div');
-    grid.className = 'palette-grid';
-    cat.types.forEach(type => {
-      const schema = BLOCK_SCHEMAS[type];
-      if (!schema) return;
-      const card = document.createElement('button');
-      card.className = 'palette-card with-preview';
-      card.innerHTML = `
-        <div class="palette-preview">${BLOCK_PREVIEWS[type] || ''}</div>
-        <span class="name">${schema.name}</span>
-`;
-      card.addEventListener('click', () => {
-        closeModal();
-        openCreationCard(type, { insertAfter: afterBlockId });
-      });
-      grid.appendChild(card);
-    });
-    section.appendChild(grid);
-    body.appendChild(section);
-  });
-  // Animate cards in
-  requestAnimationFrame(() => {
-    if (window.MX) MX.animatePaletteIn(body.querySelectorAll('.palette-card'));
-  });
-}
+// Back-compat wrappers (existing callers pass body, or body+afterId)
+function renderPalette(body) { renderLibrary(body); }
+function renderPaletteWithInsert(body, afterBlockId) { renderLibrary(body, afterBlockId); }
 // Legacy name kept for backwards-compat; routes through the Claude flow.
 function addBlock(type) { openCreationCard(type); }
 
