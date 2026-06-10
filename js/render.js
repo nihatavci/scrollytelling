@@ -3444,11 +3444,26 @@ window.addEventListener('message', function (evt) {
       if (node) root.appendChild(node);
     }
     // Restore scroll synchronously (same document, no navigation → no flash).
-    window.scrollTo(0, prevScroll);
-    if (window.__lenis && typeof window.__lenis.scrollTo === 'function') {
-      window.__lenis.scrollTo(prevScroll, { immediate: true });
-    }
+    var restoreScroll = function () {
+      if (Math.abs((window.scrollY || window.pageYOffset || 0) - prevScroll) > 2) {
+        window.scrollTo(0, prevScroll);
+      }
+      if (window.__lenis && typeof window.__lenis.scrollTo === 'function') {
+        window.__lenis.scrollTo(prevScroll, { immediate: true });
+      }
+    };
+    restoreScroll();
     document.dispatchEvent(new CustomEvent('content:ready', { detail: { doc: doc } }));
+    // Re-assert over the next few frames: scroll-driven blocks (Map2D / Scene3D / Scrolly)
+    // and Lenis re-initialise asynchronously and can yank scroll to the top — snap it back
+    // so no edit/duplicate/delete/publish ever jumps the preview to the beginning.
+    requestAnimationFrame(function () {
+      restoreScroll();
+      requestAnimationFrame(function () {
+        restoreScroll();
+        setTimeout(restoreScroll, 120);
+      });
+    });
     return;
   }
 });
