@@ -2454,18 +2454,30 @@ main.editor { display: none; }
 /* ── Component library docked IN the sidebar (replaces panes; flyout overlaps canvas) ── */
 .side-library { flex:1; min-height:0; display:flex; flex-direction:column; animation:sidefade .16s cubic-bezier(.4,0,.2,1); }
 .side-library[hidden] { display:none; }
-.lib-head { display:flex; align-items:center; gap:9px; padding:6px 10px 8px; }
-.lib-back { display:grid; place-items:center; width:28px; height:28px; flex:none; border:none; background:#f1f1f4; border-radius:8px; color:#33333b; cursor:pointer; transition:background .12s; }
-.lib-back:hover { background:#e7e7ec; }
-.lib-back svg { width:16px; height:16px; }
-.lib-head-title { font:600 13.5px/1 var(--font); color:#16161d; }
-.lib-body { flex:1; min-height:0; overflow:auto; padding:2px 8px 12px; }
+/* Library header matches the section header (.aside-head) style */
+.lib-head {
+  display:flex; align-items:center; gap:8px;
+  padding:12px 16px;
+  border-bottom:1px solid rgba(0,0,0,.06);
+}
+.lib-back {
+  display:grid; place-items:center; width:20px; height:20px; flex:none;
+  border:none; background:none; border-radius:6px; padding:0;
+  color:var(--graphite); cursor:pointer; transition:background .12s, color .12s;
+}
+.lib-back:hover { background:rgba(0,0,0,.05); color:var(--ink-black,#16161d); }
+.lib-back svg { width:15px; height:15px; display:block; }
+.lib-head-title {
+  font-family:var(--font); font-weight:500; font-size:11px; line-height:1;
+  letter-spacing:.1em; text-transform:uppercase; color:var(--graphite);
+}
+.lib-body { flex:1; min-height:0; overflow:auto; padding:4px 8px 12px; }
 .side-tabs[hidden] { display:none; }
 .side-library .lib-dock { display:block; }
 .side-library .lib-list { width:auto; flex:none; }
 /* Flyout is appended to <body> (escapes the sidebar's backdrop-filter clip) */
 .lib-flyout.lib-pop {
-  position:fixed; width:230px; max-height:72vh; z-index:200;
+  position:fixed; width:250px; max-height:none; z-index:200;   /* height set inline = same as the category list */
   border-left:1px solid #ececef;
   border-top-left-radius:0; border-bottom-left-radius:0;
   box-shadow:10px 0 30px -8px rgba(20,20,40,.16);  /* shadow only to the right */

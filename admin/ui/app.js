@@ -2336,7 +2336,7 @@ async function renderAssetsPane(){
         ? '<div class="asset-thumb" style="background-image:url(\'' + encodeURI(f.url) + '\')"></div>'
         : '<div class="asset-thumb asset-thumb--icon ' + cls + '">' + (badge==='VIDEO'?'▶':badge==='AUDIO'?'♪':'⎙') + '</div>';
       row.innerHTML = thumb +
-        '<div class="asset-meta"><div class="asset-name">' + escapeText(f.name) + '</div><div class="asset-sub">' + _fmtSize(f.size) + '</div></div>' +
+        '<div class="asset-meta"><div class="asset-name">' + escapeText(f.displayName || f.name) + '</div><div class="asset-sub">' + _fmtSize(f.size) + '</div></div>' +
         '<span class="asset-badge ' + cls + '">' + badge + '</span>';
       box.appendChild(row);
     });
@@ -3205,7 +3205,7 @@ function renderLibrary(body, afterBlockId) {
   let closeTimer = null;
   const cancelClose = () => { if (closeTimer) { clearTimeout(closeTimer); closeTimer = null; } };
   function hideFly(){ fly.style.display = 'none'; list.querySelectorAll('.lib-cat').forEach(r => r.classList.remove('on')); }
-  const scheduleClose = () => { cancelClose(); closeTimer = setTimeout(hideFly, 160); };
+  const scheduleClose = () => { cancelClose(); closeTimer = setTimeout(hideFly, 280); };
 
   PALETTE_CATEGORIES.forEach(cat => {
     const meta = CAT_META[cat.label] || categoryOf(cat.types[0]);
@@ -3227,8 +3227,10 @@ function renderLibrary(body, afterBlockId) {
     // Fixed positioning avoids clipping by the sidebar's overflow.
     const sb = document.querySelector('.blocks.sidebar');
     const sRect = sb.getBoundingClientRect();
-    fly.style.left = Math.round(sRect.right) + 'px';   // flush to the sidebar edge (no gap)
-    fly.style.top = Math.round(sRect.top + 8) + 'px';  // start from the top, not the hovered row
+    const bRect = body.getBoundingClientRect();          // the lib-body (category list area)
+    fly.style.left = Math.round(sRect.right) + 'px';     // flush to the sidebar edge (no gap)
+    fly.style.top = Math.round(bRect.top) + 'px';        // SAME level as the category list
+    fly.style.height = Math.round(bRect.height) + 'px';  // SAME height as the list — reachable from any row
     fly.innerHTML = '';
     cat.types.forEach(type => {
       const schema = BLOCK_SCHEMAS[type];
