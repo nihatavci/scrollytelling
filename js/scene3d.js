@@ -21,6 +21,27 @@ async function _loadThree() {
   return _libPromise;
 }
 
+// Reproduce the CSS backdrop gradient as a scene background texture. Needed when
+// post-processing is on: the composer passes don't preserve canvas alpha, so the
+// CSS gradient behind the (transparent) canvas would turn black.
+function _gradientBgTexture(THREE, kind) {
+  const c = document.createElement('canvas');
+  c.width = 512; c.height = 512;
+  const ctx = c.getContext('2d');
+  // Matches .scene3d--bg-* radial-gradient(ellipse at 50% 38%, ...) in render.js CSS.
+  const g = ctx.createRadialGradient(256, 195, 0, 256, 195, 420);
+  if (kind === 'studio') {
+    g.addColorStop(0, '#fafafa'); g.addColorStop(0.65, '#e6e6ea'); g.addColorStop(1, '#d3d3d9');
+  } else {
+    g.addColorStop(0, '#2c2c31'); g.addColorStop(0.72, '#161618'); g.addColorStop(1, '#0d0d0f');
+  }
+  ctx.fillStyle = g;
+  ctx.fillRect(0, 0, 512, 512);
+  const tex = new THREE.CanvasTexture(c);
+  if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
+  return tex;
+}
+
 // Build a GLTFLoader wired with Draco + Meshopt + KTX2 decoders.
 function _makeGltfLoader(lib, renderer) {
   const loader = new lib.GLTFLoader();
@@ -66,7 +87,7 @@ export async function initScene3D(blockId, data) {
   renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   // Filmic tone mapping + sRGB output — the difference between washed-out and rich, like Sketchfab.
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
-  renderer.toneMappingExposure = 1.1;
+  renderer.toneMappingExposure = 1.25;
   if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
 
   // ── Scene + lights ──
@@ -90,13 +111,17 @@ export async function initScene3D(blockId, data) {
       envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     }
     scene.environment = envTex;
+    // Sketchfab is IBL-dominant: the HDRI does ~90% of the lighting at higher intensity,
+    // while analytic lights stay weak (the dir light exists mainly to cast the shadow).
+    // Strong ambient/dir lights on top of an env map flatten the model.
+    if ('environmentIntensity' in scene) scene.environmentIntensity = 1.3;
     pmrem.dispose();
   } catch (e) { /* environment optional — fall back to lights only */ }
-  scene.add(new THREE.AmbientLight(0xffffff, 0.25));   // low fill; the env map does the heavy lifting
-  const dir = new THREE.DirectionalLight(0xffffff, 1.6);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.1));
+  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
   dir.position.set(5, 10, 7);
   scene.add(dir);
-  const dir2 = new THREE.DirectionalLight(0xffffff, 0.5); // soft rim from the opposite side
+  const dir2 = new THREE.DirectionalLight(0xffffff, 0.3); // soft rim from the opposite side
   dir2.position.set(-6, 4, -5);
   scene.add(dir2);
 
@@ -112,6 +137,7 @@ export async function initScene3D(blockId, data) {
     const w = canvas.clientWidth, h = Math.max(canvas.clientHeight, 1);
     if (renderer.domElement.width !== w || renderer.domElement.height !== h) {
       renderer.setSize(w, h, false);
+      if (composer) composer.setSize(w, h);
       camera.aspect = w / h;
       camera.updateProjectionMatrix();
     }
@@ -166,11 +192,70 @@ export async function initScene3D(blockId, data) {
   dir.shadow.camera.top = 3; dir.shadow.camera.bottom = -3;
   dir.shadow.camera.updateProjectionMatrix();
 
+  // ── Post-processing: GTAO (crevice ambient occlusion) + bloom (emissive glow) ──
+  // The last mile to a Sketchfab-grade image. Needs an opaque backdrop (passes drop
+  // canvas alpha), so the CSS gradient is reproduced in-scene. Skipped on weak/mobile
+  // devices and for bg:'page', which requires real canvas transparency.
+  let composer = null;
+  const _bgKind = data.bg || 'dark';
+  const _weakDevice = isMobile
+    || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+    || (navigator.deviceMemory !== undefined && navigator.deviceMemory <= 4)
+    || (navigator.hardwareConcurrency !== undefined && navigator.hardwareConcurrency <= 4);
+  if (!_weakDevice && _bgKind !== 'page') {
+    try {
+      const [{ EffectComposer }, { RenderPass }, { GTAOPass }, { UnrealBloomPass }, { OutputPass }] = await Promise.all([
+        import(`${_CDN}/examples/jsm/postprocessing/EffectComposer.js`),
+        import(`${_CDN}/examples/jsm/postprocessing/RenderPass.js`),
+        import(`${_CDN}/examples/jsm/postprocessing/GTAOPass.js`),
+        import(`${_CDN}/examples/jsm/postprocessing/UnrealBloomPass.js`),
+        import(`${_CDN}/examples/jsm/postprocessing/OutputPass.js`),
+      ]);
+      scene.background = _gradientBgTexture(THREE, _bgKind);
+      const pr = Math.min(window.devicePixelRatio, 1.5); // post at DPR>1.5 costs ~2x for invisible gain
+      renderer.setPixelRatio(pr);
+      const w = canvas.clientWidth || 1, h = Math.max(canvas.clientHeight, 1);
+      composer = new EffectComposer(renderer);
+      composer.setPixelRatio(pr);
+      composer.setSize(w, h);
+      composer.addPass(new RenderPass(scene, camera));
+      const mb = new THREE.Box3().setFromObject(model);
+      const diag = mb.getSize(new THREE.Vector3()).length();
+      const gtao = new GTAOPass(scene, camera, w, h);
+      gtao.updateGtaoMaterial({
+        radius: Math.max(diag * 0.03, 0.01), distanceExponent: 1, thickness: 1,
+        scale: 1, samples: 16, distanceFallOff: 1, screenSpaceRadius: false,
+      });
+      gtao.blendIntensity = 0.8;
+      // Texture backgrounds render via an internal PlaneGeometry(2,2) mesh, which the
+      // GTAO override pass rasterizes as real 2x2 world geometry at the origin — a phantom
+      // depth quad that darkens the backdrop. Hide the background (and the invisible
+      // shadow floor) from the AO G-buffer; they carry no AO information anyway.
+      const _gtaoRender = gtao.render.bind(gtao);
+      gtao.render = function (...args) {
+        const bg = scene.background;
+        scene.background = null;
+        _ground.visible = false;
+        try { _gtaoRender(...args); } finally { scene.background = bg; _ground.visible = true; }
+      };
+      composer.addPass(gtao);
+      // Threshold >1: in linear HDR only emissive/very hot pixels bloom, not HDRI speculars.
+      const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.22, 0.4, 1.1);
+      composer.addPass(bloom);
+      composer.addPass(new OutputPass());
+      if (window.__SCENE3D_DEBUG_ENABLE) window.__SCENE3D_DEBUG = { scene, composer, gtao, bloom, renderer, camera, model };
+    } catch (e) { composer = null; /* post optional — direct render still looks good */ }
+  }
+  function drawFrame() {
+    if (composer) composer.render();
+    else renderer.render(scene, camera);
+  }
+
   // Show canvas, hide loader. Paint twice across frames so the first frame
   // always lands on the transparent canvas regardless of layout timing.
   resize();
-  renderer.render(scene, camera);
-  requestAnimationFrame(() => { resize(); renderer.render(scene, camera); });
+  drawFrame();
+  requestAnimationFrame(() => { resize(); drawFrame(); });
   canvas.style.opacity = '1';
   if (loaderEl) loaderEl.style.display = 'none';
 
@@ -276,7 +361,7 @@ export async function initScene3D(blockId, data) {
       camera.fov = fromFov + (toFov - fromFov) * t;
       camera.updateProjectionMatrix();
       resize();
-      renderer.render(scene, camera);
+      drawFrame();
       updateAnnotations();
       if (flow) flow.relayout();
       if (p < 1) { tweenRaf = requestAnimationFrame(step); }
@@ -328,7 +413,7 @@ export async function initScene3D(blockId, data) {
 
   // ── ResizeObserver — refit canvas when container changes ──
   const ro = new ResizeObserver(() => {
-    resize(); renderer.render(scene, camera); updateAnnotations();
+    resize(); drawFrame(); updateAnnotations();
     if (flow) { const tc = sec.querySelector('.scene3d-text-canvas'); if (tc) flow.resize(tc.clientWidth, tc.clientHeight, Math.min(window.devicePixelRatio||1,2)); flow.relayout(); }
   });
   ro.observe(canvas);
@@ -347,6 +432,7 @@ export async function initScene3D(blockId, data) {
       const mats = obj.material ? (Array.isArray(obj.material) ? obj.material : [obj.material]) : [];
       mats.forEach(m => { m.map?.dispose(); m.dispose(); });
     });
+    if (composer) { try { composer.dispose(); } catch (_) {} }
     renderer.dispose();
     _active.delete(blockId);
   }

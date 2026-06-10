@@ -225,7 +225,7 @@ async function initScene3DEditor(container, blockData, onChange) {
   }
 
   // ── State ──
-  let THREE_LIB, renderer, threeScene, camera, controls, model3d;
+  let THREE_LIB, renderer, threeScene, camera, controls, model3d, composer = null;
   let activeSlot = 0;
   let placementMode = false;
   const _annoEls = [];          // [{ btn, point(Vector3), id }]
@@ -401,7 +401,7 @@ async function initScene3DEditor(container, blockData, onChange) {
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
     renderer.setClearColor(0x000000, 0); // transparent → CSS gradient shows behind model
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    renderer.toneMappingExposure = 1.25;
     if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
@@ -426,12 +426,15 @@ async function initScene3DEditor(container, blockData, onChange) {
         envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
       }
       threeScene.environment = envTex;
+      // Sketchfab is IBL-dominant: the HDRI does the lighting at higher intensity while
+      // analytic lights stay weak (the dir light exists mainly to cast the shadow).
+      if ('environmentIntensity' in threeScene) threeScene.environmentIntensity = 1.3;
       pmrem.dispose();
     } catch (e) { /* environment optional — fall back to lights only */ }
-    threeScene.add(new THREE.AmbientLight(0xffffff, 0.25)); // low fill; env does the heavy lifting
-    const dir = new THREE.DirectionalLight(0xffffff, 1.6);
+    threeScene.add(new THREE.AmbientLight(0xffffff, 0.1));
+    const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 10, 7); threeScene.add(dir);
-    const dir2 = new THREE.DirectionalLight(0xffffff, 0.5);
+    const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
     dir2.position.set(-6, 4, -5); threeScene.add(dir2);
 
     const w = Math.max(canvas.clientWidth, 1), h = Math.max(canvas.clientHeight, 1);
@@ -492,6 +495,53 @@ async function initScene3DEditor(container, blockData, onChange) {
       dir.shadow.camera.left = -3; dir.shadow.camera.right = 3;
       dir.shadow.camera.top = 3; dir.shadow.camera.bottom = -3;
       dir.shadow.camera.updateProjectionMatrix();
+
+      // ── Post-processing: GTAO (crevice AO) + bloom (emissive glow), matching public renderer ──
+      const weakDevice = (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
+        || (navigator.deviceMemory !== undefined && navigator.deviceMemory <= 4)
+        || (navigator.hardwareConcurrency !== undefined && navigator.hardwareConcurrency <= 4);
+      if (!weakDevice && (blockData.bg || 'dark') !== 'page') {
+        try {
+          const [{ EffectComposer }, { RenderPass }, { GTAOPass }, { UnrealBloomPass }, { OutputPass }] = await Promise.all([
+            import(`${CDN}/examples/jsm/postprocessing/EffectComposer.js`),
+            import(`${CDN}/examples/jsm/postprocessing/RenderPass.js`),
+            import(`${CDN}/examples/jsm/postprocessing/GTAOPass.js`),
+            import(`${CDN}/examples/jsm/postprocessing/UnrealBloomPass.js`),
+            import(`${CDN}/examples/jsm/postprocessing/OutputPass.js`),
+          ]);
+          // Passes drop canvas alpha → reproduce the CSS backdrop gradient in-scene.
+          threeScene.background = gradientBgTexture(THREE, blockData.bg || 'dark');
+          const pr = Math.min(window.devicePixelRatio, 1.5);
+          renderer.setPixelRatio(pr);
+          const cw = Math.max(canvas.clientWidth, 1), ch = Math.max(canvas.clientHeight, 1);
+          composer = new EffectComposer(renderer);
+          composer.setPixelRatio(pr);
+          composer.setSize(cw, ch);
+          composer.addPass(new RenderPass(threeScene, camera));
+          const mb = new THREE.Box3().setFromObject(model);
+          const diag = mb.getSize(new THREE.Vector3()).length();
+          const gtao = new GTAOPass(threeScene, camera, cw, ch);
+          gtao.updateGtaoMaterial({
+            radius: Math.max(diag * 0.03, 0.01), distanceExponent: 1, thickness: 1,
+            scale: 1, samples: 16, distanceFallOff: 1, screenSpaceRadius: false,
+          });
+          gtao.blendIntensity = 0.8;
+          // Texture backgrounds render via an internal PlaneGeometry(2,2) mesh, which the
+          // GTAO override pass rasterizes as real 2x2 world geometry — a phantom depth quad.
+          // Hide background + invisible shadow floor from the AO G-buffer.
+          const gtaoRender = gtao.render.bind(gtao);
+          gtao.render = function (...args) {
+            const bg = threeScene.background;
+            threeScene.background = null;
+            ground.visible = false;
+            try { gtaoRender(...args); } finally { threeScene.background = bg; ground.visible = true; }
+          };
+          composer.addPass(gtao);
+          // Threshold >1: in linear HDR only emissive/very hot pixels bloom, not HDRI speculars.
+          composer.addPass(new UnrealBloomPass(new THREE.Vector2(cw, ch), 0.22, 0.4, 1.1));
+          composer.addPass(new OutputPass());
+        } catch (e) { composer = null; /* post optional — direct render still looks good */ }
+      }
     } catch (err) {
       console.error('[Scene3D admin] model load failed:', err);
       window.toast?.('Could not load 3D model: ' + err.message, 'error');
@@ -521,16 +571,41 @@ async function initScene3DEditor(container, blockData, onChange) {
     updateAnnotations();
   }
 
+  let _lastW = 0, _lastH = 0;
   function resize() {
     if (!renderer) return;
     const w = Math.max(canvas.clientWidth, 1), h = Math.max(canvas.clientHeight, 1);
+    if (w === _lastW && h === _lastH) return;  // composer.setSize reallocates targets — only on change
+    _lastW = w; _lastH = h;
     renderer.setSize(w, h, false);
+    if (composer) composer.setSize(w, h);
     camera.aspect = w / h; camera.updateProjectionMatrix();
   }
 
   function renderFrame() {
     if (!renderer) return;
-    resize(); renderer.render(threeScene, camera);
+    resize();
+    if (composer) composer.render();
+    else renderer.render(threeScene, camera);
+  }
+
+  // Reproduce the CSS backdrop gradient as a scene background texture (needed when
+  // post-processing is on: composer passes don't preserve canvas alpha).
+  function gradientBgTexture(THREE, kind) {
+    const c = document.createElement('canvas');
+    c.width = 512; c.height = 512;
+    const ctx = c.getContext('2d');
+    const g = ctx.createRadialGradient(256, 195, 0, 256, 195, 420);
+    if (kind === 'studio') {
+      g.addColorStop(0, '#fafafa'); g.addColorStop(0.65, '#e6e6ea'); g.addColorStop(1, '#d3d3d9');
+    } else {
+      g.addColorStop(0, '#2c2c31'); g.addColorStop(0.72, '#161618'); g.addColorStop(1, '#0d0d0f');
+    }
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, 512, 512);
+    const tex = new THREE.CanvasTexture(c);
+    if ('colorSpace' in tex) tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
   }
 
   // Match the editor viewport background to the chosen public background.
