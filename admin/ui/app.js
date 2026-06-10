@@ -3170,6 +3170,20 @@ function closeLibrary() {
   document.querySelectorAll('.side-pane').forEach(p => { p.hidden = (p.getAttribute('data-pane') !== activeName); });
 }
 
+// Tell the preview iframe to show/clear the drop insertion UI during a library drag.
+function beginPreviewDrag(blockType) {
+  const iframe = document.getElementById('preview-frame');
+  if (iframe && iframe.contentWindow) {
+    iframe.contentWindow.postMessage({ type: 'visual-edit', action: 'lib-drag-start', blockType }, '*');
+  }
+}
+function endPreviewDrag() {
+  const iframe = document.getElementById('preview-frame');
+  if (iframe && iframe.contentWindow) {
+    iframe.contentWindow.postMessage({ type: 'visual-edit', action: 'lib-drag-end' }, '*');
+  }
+}
+
 document.getElementById('lib-back')?.addEventListener('click', closeLibrary);
 
 // "+ Add" opens the library in the sidebar (replaces the old popup)
@@ -3221,10 +3235,17 @@ function renderLibrary(body, afterBlockId) {
       if (!schema) return;
       const card = document.createElement('div');
       card.className = 'lib-card';
-      card.setAttribute('draggable', 'true');             // hook for the drag-engine cycle
+      card.setAttribute('draggable', 'true');
       card.setAttribute('data-block-type', type);
       card.innerHTML = '<div class="lib-shot">' + (BLOCK_PREVIEWS[type] || '') + '</div><div class="lib-name">' + schema.name + '</div>';
       card.addEventListener('click', () => { const after = afterBlockId; closeLibrary(); openCreationCard(type, after ? { insertAfter: after } : undefined); });
+      card.addEventListener('dragstart', (e) => {
+        e.dataTransfer.effectAllowed = 'copy';
+        e.dataTransfer.setData('application/x-scrolly-block', type);
+        e.dataTransfer.setData('text/plain', type); // some browsers require a text type
+        beginPreviewDrag(type);
+      });
+      card.addEventListener('dragend', () => endPreviewDrag());
       fly.appendChild(card);
     });
     fly.style.display = 'flex';
@@ -3549,6 +3570,7 @@ async function addEmptyBlock(type, insertAfterId) {
   setDirty(true);
   renderBlockList();
   renderEditor();
+  refreshPreview();
 }
 
 function defaultDataFor(type) {
@@ -5124,6 +5146,17 @@ window.addEventListener('message', async (evt) => {
   if (action === 'insert-block') {
     const afterId = evt.data.afterBlockId;
     openLibrary(afterId);
+  }
+
+  // Drag-and-drop from the component library onto the preview
+  if (action === 'drop-block') {
+    const blockType = evt.data.blockType;
+    const afterId = evt.data.afterBlockId || null;
+    if (blockType) {
+      closeLibrary();
+      await addEmptyBlock(blockType, afterId);
+    }
+    return;
   }
 });
 
