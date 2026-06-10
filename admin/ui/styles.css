@@ -606,17 +606,19 @@ main.editor { display: none; }
 .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .field-row > input, .field-row > select { flex: 1; }
 
-/* Sub-items inside an Editorial content[] */
+/* Sub-items inside an Editorial content[] — borderless, separated by a hairline */
 .subitem {
-  border: 1px solid var(--fog);
-  border-radius: 16px;
-  padding: 12px 14px;
-  margin-bottom: 8px;
-  background: var(--canvas);
+  border: none;
+  background: none;
+  border-radius: 0;
+  padding: 0 0 14px;
+  margin-bottom: 14px;
+  border-bottom: 1px solid var(--fog);
 }
+.subitem:last-child { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
 .subitem-head {
   display: flex; align-items: center; gap: 8px;
-  margin-bottom: 8px;
+  margin-bottom: 7px;
   font-size: 12px;
   font-weight: 600;
 }
@@ -2453,10 +2455,11 @@ main.editor { display: none; }
 .lib-chev { color:var(--ash); flex-shrink:0; } .lib-chev svg { width:13px; height:13px; }
 .lib-flyout { width:262px; flex:none; display:flex; flex-direction:column; gap:10px; max-height:360px; overflow:auto;
   background:#fff; border:1px solid #ececef; border-radius:14px; box-shadow:0 14px 40px rgba(20,20,40,.14); padding:12px; }
-.lib-card { border-radius:13px; padding:13px; cursor:grab; background:#f7f7f9; transition:transform .12s, box-shadow .12s; }
+.lib-card { display:flex; flex-direction:column; flex:1 1 auto; min-height:96px; border-radius:13px; padding:13px; cursor:grab; background:#f7f7f9; transition:transform .12s, box-shadow .12s; }
 .lib-card:hover { transform:translateY(-2px); box-shadow:0 8px 20px rgba(20,20,40,.12); }
 .lib-card:active { cursor:grabbing; }
-.lib-shot { background:#fff; border-radius:10px; padding:11px; box-shadow:0 3px 12px rgba(20,20,40,.07); overflow:hidden; }
+.lib-shot { flex:1; display:flex; align-items:center; justify-content:center; background:#fff; border-radius:10px; padding:11px; box-shadow:0 3px 12px rgba(20,20,40,.07); overflow:hidden; }
+.lib-shot > * { max-width:100%; }
 .lib-name { text-align:center; font:600 12px/1 var(--font); margin-top:9px; color:#555; }
 
 /* ── Component library docked IN the sidebar (replaces panes; flyout overlaps canvas) ── */
