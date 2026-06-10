@@ -2753,6 +2753,17 @@ function attachSubitemDrag(row, list, i, onChange) {
     row.classList.add('dragging');
     e.dataTransfer.effectAllowed = 'move';
     e.dataTransfer.setData('text/plain', String(i));
+    // Clean custom drag image — the native snapshot gets clipped by the sidebar's
+    // scroll container (looks cropped/doubled). Use a compact labelled chip instead.
+    try {
+      const kind = (row.querySelector('.subitem-kind')?.textContent || 'Item').trim();
+      const ghost = document.createElement('div');
+      ghost.className = 'subitem-drag-ghost';
+      ghost.textContent = kind;
+      document.body.appendChild(ghost);
+      e.dataTransfer.setDragImage(ghost, 14, 14);
+      setTimeout(() => ghost.remove(), 0);
+    } catch (_) { /* setDragImage unsupported — fall back to native */ }
   });
   row.addEventListener('dragend', () => {
     row.classList.remove('dragging');
