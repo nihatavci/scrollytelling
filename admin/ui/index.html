@@ -155,6 +155,13 @@
         </div>
         <div class="lib-body" id="lib-body"></div>
       </div>
+
+      <!-- Sidebar footer: collapse toggle (moved off the floating overlay) -->
+      <div class="sidebar-foot">
+        <button id="btn-sidebar-toggle" class="sidebar-foot-btn" title="Hide panel" aria-expanded="true" aria-label="Hide panel">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+        </button>
+      </div>
     </aside>
 
     <!-- Editor / preview area -->
@@ -176,8 +183,10 @@
       <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin" allow="autoplay"></iframe>
     </aside>
 
-    <!-- Sidebar toggle (glass pill) -->
-    <button id="btn-sidebar-toggle" class="sidebar-toggle" title="Toggle blocks panel">☰</button>
+    <!-- Floating reopen button — only visible when the sidebar is collapsed -->
+    <button id="btn-sidebar-reopen" class="sidebar-reopen" title="Show panel" aria-label="Show panel">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+    </button>
 
     <!-- Mobile FAB -->
     <button id="fab-add" class="fab-add" aria-label="Add block">+</button>

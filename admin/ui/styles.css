@@ -2483,6 +2483,27 @@ main.editor { display: none; }
   box-shadow:10px 0 30px -8px rgba(20,20,40,.16);  /* shadow only to the right */
 }
 
+/* Sidebar footer — holds the collapse toggle (moved off the floating overlay) */
+.sidebar-foot { margin-top:auto; flex:none; padding:8px 10px; border-top:1px solid rgba(0,0,0,.06); display:flex; align-items:center; }
+.sidebar-foot-btn { display:grid; place-items:center; width:30px; height:30px; border:none; background:none; border-radius:8px; color:var(--graphite); cursor:pointer; transition:background .12s, color .12s; }
+.sidebar-foot-btn:hover { background:rgba(0,0,0,.05); color:var(--ink-black,#16161d); }
+.sidebar-foot-btn svg { width:17px; height:17px; display:block; }
+
+/* Floating reopen button — only visible when the sidebar is collapsed */
+.sidebar-reopen {
+  position:absolute; bottom:14px; left:14px; z-index:25;
+  width:36px; height:36px; border-radius:10px;
+  border:1px solid rgba(0,0,0,.08); background:rgba(255,255,255,.9);
+  backdrop-filter:blur(20px) saturate(1.5); -webkit-backdrop-filter:blur(20px) saturate(1.5);
+  box-shadow:0 2px 10px rgba(0,0,0,.12); cursor:pointer; color:#16161d;
+  display:none; align-items:center; justify-content:center;
+  transition:background .15s, box-shadow .15s, transform .15s;
+}
+.sidebar-reopen:hover { background:#fff; box-shadow:0 4px 16px rgba(0,0,0,.16); }
+.sidebar-reopen:active { transform:scale(.95); }
+.sidebar-reopen svg { width:18px; height:18px; }
+.blocks.is-collapsed ~ .sidebar-reopen { display:flex; }
+
 /* ── Hide scrollbars everywhere (content still scrolls via wheel/trackpad). ──
    Visible scrollbars reserve gutter width that toggles as the sidebar opens/closes,
    which reads as flicker. Hiding them keeps widths stable. */

@@ -5679,18 +5679,19 @@ document.getElementById('side-upload')?.addEventListener('click', () => {
 
 // ── Sidebar toggle (glass pill ☰) ────────────────────────────────────────────
 (function initSidebarToggle() {
-  var btn = document.getElementById('btn-sidebar-toggle');
+  var btn = document.getElementById('btn-sidebar-toggle');     // in-sidebar footer (collapse)
+  var reopen = document.getElementById('btn-sidebar-reopen');  // floating, shown only when collapsed
   var blocks = document.querySelector('.blocks');
-  if (!btn || !blocks) return;
-  // Use onclick (not addEventListener) to guarantee exactly one handler even
-  // if this IIFE ever runs more than once. Cancel any WAAPI animations on
-  // .blocks before toggling so motion.js's animatePageSwap fill doesn't
-  // fight the CSS transition.
-  btn.onclick = function() {
+  if (!blocks) return;
+  // Cancel any WAAPI animations on .blocks before toggling so motion.js's
+  // animatePageSwap fill doesn't fight the CSS transition.
+  function toggle() {
     blocks.getAnimations().forEach(function(a) { a.cancel(); });
     var collapsed = blocks.classList.toggle('is-collapsed');
-    btn.setAttribute('aria-expanded', String(!collapsed));
-  };
+    if (btn) btn.setAttribute('aria-expanded', String(!collapsed));
+  }
+  if (btn) btn.onclick = toggle;
+  if (reopen) reopen.onclick = toggle;
 })();
 
 // ─────────────────────────── Article Builder bridge ──────────────
