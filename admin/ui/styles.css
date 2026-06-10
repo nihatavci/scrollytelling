@@ -2387,3 +2387,18 @@ main.editor { display: none; }
 .ti-vio{background:#e6dbff;color:#6a45cf}
 .lucide-box{display:grid;place-items:center;border-radius:7px;flex:none}
 .lucide-box svg{width:15px;height:15px}
+
+/* ── Editor sidebar shell ── */
+.sidebar { display:flex; flex-direction:column; }
+.sidebar #ai-slot:empty { display:none; }   /* reserved for AI cycle */
+.side-tabs { position:relative; display:flex; margin:10px; padding:4px; background:#f1f1f4; border-radius:11px; }
+.side-ind { position:absolute; top:4px; bottom:4px; left:4px; width:96px; background:#fff; border-radius:8px;
+  box-shadow:0 2px 6px rgba(20,20,40,.10), 0 0 0 .5px rgba(20,20,40,.04);
+  transition:transform .30s cubic-bezier(.45,.05,.15,1), width .30s cubic-bezier(.45,.05,.15,1); }
+.side-tab { position:relative; z-index:1; flex:1; border:none; background:none; padding:8px 4px;
+  font:600 12.5px/1 var(--font); color:#9b9ba3; cursor:pointer; transition:color .2s; }
+.side-tab.on { color:#16161d; }
+.side-pane { flex:1; min-height:0; display:flex; flex-direction:column; animation:sidefade .26s cubic-bezier(.4,0,.2,1); }
+.side-pane[hidden] { display:none; }
+@keyframes sidefade { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:none} }
+.pane-body { overflow:auto; padding:4px 8px 10px; }

@@ -115,13 +115,35 @@
   </div>
 
   <div class="layout">
-    <!-- Blocks list -->
-    <aside class="blocks">
-      <div class="aside-head">
-        <span>Blocks</span>
-        <button id="btn-add-block" class="small" title="Add a new block">+ Add</button>
+    <!-- Left sidebar: Pages · Sections · Assets -->
+    <aside class="blocks sidebar">
+      <!-- Reserved for the AI panel (Compose / Improve) — built in a later cycle -->
+      <div id="ai-slot"></div>
+
+      <div class="side-tabs" id="side-tabs">
+        <div class="side-ind" id="side-ind"></div>
+        <button class="side-tab on" data-pane="sections">Sections</button>
+        <button class="side-tab" data-pane="pages">Pages</button>
+        <button class="side-tab" data-pane="assets">Assets</button>
       </div>
-      <ol id="block-list" class="block-list"></ol>
+
+      <div class="side-pane" data-pane="sections">
+        <div class="aside-head">
+          <span>Sections</span>
+          <button id="btn-add-block" class="small" title="Add a section">+ Add</button>
+        </div>
+        <ol id="block-list" class="block-list"></ol>
+      </div>
+
+      <div class="side-pane" data-pane="pages" hidden>
+        <div class="aside-head"><span>Pages</span><button id="side-new-page" class="small" title="New page">+ New</button></div>
+        <div id="pages-pane" class="pane-body"></div>
+      </div>
+
+      <div class="side-pane" data-pane="assets" hidden>
+        <div class="aside-head"><span>Assets</span><button id="side-upload" class="small" title="Upload a file">+ Upload</button></div>
+        <div id="assets-pane" class="pane-body"></div>
+      </div>
     </aside>
 
     <!-- Editor / preview area -->
