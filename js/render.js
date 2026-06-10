@@ -2555,7 +2555,7 @@ function renderFullBleed(d) {
 // ───────── Scene3D scrollytelling ─────────
 function renderScene3D(d, block) {
   const hasScenes = Array.isArray(d.scenes) && d.scenes.some(Boolean);
-  const bg = d.bg || 'studio';
+  const bg = d.bg || 'dark';   // dark studio backdrop by default (Sketchfab-like), matches the editor
   const sec = el('section', {
     class: 'scene3d scene3d--bg-' + bg + (d._comingSoon === true || d._comingSoon === 'true' ? ' scene3d--coming-soon' : ''),
     id: `scene3d-${block.id}`,

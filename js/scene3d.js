@@ -62,7 +62,8 @@ export async function initScene3D(blockId, data) {
   const renderer = new THREE.WebGLRenderer({ canvas, antialias: !isMobile, alpha: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, isMobile ? 1.5 : 2));
   renderer.setClearColor(0x000000, 0);
-  renderer.shadowMap.enabled = false;
+  renderer.shadowMap.enabled = true;
+  renderer.shadowMap.type = THREE.PCFSoftShadowMap;
   // Filmic tone mapping + sRGB output — the difference between washed-out and rich, like Sketchfab.
   renderer.toneMapping = THREE.ACESFilmicToneMapping;
   renderer.toneMappingExposure = 1.1;
@@ -136,6 +137,21 @@ export async function initScene3D(blockId, data) {
     model.position.sub(center.multiplyScalar(scale));
   }
   scene.add(model);
+  // Soft contact shadow + grounding (matches the admin editor; the depth Sketchfab has).
+  model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  const _gb = new THREE.Box3().setFromObject(model);
+  const _ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.32 }));
+  _ground.rotation.x = -Math.PI / 2;
+  _ground.position.y = _gb.min.y - 0.002;
+  _ground.receiveShadow = true;
+  scene.add(_ground);
+  dir.castShadow = true;
+  dir.shadow.mapSize.set(2048, 2048);
+  dir.shadow.bias = -0.0004;
+  dir.shadow.camera.near = 0.5; dir.shadow.camera.far = 60;
+  dir.shadow.camera.left = -3; dir.shadow.camera.right = 3;
+  dir.shadow.camera.top = 3; dir.shadow.camera.bottom = -3;
+  dir.shadow.camera.updateProjectionMatrix();
 
   // Show canvas, hide loader. Paint twice across frames so the first frame
   // always lands on the transparent canvas regardless of layout timing.

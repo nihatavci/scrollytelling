@@ -403,6 +403,8 @@ async function initScene3DEditor(container, blockData, onChange) {
     renderer.toneMapping = THREE.ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.1;
     if ('outputColorSpace' in renderer) renderer.outputColorSpace = THREE.SRGBColorSpace;
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     applyViewportBg();
 
     threeScene = new THREE.Scene();
@@ -462,6 +464,21 @@ async function initScene3DEditor(container, blockData, onChange) {
       }
       threeScene.add(model);
       model3d = model;
+      // Soft contact shadow + grounding (the depth Sketchfab has).
+      model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      const gb = new THREE.Box3().setFromObject(model);
+      const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.32 }));
+      ground.rotation.x = -Math.PI / 2;
+      ground.position.y = gb.min.y - 0.002;
+      ground.receiveShadow = true;
+      threeScene.add(ground);
+      dir.castShadow = true;
+      dir.shadow.mapSize.set(2048, 2048);
+      dir.shadow.bias = -0.0004;
+      dir.shadow.camera.near = 0.5; dir.shadow.camera.far = 60;
+      dir.shadow.camera.left = -3; dir.shadow.camera.right = 3;
+      dir.shadow.camera.top = 3; dir.shadow.camera.bottom = -3;
+      dir.shadow.camera.updateProjectionMatrix();
     } catch (err) {
       console.error('[Scene3D admin] model load failed:', err);
       window.toast?.('Could not load 3D model: ' + err.message, 'error');
@@ -505,7 +522,7 @@ async function initScene3DEditor(container, blockData, onChange) {
 
   // Match the editor viewport background to the chosen public background.
   function applyViewportBg() {
-    const bg = blockData.bg || 'studio';
+    const bg = blockData.bg || 'dark';   // dark studio backdrop by default (Sketchfab-like)
     const grad = {
       studio: 'radial-gradient(ellipse at 50% 38%,#fafafa 0%,#e6e6ea 65%,#d3d3d9 100%)',
       dark:   'radial-gradient(ellipse at 50% 38%,#2c2c31 0%,#161618 72%,#0d0d0f 100%)',
