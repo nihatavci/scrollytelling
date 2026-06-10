@@ -2624,27 +2624,18 @@ async function updateViewLink() {
 }
 
 async function loadPage(id) {
-  if (state.dirty && !confirm('Discard unsaved changes?')) {
-    $('#page-select').value = state.currentPageId;
-    return;
-  }
+  // No "discard changes?" prompt — flush any pending edits silently before switching.
+  if (state.dirty) { await flushAutosave(); }
   state.currentPageId = id;
   state.doc = await SB.getPage(id);
   state.savedVersion = state.doc.version || 0;
 
-  // Check for local backup that's newer than server version
+  // Silently recover a newer local backup (e.g. a reload that beat the autosave debounce).
+  // Backups are cleared on every successful autosave, so one existing here means it's unsaved work.
   const backup = getLocalBackup(id);
-  if (backup && backup.ts > (state.doc._lastSaveTs || 0)) {
-    const recover = confirm(
-      `Found unsaved local changes from ${new Date(backup.ts).toLocaleString()}.\n\nRecover them?`
-    );
-    if (recover) {
-      state.doc = backup.doc;
-      setDirty(true);
-      toast('Local backup restored', 'success');
-    } else {
-      clearLocalBackup(id);
-    }
+  if (backup && backup.doc) {
+    state.doc = backup.doc;
+    setDirty(true); // re-persists on the autosave tick
   }
 
   state.selectedBlockId = null;
@@ -2813,28 +2804,43 @@ function renderBlockList() {
       <div class="block-header">
         <span class="drag-handle" title="Drag to reorder">⠿</span>
         <span class="block-icon lucide-box ${cm.tint}">${cm.icon}</span>
-        <span class="block-name">${escapeText(label || schemaName)}</span>
+        <span class="block-name" title="Double-click to rename">${escapeText(label || schemaName)}</span>
         ${label ? `<span class="block-type-badge">${escapeText(schemaName)}</span>` : ''}
         ${confBadge}
-        <button class="block-label-edit" title="Rename this block">✎</button>
         <span class="block-chevron">›</span>
       </div>
       <div class="block-body"></div>`;
 
-    // Inline rename handler
-    li.querySelector('.block-label-edit').addEventListener('click', (e) => {
+    // Inline rename: double-click the name to edit it in place (no popup)
+    const nameEl = li.querySelector('.block-name');
+    nameEl.addEventListener('dblclick', (e) => {
       e.stopPropagation();
-      const current = block.data?._label || '';
-      const newLabel = prompt('Block label (leave empty for default):', current);
-      if (newLabel === null) return; // cancelled
-      if (!block.data) block.data = {};
-      if (newLabel.trim()) {
-        block.data._label = newLabel.trim();
-      } else {
-        delete block.data._label;
-      }
-      setDirty(true);
-      renderBlockList();
+      if (nameEl.dataset.editing) return;
+      nameEl.dataset.editing = '1';
+      const original = block.data?._label || '';
+      nameEl.textContent = original || schemaName;
+      nameEl.contentEditable = 'true';
+      nameEl.classList.add('editing');
+      nameEl.focus();
+      const sel = window.getSelection(); const range = document.createRange();
+      range.selectNodeContents(nameEl); sel.removeAllRanges(); sel.addRange(range);
+      const commit = (save) => {
+        nameEl.contentEditable = 'false';
+        nameEl.classList.remove('editing');
+        delete nameEl.dataset.editing;
+        if (save) {
+          const val = nameEl.textContent.trim();
+          if (!block.data) block.data = {};
+          if (val && val !== schemaName) block.data._label = val; else delete block.data._label;
+          setDirty(true);
+        }
+        renderBlockList();
+      };
+      nameEl.addEventListener('keydown', (ev) => {
+        if (ev.key === 'Enter') { ev.preventDefault(); commit(true); }
+        else if (ev.key === 'Escape') { ev.preventDefault(); commit(false); }
+      });
+      nameEl.addEventListener('blur', () => commit(true), { once: true });
     });
 
     // Drag & drop handlers
@@ -4734,14 +4740,59 @@ function openFilePicker(filter, onSelect) {
   }, '');
 }
 
+// Upload one or more files via Supabase; calls onUrl(url) for each successful upload.
+async function uploadPickedFiles(files, onUrl) {
+  const MAX_UPLOAD_SIZE = 50 * 1024 * 1024; // 50 MB
+  for (const f of Array.from(files)) {
+    if (f.size > MAX_UPLOAD_SIZE) {
+      toast(`File too large (${(f.size / 1024 / 1024).toFixed(1)} MB). Maximum is 50 MB.`, 'error');
+      continue;
+    }
+    try {
+      const r = await SB.uploadFile(f);
+      toast('Uploaded · ' + (r.url.split('/').pop()), 'success');
+      if (onUrl) onUrl(r.url);
+    } catch (err) { toast('Upload failed: ' + err.message, 'error'); }
+  }
+}
+
 async function openImagePicker(cb) {
   openModal('Pick image', async (body) => {
-    body.innerHTML = 'Loading…';
-    try {
-      const { images } = await SB.listImages();
+    async function render() {
+      body.innerHTML = 'Loading…';
+      let images = [];
+      try { ({ images } = await SB.listImages()); }
+      catch (e) { body.innerHTML = ''; }
       body.innerHTML = '';
+
+      // Upload zone (button + drag-and-drop) — always available, even with no images.
+      const zone = document.createElement('div');
+      zone.className = 'pick-upload-zone';
+      zone.innerHTML = '<span class="pick-upload-ic">⬆</span><span>Drop an image here, or <b>browse</b></span>';
+      const fileInp = document.createElement('input');
+      fileInp.type = 'file'; fileInp.accept = 'image/*'; fileInp.multiple = true; fileInp.style.display = 'none';
+      zone.appendChild(fileInp);
+      zone.addEventListener('click', () => fileInp.click());
+      fileInp.addEventListener('change', async () => {
+        if (!fileInp.files.length) return;
+        await uploadPickedFiles(fileInp.files, (url) => { closeModal(); cb(url); });
+      });
+      ['dragover','dragenter'].forEach(ev => zone.addEventListener(ev, e => { e.preventDefault(); zone.classList.add('drag-active'); }));
+      ['dragleave','dragend'].forEach(ev => zone.addEventListener(ev, () => zone.classList.remove('drag-active')));
+      zone.addEventListener('drop', async (e) => {
+        e.preventDefault(); zone.classList.remove('drag-active');
+        if (e.dataTransfer?.files?.length) await uploadPickedFiles(e.dataTransfer.files, (url) => { closeModal(); cb(url); });
+      });
+      body.appendChild(zone);
+
+      if (!images.length) {
+        const empty = document.createElement('div');
+        empty.className = 'side-empty'; empty.textContent = 'No images yet — upload one above.';
+        body.appendChild(empty);
+        return;
+      }
       const grid = document.createElement('div');
-      grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px;';
+      grid.style.cssText = 'display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:12px;';
       images.forEach(img => {
         const card = document.createElement('button');
         card.style.cssText = 'border:1px solid #d0d7de;border-radius:6px;padding:4px;background:#fff;cursor:pointer;display:flex;flex-direction:column;gap:4px;text-align:center;';
@@ -4752,7 +4803,8 @@ async function openImagePicker(cb) {
         grid.appendChild(card);
       });
       body.appendChild(grid);
-    } catch (e) { body.textContent = 'Error: ' + e.message; }
+    }
+    await render();
   }, '');
 }
 
@@ -5387,13 +5439,19 @@ function closeModal() {
 function escapeText(s) { const d = document.createElement('div'); d.textContent = s ?? ''; return d.innerHTML; }
 function escapeAttr(s) { return String(s ?? '').replace(/"/g, '&quot;'); }
 
-// Beforeunload warning
-window.addEventListener('beforeunload', (e) => {
-  if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
+// No "leave site?" prompt. Work is auto-saved continuously, and a synchronous
+// localStorage backup is taken before the page is hidden/closed so nothing is lost
+// even if the tab is closed mid-debounce. The backup is restored silently on next load.
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden' && state.dirty) {
+    backupToLocal();          // synchronous, survives an immediate close
+    runAutosave();            // fire-and-forget server flush (best effort)
+  }
 });
+window.addEventListener('pagehide', () => { if (state.dirty) backupToLocal(); });
 
 // ─────────────────────────── Autosave ──────────────────────────
-// Debounced autosave — triggers 2s after the last change.
+// Debounced autosave — triggers shortly after the last change.
 // Does NOT publish or create history — just persists so you never lose work.
 let _autosaveDebounce = null;
 let _autosaving = false;
@@ -5401,7 +5459,13 @@ let _autosaveFailCount = 0;
 
 function scheduleAutosave() {
   clearTimeout(_autosaveDebounce);
-  _autosaveDebounce = setTimeout(runAutosave, 2000);
+  _autosaveDebounce = setTimeout(runAutosave, 900);
+}
+
+// Cancel the pending debounce and persist immediately (used before switching pages).
+async function flushAutosave() {
+  clearTimeout(_autosaveDebounce);
+  await runAutosave();
 }
 
 async function runAutosave() {
@@ -5525,8 +5589,16 @@ startAutosave();
 })();
 document.getElementById('side-new-page')?.addEventListener('click', () => document.getElementById('btn-new-page')?.click());
 document.getElementById('side-upload')?.addEventListener('click', () => {
-  // Reuse the existing image picker / upload entry point.
-  if (typeof openImagePicker === 'function') openImagePicker(() => renderAssetsPane());
+  // Direct upload: open the OS file dialog, upload, then refresh the Assets list.
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.multiple = true;
+  inp.accept = 'image/*,video/*,audio/*,.gif';
+  inp.addEventListener('change', async () => {
+    if (!inp.files.length) return;
+    await uploadPickedFiles(inp.files, null);
+    renderAssetsPane();
+  });
+  inp.click();
 });
 
 // ── Sidebar toggle (glass pill ☰) ────────────────────────────────────────────
