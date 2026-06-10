@@ -374,20 +374,6 @@ const BLOCK_SCHEMAS = {
   },
 };
 
-const BLOCK_ICONS = {
-  Hero: '\u{1F4F0}', VizPanel: '\u{1F4CA}', Editorial: '\u{270F}\u{FE0F}', Scrolly: '\u{1F4DC}',
-  Outro: '\u{1F3AC}', StatRow: '\u{1F4A5}', Timeline: '\u{23F3}', Aside: '\u{1F4A1}',
-  ChapterDivider: '\u{2550}', Quote: '\u{1F5E3}\u{FE0F}', VideoEmbed: '\u{1F39E}\u{FE0F}',
-  DataScrolly: '\u{1F4C8}', FullBleed: '\u{1F3AC}', ImageCompare: '\u{2696}\u{FE0F}',
-  ImageHotspot: '\u{1F4CD}', AccordionBlock: '\u{1F4C2}', ProgressNav: '\u{1F4CD}',
-  EmbedBlock: '\u{1F9E9}', ImageGrid: '\u{1F50D}', Map2D: '\u{1F9ED}',
-  FullscreenImage: '\u{1F5BC}', AudioPlayer: '\u{1F3B5}',
-  Scene3D: '🎲',
-  WebGLGradient: '\u{1F30C}',
-  WebGLFlowmap: '\u{1F30A}',
-  WebGLParticles: '\u{2728}',
-};
-
 // Friendly labels for badge colors (was technical: pyramid/data/explain/future/voice)
 const BADGE_OPTIONS = [
   { value: 'pyramid', label: 'Orange',  color: '#c06830' },
