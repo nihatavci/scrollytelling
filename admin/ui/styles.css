@@ -2159,8 +2159,8 @@ main.editor { display: none; }
 /* Editor wrapper: viewport left + strip right */
 .s3d-editor-wrap {
   display: flex;
+  flex-direction: column;   /* viewport on top (full width), scene strip below */
   gap: 8px;
-  align-items: stretch;
 }
 
 /* Viewport */
@@ -2180,7 +2180,8 @@ main.editor { display: none; }
   display: block;
 }
 
-/* Fullscreen edit mode — canvas fills the screen for real orbiting */
+/* Fullscreen edit mode — canvas fills the screen for real orbiting.
+   Strip returns to a roomy side column (space isn't tight here). */
 .s3d-editor-wrap.s3d-fullscreen {
   position: fixed;
   inset: 0;
@@ -2189,6 +2190,13 @@ main.editor { display: none; }
   padding: 16px;
   gap: 12px;
   border-radius: 0;
+  flex-direction: row;
+}
+.s3d-editor-wrap.s3d-fullscreen .s3d-strip {
+  flex-direction: column;
+  flex-wrap: nowrap;
+  width: 110px;
+  overflow-y: auto;
 }
 .s3d-editor-wrap.s3d-fullscreen .s3d-viewport {
   border-radius: 14px;
@@ -2267,10 +2275,10 @@ main.editor { display: none; }
 /* Scene thumbnail strip */
 .s3d-strip {
   display: flex;
-  flex-direction: column;
-  gap: 5px;
-  width: 64px;
-  flex-shrink: 0;
+  flex-direction: row;
+  flex-wrap: wrap;       /* scenes flow left→right and wrap; supports any number */
+  gap: 6px;
+  width: 100%;
 }
 .s3d-slot {
   width: 64px;

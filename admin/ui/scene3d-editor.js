@@ -39,9 +39,8 @@ function makeGltfLoader(lib, renderer) {
 }
 
 async function initScene3DEditor(container, blockData, onChange) {
-  // ── Ensure scenes array is initialised ──
+  // ── Ensure scenes array is initialised (≥4 slots + a trailing empty) ──
   if (!Array.isArray(blockData.scenes)) blockData.scenes = [];
-  while (blockData.scenes.length < 4) blockData.scenes.push(null);
 
   // ── Upload zone ──
   const uploadZone = document.createElement('div');
@@ -354,14 +353,26 @@ async function initScene3DEditor(container, blockData, onChange) {
 
   function nextEmptySlot() { return blockData.scenes.findIndex(s => !s); }
 
+  // Keep exactly one trailing empty "+" slot after the last saved scene (min 4 slots
+  // shown). This is what lets the user create more than 4 scenes — filling the last
+  // empty slot appends a fresh one. Only trailing nulls are trimmed, so saved scenes
+  // never change index (annotations reference scene index).
+  function ensureEmptySlot() {
+    while (blockData.scenes.length && blockData.scenes[blockData.scenes.length - 1] == null) blockData.scenes.pop();
+    blockData.scenes.push(null);
+    while (blockData.scenes.length < 4) blockData.scenes.push(null);
+    if (activeSlot >= blockData.scenes.length) activeSlot = Math.max(0, blockData.scenes.length - 1);
+  }
+
   function updateSaveBtn() {
     const ne = nextEmptySlot();
-    const n = ne === -1 ? activeSlot + 1 : ne + 1;
+    const n = (ne === -1 ? blockData.scenes.length : ne) + 1;
     saveBtn.textContent = `📷 Save as Scene ${n}`;
   }
   updateSaveBtn();
 
   function renderStrip() {
+    ensureEmptySlot();
     strip.innerHTML = '';
     blockData.scenes.forEach((sc, i) => {
       const slot = document.createElement('div');
@@ -411,6 +422,10 @@ async function initScene3DEditor(container, blockData, onChange) {
         const num = document.createElement('span');
         num.className = 's3d-slot-num'; num.textContent = i + 1;
         slot.appendChild(num);
+        slot.title = 'Save current view as scene ' + (i + 1);
+        // Click an empty slot → snapshot the current camera into it (so you can add
+        // scenes beyond 4 without hunting for the Save button).
+        slot.addEventListener('click', () => saveCurrentViewTo(i));
       }
       strip.appendChild(slot);
     });
@@ -746,8 +761,9 @@ async function initScene3DEditor(container, blockData, onChange) {
     _editorTweenRaf = requestAnimationFrame(step);
   }
 
-  // ── Save view button ──
-  saveBtn.addEventListener('click', () => {
+  // ── Save current camera into a scene slot (shared by the Save button and clicking
+  //    an empty "+" slot). Appends past 4 via ensureEmptySlot.
+  function saveCurrentViewTo(slot) {
     if (!renderer || !camera) return;
     const pos = camera.position, tgt = controls.target;
 
@@ -761,8 +777,6 @@ async function initScene3DEditor(container, blockData, onChange) {
     tr.render(threeScene, tc2); tr.dispose();
     const thumb = tc.toDataURL('image/jpeg', 0.8);
 
-    const ne = nextEmptySlot();
-    const slot = ne === -1 ? activeSlot : ne;
     blockData.scenes[slot] = {
       caption: blockData.scenes[slot]?.caption || '',
       camera: { x: pos.x, y: pos.y, z: pos.z },
@@ -771,7 +785,14 @@ async function initScene3DEditor(container, blockData, onChange) {
       thumb,
     };
     activeSlot = slot;
+    ensureEmptySlot();
     onChange(); renderStrip(); updateSaveBtn(); renderTextPanel();
+  }
+
+  // ── Save view button ──
+  saveBtn.addEventListener('click', () => {
+    const ne = nextEmptySlot();
+    saveCurrentViewTo(ne === -1 ? blockData.scenes.length : ne);
   });
 
   // Init immediately if editing an existing block with a GLB
