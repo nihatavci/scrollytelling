@@ -105,6 +105,37 @@ async function initScene3DEditor(container, blockData, onChange) {
   hintBar.textContent = 'Drag · orbit   Scroll · zoom   Right-drag · pan';
   viewportEl.appendChild(hintBar);
 
+  // Viewport toolbar — Background + Light presets (stored on the block, used by the
+  // public renderer too).
+  const vpBar = document.createElement('div');
+  vpBar.style.cssText = 'position:absolute;top:10px;left:10px;z-index:5;display:flex;gap:6px;';
+  const mkSelect = (label, options, value, onPick) => {
+    const sel = document.createElement('select');
+    sel.title = label;
+    sel.style.cssText = 'appearance:none;-webkit-appearance:none;background:rgba(20,20,22,.72);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:99px;font:600 11px/1 var(--font,"DM Sans",sans-serif);padding:6px 12px;cursor:pointer;backdrop-filter:blur(8px);';
+    options.forEach(([v, t]) => {
+      const o = document.createElement('option');
+      o.value = v; o.textContent = t; o.style.color = '#111';
+      sel.appendChild(o);
+    });
+    sel.value = value;
+    sel.addEventListener('change', () => onPick(sel.value));
+    vpBar.appendChild(sel);
+    return sel;
+  };
+  mkSelect('Background', [['dark', 'Dark'], ['studio', 'Light'], ['page', 'Page']], blockData.bg || 'dark', (v) => {
+    blockData.bg = v; onChange();
+    applyViewportBg();
+    if (composer && threeScene && THREE_LIB) threeScene.background = v === 'page' ? null : gradientBgTexture(THREE_LIB, v);
+    renderFrame();
+  });
+  mkSelect('Light', [['studio', 'Studio light'], ['sun', 'Sun light']], blockData.light || 'studio', (v) => {
+    blockData.light = v; onChange();
+    applyLightPreset();
+    renderFrame();
+  });
+  viewportEl.appendChild(vpBar);
+
   // Fullscreen toggle — expand the canvas to fill the screen for real editing.
   const fsBtn = document.createElement('button');
   fsBtn.type = 'button';
@@ -225,7 +256,21 @@ async function initScene3DEditor(container, blockData, onChange) {
   }
 
   // ── State ──
-  let THREE_LIB, renderer, threeScene, camera, controls, model3d, composer = null;
+  let THREE_LIB, renderer, threeScene, camera, controls, model3d, composer = null, lightRig = null;
+
+  // Light presets — 'studio' (default): IBL-dominant, neutral; 'sun': warm low key
+  // light dominates like late-afternoon outdoor sun, env down, longer/darker shadow.
+  function applyLightPreset() {
+    if (!lightRig || !threeScene) return;
+    const sun = blockData.light === 'sun';
+    if ('environmentIntensity' in threeScene) threeScene.environmentIntensity = sun ? 0.55 : 1.3;
+    lightRig.ambient.intensity = sun ? 0.05 : 0.1;
+    lightRig.dir.color.set(sun ? 0xffd9a8 : 0xffffff);
+    lightRig.dir.intensity = sun ? 2.6 : 0.8;
+    lightRig.dir.position.set(...(sun ? [6, 8, 4] : [5, 10, 7]));
+    lightRig.dir2.intensity = sun ? 0.15 : 0.3;
+    if (lightRig.ground) lightRig.ground.material.opacity = sun ? 0.45 : 0.32;
+  }
   let activeSlot = 0;
   let placementMode = false;
   const _annoEls = [];          // [{ btn, point(Vector3), id }]
@@ -431,11 +476,14 @@ async function initScene3DEditor(container, blockData, onChange) {
       if ('environmentIntensity' in threeScene) threeScene.environmentIntensity = 1.3;
       pmrem.dispose();
     } catch (e) { /* environment optional — fall back to lights only */ }
-    threeScene.add(new THREE.AmbientLight(0xffffff, 0.1));
+    const ambient = new THREE.AmbientLight(0xffffff, 0.1);
+    threeScene.add(ambient);
     const dir = new THREE.DirectionalLight(0xffffff, 0.8);
     dir.position.set(5, 10, 7); threeScene.add(dir);
     const dir2 = new THREE.DirectionalLight(0xffffff, 0.3);
     dir2.position.set(-6, 4, -5); threeScene.add(dir2);
+    lightRig = { ambient, dir, dir2, ground: null };
+    applyLightPreset();
 
     const w = Math.max(canvas.clientWidth, 1), h = Math.max(canvas.clientHeight, 1);
     camera = new THREE.PerspectiveCamera(45, w / h, 0.01, 1000);
@@ -488,6 +536,7 @@ async function initScene3DEditor(container, blockData, onChange) {
       ground.position.y = gb.min.y - 0.002;
       ground.receiveShadow = true;
       threeScene.add(ground);
+      if (lightRig) { lightRig.ground = ground; applyLightPreset(); }
       dir.castShadow = true;
       dir.shadow.mapSize.set(2048, 2048);
       dir.shadow.bias = -0.0004;

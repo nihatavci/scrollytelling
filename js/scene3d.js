@@ -117,11 +117,15 @@ export async function initScene3D(blockId, data) {
     if ('environmentIntensity' in scene) scene.environmentIntensity = 1.3;
     pmrem.dispose();
   } catch (e) { /* environment optional — fall back to lights only */ }
-  scene.add(new THREE.AmbientLight(0xffffff, 0.1));
-  const dir = new THREE.DirectionalLight(0xffffff, 0.8);
-  dir.position.set(5, 10, 7);
+  // Light presets — 'studio' (default): IBL-dominant, neutral; 'sun': warm low key light
+  // dominates like late-afternoon outdoor sun, env turned down, longer/darker shadow.
+  const sunlight = data.light === 'sun';
+  if (sunlight && 'environmentIntensity' in scene) scene.environmentIntensity = 0.55;
+  scene.add(new THREE.AmbientLight(0xffffff, sunlight ? 0.05 : 0.1));
+  const dir = new THREE.DirectionalLight(sunlight ? 0xffd9a8 : 0xffffff, sunlight ? 2.6 : 0.8);
+  dir.position.set(...(sunlight ? [6, 8, 4] : [5, 10, 7]));
   scene.add(dir);
-  const dir2 = new THREE.DirectionalLight(0xffffff, 0.3); // soft rim from the opposite side
+  const dir2 = new THREE.DirectionalLight(0xffffff, sunlight ? 0.15 : 0.3); // soft rim from the opposite side
   dir2.position.set(-6, 4, -5);
   scene.add(dir2);
 
@@ -175,11 +179,15 @@ export async function initScene3D(blockId, data) {
     model.scale.setScalar(scale);
     model.position.sub(center.multiplyScalar(scale));
   }
-  scene.add(model);
+  // Pivot group — drag-to-rotate spins this, never the camera, so the scroll-driven
+  // camera tweens and user rotation can't fight each other.
+  const pivot = new THREE.Group();
+  pivot.add(model);
+  scene.add(pivot);
   // Soft contact shadow + grounding (matches the admin editor; the depth Sketchfab has).
   model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
   const _gb = new THREE.Box3().setFromObject(model);
-  const _ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.32 }));
+  const _ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: sunlight ? 0.45 : 0.32 }));
   _ground.rotation.x = -Math.PI / 2;
   _ground.position.y = _gb.min.y - 0.002;
   _ground.receiveShadow = true;
@@ -250,6 +258,45 @@ export async function initScene3D(blockId, data) {
     if (composer) composer.render();
     else renderer.render(scene, camera);
   }
+
+  // ── Drag-to-rotate — spin the model pivot with the pointer ──
+  // touch-action: pan-y keeps vertical swipes scrolling the page on touch devices;
+  // horizontal drags rotate. Light inertia so a flick keeps spinning briefly.
+  canvas.style.touchAction = 'pan-y';
+  canvas.style.cursor = 'grab';
+  let _dragId = null, _lastX = 0, _lastY = 0, _velY = 0, _spinRaf = 0;
+  canvas.addEventListener('pointerdown', (e) => {
+    if (e.button !== 0 && e.pointerType === 'mouse') return;
+    _dragId = e.pointerId; _lastX = e.clientX; _lastY = e.clientY; _velY = 0;
+    if (_spinRaf) { cancelAnimationFrame(_spinRaf); _spinRaf = 0; }
+    canvas.style.cursor = 'grabbing';
+    try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
+  });
+  canvas.addEventListener('pointermove', (e) => {
+    if (e.pointerId !== _dragId) return;
+    const dx = e.clientX - _lastX, dy = e.clientY - _lastY;
+    _lastX = e.clientX; _lastY = e.clientY;
+    pivot.rotation.y += dx * 0.005;
+    pivot.rotation.x = Math.max(-0.5, Math.min(0.5, pivot.rotation.x + dy * 0.003));
+    _velY = dx * 0.005;
+    drawFrame();
+  });
+  function _endDrag(e) {
+    if (e.pointerId !== _dragId) return;
+    _dragId = null;
+    canvas.style.cursor = 'grab';
+    // Inertia: decay the yaw velocity over a few frames.
+    const spin = () => {
+      _velY *= 0.92;
+      if (Math.abs(_velY) < 0.0004) { _spinRaf = 0; return; }
+      pivot.rotation.y += _velY;
+      drawFrame();
+      _spinRaf = requestAnimationFrame(spin);
+    };
+    if (Math.abs(_velY) > 0.002) _spinRaf = requestAnimationFrame(spin);
+  }
+  canvas.addEventListener('pointerup', _endDrag);
+  canvas.addEventListener('pointercancel', _endDrag);
 
   // Show canvas, hide loader. Paint twice across frames so the first frame
   // always lands on the transparent canvas regardless of layout timing.
@@ -424,6 +471,7 @@ export async function initScene3D(blockId, data) {
   // teardown (e.g. when the admin soft-refresh re-renders the block).
   function disposeAll() {
     if (tweenRaf) cancelAnimationFrame(tweenRaf);
+    if (_spinRaf) cancelAnimationFrame(_spinRaf);
     if (flow) flow.dispose();
     window.removeEventListener('scroll', onScroll);
     ro.disconnect();
