@@ -268,11 +268,15 @@ export async function initScene3D(blockId, data) {
   }
 
   // ── Drag-to-rotate — spin the model pivot with the pointer ──
-  // touch-action: pan-y keeps vertical swipes scrolling the page on touch devices;
-  // horizontal drags rotate. Light inertia so a flick keeps spinning briefly.
+  // Opt-in per block (data.draggable). Off by default: on the published page and
+  // the editor preview the model only moves with scroll, so a drag scrolls the page.
+  // touch-action: pan-y keeps vertical swipes scrolling on touch; horizontal drags
+  // rotate. Light inertia so a flick keeps spinning briefly.
+  let _dragId = null, _lastX = 0, _lastY = 0, _velY = 0, _spinRaf = 0;
+  const _dragEnabled = data.draggable === true || data.draggable === 'true';
+  if (_dragEnabled) {
   canvas.style.touchAction = 'pan-y';
   canvas.style.cursor = 'grab';
-  let _dragId = null, _lastX = 0, _lastY = 0, _velY = 0, _spinRaf = 0;
   canvas.addEventListener('pointerdown', (e) => {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     _dragId = e.pointerId; _lastX = e.clientX; _lastY = e.clientY; _velY = 0;
@@ -305,6 +309,7 @@ export async function initScene3D(blockId, data) {
   }
   canvas.addEventListener('pointerup', _endDrag);
   canvas.addEventListener('pointercancel', _endDrag);
+  } // end if (_dragEnabled)
 
   // Show canvas, hide loader. Paint twice across frames so the first frame
   // always lands on the transparent canvas regardless of layout timing.
