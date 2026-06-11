@@ -102,7 +102,7 @@ async function initScene3DEditor(container, blockData, onChange) {
 
   const hintBar = document.createElement('div');
   hintBar.className = 's3d-hint-bar';
-  hintBar.textContent = 'Drag · orbit   Scroll · zoom   Right-drag · pan';
+  hintBar.textContent = 'Drag · orbit   ⛶ fullscreen to zoom';
   viewportEl.appendChild(hintBar);
 
   // Viewport toolbar — Background + Light presets (stored on the block, used by the
@@ -164,6 +164,13 @@ async function initScene3DEditor(container, blockData, onChange) {
     }
     fsBtn.textContent = goingFull ? '✕' : '⛶';
     fsBtn.title = goingFull ? 'Exit fullscreen' : 'Edit fullscreen';
+    // Wheel-zoom only in fullscreen. Embedded in the scrollable sidebar, OrbitControls'
+    // wheel handler would dolly the camera AND preventDefault the wheel, so scrolling
+    // over the canvas zoomed the model instead of scrolling past the block.
+    if (controls) controls.enableZoom = goingFull;
+    hintBar.textContent = goingFull
+      ? 'Drag · orbit   Scroll · zoom   Right-drag · pan'
+      : 'Drag · orbit   ⛶ fullscreen to zoom';
     // force resize so the model fills the new canvas size
     requestAnimationFrame(() => { resize(); renderFrame(); });
     setTimeout(() => { resize(); renderFrame(); }, 60);
@@ -491,6 +498,10 @@ async function initScene3DEditor(container, blockData, onChange) {
 
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true; controls.dampingFactor = 0.08;
+    // Embedded in the scrollable sidebar: disable wheel-zoom so scrolling over the
+    // canvas scrolls the sidebar instead of dollying the camera (model grew endlessly).
+    // Fullscreen re-enables it (no scroll conflict there). Drag-to-orbit stays on.
+    controls.enableZoom = editorWrap.classList.contains('s3d-fullscreen');
     controls.addEventListener('change', renderFrame);
 
     // Reuse the boot overlay for model download/parse feedback.
