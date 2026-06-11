@@ -2652,7 +2652,7 @@ let _scene3dMod = null;
 async function _initScene3DPublic(blockId, data) {
   try {
     if (!_scene3dModPromise) {
-      _scene3dModPromise = import('./scene3d.js');
+      _scene3dModPromise = import('./scene3d.js?v=20260611');
     }
     const mod = await _scene3dModPromise;
     _scene3dMod = mod;
@@ -2667,7 +2667,7 @@ let _webglFxModPromise = null;
 let _webglFxMod = null;
 async function _initWebGLFx(blockId, kind, data) {
   try {
-    if (!_webglFxModPromise) _webglFxModPromise = import('./webgl-fx.js');
+    if (!_webglFxModPromise) _webglFxModPromise = import('./webgl-fx.js?v=20260611');
     const mod = await _webglFxModPromise;
     _webglFxMod = mod;
     await mod.initWebGLFx(blockId, kind, data);

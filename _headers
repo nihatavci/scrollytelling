@@ -7,6 +7,14 @@
 /admin/index.html
   Cache-Control: no-store
 
+# Revalidate JS/CSS on every load (ETag 304s keep it cheap) — otherwise browsers
+# hold app code for 4h (Pages default max-age=14400) and deploys appear "broken".
+/js/*
+  Cache-Control: no-cache
+
+/admin/ui/*
+  Cache-Control: no-cache
+
 /admin/*
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff

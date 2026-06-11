@@ -140,7 +140,7 @@ ${themeLink}
 <div class="progress" id="progress"></div>
 <main id="page-root"></main>
 <script type="module">
-import { render } from '/js/render.js';
+import { render } from '/js/render.js?v=20260611';
 render().then(() => {
   // Progress bar
   window.addEventListener('scroll', () => {
