@@ -49,12 +49,21 @@ async function initScene3DEditor(container, blockData, onChange) {
   if (blockData.glbUrl) uploadZone.style.display = 'none';
   uploadZone.innerHTML = `
     <div class="s3d-upload-icon">📦</div>
-    <div class="s3d-upload-text">Drop a <strong>GLB / GLTF / STL</strong> file here or <u style="cursor:pointer">browse</u></div>
+    <div class="s3d-upload-text">Drop a <strong>GLB / GLTF / STL</strong> file, <u style="cursor:pointer">upload</u>, or <u class="s3d-pick-existing" style="cursor:pointer">reuse an uploaded model</u></div>
     <div class="s3d-upload-hint">Required · max 50 MB · compress big models free at <a href="https://gltf.report" target="_blank" rel="noopener" style="color:var(--signal-blue,#0358f7)">gltf.report ↗</a></div>`;
 
   const fileInput = document.createElement('input');
   fileInput.type = 'file'; fileInput.accept = '.glb,.gltf,.stl'; fileInput.style.display = 'none';
-  uploadZone.addEventListener('click', () => fileInput.click());
+  uploadZone.addEventListener('click', (e) => {
+    // "reuse an uploaded model" → asset library picker (filtered to 3D files), not the OS dialog.
+    if (e.target.closest('.s3d-pick-existing')) {
+      e.stopPropagation();
+      if (typeof window.openFilePicker === 'function') window.openFilePicker('model', (url) => useModelUrl(url));
+      else window.toast?.('File browser unavailable', 'error');
+      return;
+    }
+    fileInput.click();
+  });
   uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('s3d-drag-over'); });
   uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('s3d-drag-over'));
   uploadZone.addEventListener('drop', async e => {
@@ -391,6 +400,16 @@ async function initScene3DEditor(container, blockData, onChange) {
   }
   renderStrip();
   renderTextPanel();
+
+  // Point the block at an already-uploaded model URL (from the asset picker) and show it —
+  // no re-upload. Same end-state as a fresh upload.
+  async function useModelUrl(url) {
+    if (!url || url === blockData.glbUrl) return;
+    blockData.glbUrl = url; onChange();
+    uploadZone.style.display = 'none';
+    editorWrap.style.display = '';
+    await initThree();
+  }
 
   // ── Upload handler ──
   async function handleUpload(file) {

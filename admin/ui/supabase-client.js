@@ -550,6 +550,7 @@
         image: /\.(png|jpe?g|webp|gif|svg)$/i,
         audio: /\.(mp3|wav|ogg|m4a|aac|flac|webm)$/i,
         video: /\.(mp4|webm|mov|avi)$/i,
+        model: /\.(glb|gltf|stl)$/i,
         all:   /\.[a-z0-9]+$/i,
       };
       const regex = PATTERNS[filter] || PATTERNS.all;

@@ -4868,10 +4868,10 @@ function openFilePicker(filter, onSelect) {
         row.addEventListener('mouseleave', () => { row.style.background = ''; });
         const icon = document.createElement('span');
         icon.style.cssText = 'font-size:20px;flex-shrink:0;';
-        icon.textContent = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(f.name) ? '🎵' : /\.(mp4|webm|mov)$/i.test(f.name) ? '🎬' : '📄';
+        icon.textContent = /\.(mp3|wav|ogg|m4a|aac|flac)$/i.test(f.name) ? '🎵' : /\.(mp4|webm|mov)$/i.test(f.name) ? '🎬' : /\.(glb|gltf|stl)$/i.test(f.name) ? '📦' : '📄';
         const name = document.createElement('span');
         name.style.cssText = 'flex:1;font-size:13px;color:#24292f;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;';
-        name.textContent = f.name;
+        name.textContent = f.displayName || f.name;
         const size = document.createElement('span');
         size.style.cssText = 'font-size:11px;color:#8c959f;flex-shrink:0;';
         size.textContent = f.size > 1048576 ? (f.size / 1048576).toFixed(1) + ' MB' : f.size > 1024 ? Math.round(f.size / 1024) + ' KB' : f.size + ' B';
@@ -4884,6 +4884,8 @@ function openFilePicker(filter, onSelect) {
     } catch (err) { body.innerHTML = `<div style="color:#cf222e;padding:1rem;">Failed: ${err.message}</div>`; }
   }, '');
 }
+// Exposed for scene3d-editor.js (separate script) to reuse the asset-library picker.
+window.openFilePicker = openFilePicker;
 
 // Upload one or more files via Supabase; calls onUrl(url) for each successful upload.
 // Live upload-progress pill (bottom-center). Returns { set(pct), done(), fail() }.
