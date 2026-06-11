@@ -143,6 +143,11 @@ async function initScene3DEditor(container, blockData, onChange) {
     applyLightPreset();
     renderFrame();
   });
+  mkSelect('Glow intensity', [['0.5', 'Glow 0.5×'], ['1', 'Glow 1×'], ['1.5', 'Glow 1.5×'], ['2', 'Glow 2×']], blockData.glowIntensity || '1', (v) => {
+    blockData.glowIntensity = v; onChange();
+    applyLightPreset();
+    renderFrame();
+  });
   viewportEl.appendChild(vpBar);
 
   // Fullscreen toggle — expand the canvas to fill the screen for real editing.
@@ -280,17 +285,21 @@ async function initScene3DEditor(container, blockData, onChange) {
   function applyLightPreset() {
     if (!lightRig || !threeScene) return;
     const sun = blockData.light === 'sun';
+    // Glow intensity (default 1): scales the key light and opens up bloom, so models
+    // without hot emissive/metallic surfaces can still visibly shine.
+    const glow = Math.max(0.25, parseFloat(blockData.glowIntensity) || 1);
     if ('environmentIntensity' in threeScene) threeScene.environmentIntensity = sun ? 0.55 : 1.3;
     lightRig.ambient.intensity = sun ? 0.05 : 0.1;
     lightRig.dir.color.set(sun ? 0xffd9a8 : 0xffffff);
-    lightRig.dir.intensity = sun ? 3.2 : 0.8;
+    // Key light grows gentler than bloom (half-slope) so high glow doesn't nuke metallic models.
+    lightRig.dir.intensity = (sun ? 3.2 : 0.8) * (0.5 + 0.5 * glow);
     lightRig.dir.position.set(...(sun ? [6, 8, 4] : [5, 10, 7]));
     lightRig.dir2.intensity = sun ? 0.15 : 0.3;
     if (lightRig.ground) lightRig.ground.material.opacity = sun ? 0.45 : 0.32;
     if (bloomPass) {
-      bloomPass.strength = sun ? 0.5 : 0.22;
+      bloomPass.strength = (sun ? 0.5 : 0.22) * glow;
       bloomPass.radius = sun ? 0.55 : 0.4;
-      bloomPass.threshold = sun ? 0.78 : 1.1;
+      bloomPass.threshold = Math.max(0.45, (sun ? 0.78 : 1.1) - (glow - 1) * 0.18);
     }
     applyFog();
   }

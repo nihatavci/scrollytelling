@@ -120,9 +120,13 @@ export async function initScene3D(blockId, data) {
   // Light presets — 'studio' (default): IBL-dominant, neutral; 'sun': warm low key light
   // dominates like late-afternoon outdoor sun, env turned down, longer/darker shadow.
   const sunlight = data.light === 'sun';
+  // Glow intensity (data.glowIntensity, default 1): scales the key light and opens up
+  // bloom, so models without hot emissive/metallic surfaces can still visibly shine.
+  const glow = Math.max(0.25, parseFloat(data.glowIntensity) || 1);
   if (sunlight && 'environmentIntensity' in scene) scene.environmentIntensity = 0.55;
   scene.add(new THREE.AmbientLight(0xffffff, sunlight ? 0.05 : 0.1));
-  const dir = new THREE.DirectionalLight(sunlight ? 0xffd9a8 : 0xffffff, sunlight ? 3.2 : 0.8);
+  // Key light grows gentler than bloom (half-slope) so high glow doesn't nuke metallic models.
+  const dir = new THREE.DirectionalLight(sunlight ? 0xffd9a8 : 0xffffff, (sunlight ? 3.2 : 0.8) * (0.5 + 0.5 * glow));
   dir.position.set(...(sunlight ? [6, 8, 4] : [5, 10, 7]));
   scene.add(dir);
   const dir2 = new THREE.DirectionalLight(0xffffff, sunlight ? 0.15 : 0.3); // soft rim from the opposite side
@@ -256,7 +260,13 @@ export async function initScene3D(blockId, data) {
       composer.addPass(gtao);
       // Studio: threshold >1 so only emissive pixels bloom. Sun: lower threshold +
       // more strength so sunlit highlights visibly glow — the "shining" look.
-      const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), sunlight ? 0.5 : 0.22, sunlight ? 0.55 : 0.4, sunlight ? 0.78 : 1.1);
+      // glowIntensity scales strength and lowers the threshold so more surfaces bloom.
+      const bloom = new UnrealBloomPass(
+        new THREE.Vector2(w, h),
+        (sunlight ? 0.5 : 0.22) * glow,
+        sunlight ? 0.55 : 0.4,
+        Math.max(0.45, (sunlight ? 0.78 : 1.1) - (glow - 1) * 0.18),
+      );
       composer.addPass(bloom);
       composer.addPass(new OutputPass());
       if (window.__SCENE3D_DEBUG_ENABLE) window.__SCENE3D_DEBUG = { scene, composer, gtao, bloom, renderer, camera, model };
