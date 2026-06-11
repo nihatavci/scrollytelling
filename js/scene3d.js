@@ -122,12 +122,20 @@ export async function initScene3D(blockId, data) {
   const sunlight = data.light === 'sun';
   if (sunlight && 'environmentIntensity' in scene) scene.environmentIntensity = 0.55;
   scene.add(new THREE.AmbientLight(0xffffff, sunlight ? 0.05 : 0.1));
-  const dir = new THREE.DirectionalLight(sunlight ? 0xffd9a8 : 0xffffff, sunlight ? 2.6 : 0.8);
+  const dir = new THREE.DirectionalLight(sunlight ? 0xffd9a8 : 0xffffff, sunlight ? 3.2 : 0.8);
   dir.position.set(...(sunlight ? [6, 8, 4] : [5, 10, 7]));
   scene.add(dir);
   const dir2 = new THREE.DirectionalLight(0xffffff, sunlight ? 0.15 : 0.3); // soft rim from the opposite side
   dir2.position.set(-6, 4, -5);
   scene.add(dir2);
+
+  // Atmospheric depth fog (the Spline look) — distant geometry melts into the backdrop,
+  // so the floor reads as an infinite studio sweep instead of a hard-edged plane.
+  // Color matches the backdrop gradient's mid tone. Skipped for bg:'page' (transparent).
+  const _bgKind = data.bg || 'dark';
+  if (_bgKind !== 'page') {
+    scene.fog = new THREE.Fog(new THREE.Color(_bgKind === 'studio' ? 0xe2e2e7 : 0x141416), 6, 16);
+  }
 
   // ── Camera ──
   const s0 = scenes[0] || DEFAULT_SCENE;
@@ -205,7 +213,6 @@ export async function initScene3D(blockId, data) {
   // canvas alpha), so the CSS gradient is reproduced in-scene. Skipped on weak/mobile
   // devices and for bg:'page', which requires real canvas transparency.
   let composer = null;
-  const _bgKind = data.bg || 'dark';
   const _weakDevice = isMobile
     || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
     || (navigator.deviceMemory !== undefined && navigator.deviceMemory <= 4)
@@ -247,8 +254,9 @@ export async function initScene3D(blockId, data) {
         try { _gtaoRender(...args); } finally { scene.background = bg; _ground.visible = true; }
       };
       composer.addPass(gtao);
-      // Threshold >1: in linear HDR only emissive/very hot pixels bloom, not HDRI speculars.
-      const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), 0.22, 0.4, 1.1);
+      // Studio: threshold >1 so only emissive pixels bloom. Sun: lower threshold +
+      // more strength so sunlit highlights visibly glow — the "shining" look.
+      const bloom = new UnrealBloomPass(new THREE.Vector2(w, h), sunlight ? 0.5 : 0.22, sunlight ? 0.55 : 0.4, sunlight ? 0.78 : 1.1);
       composer.addPass(bloom);
       composer.addPass(new OutputPass());
       if (window.__SCENE3D_DEBUG_ENABLE) window.__SCENE3D_DEBUG = { scene, composer, gtao, bloom, renderer, camera, model };

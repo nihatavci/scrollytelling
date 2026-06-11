@@ -136,6 +136,7 @@ async function initScene3DEditor(container, blockData, onChange) {
     blockData.bg = v; onChange();
     applyViewportBg();
     if (composer && threeScene && THREE_LIB) threeScene.background = v === 'page' ? null : gradientBgTexture(THREE_LIB, v);
+    applyFog();
     renderFrame();
   });
   mkSelect('Light', [['studio', 'Studio light'], ['sun', 'Sun light']], blockData.light || 'studio', (v) => {
@@ -272,20 +273,36 @@ async function initScene3DEditor(container, blockData, onChange) {
   }
 
   // ── State ──
-  let THREE_LIB, renderer, threeScene, camera, controls, model3d, composer = null, lightRig = null;
+  let THREE_LIB, renderer, threeScene, camera, controls, model3d, composer = null, lightRig = null, bloomPass = null;
 
   // Light presets — 'studio' (default): IBL-dominant, neutral; 'sun': warm low key
-  // light dominates like late-afternoon outdoor sun, env down, longer/darker shadow.
+  // light dominates like late-afternoon outdoor sun, env down, longer/darker shadow,
+  // and bloom opens up so sunlit highlights visibly glow.
   function applyLightPreset() {
     if (!lightRig || !threeScene) return;
     const sun = blockData.light === 'sun';
     if ('environmentIntensity' in threeScene) threeScene.environmentIntensity = sun ? 0.55 : 1.3;
     lightRig.ambient.intensity = sun ? 0.05 : 0.1;
     lightRig.dir.color.set(sun ? 0xffd9a8 : 0xffffff);
-    lightRig.dir.intensity = sun ? 2.6 : 0.8;
+    lightRig.dir.intensity = sun ? 3.2 : 0.8;
     lightRig.dir.position.set(...(sun ? [6, 8, 4] : [5, 10, 7]));
     lightRig.dir2.intensity = sun ? 0.15 : 0.3;
     if (lightRig.ground) lightRig.ground.material.opacity = sun ? 0.45 : 0.32;
+    if (bloomPass) {
+      bloomPass.strength = sun ? 0.5 : 0.22;
+      bloomPass.radius = sun ? 0.55 : 0.4;
+      bloomPass.threshold = sun ? 0.78 : 1.1;
+    }
+    applyFog();
+  }
+
+  // Atmospheric depth fog (the Spline look) — distant geometry melts into the backdrop;
+  // the floor reads as an infinite studio sweep. Color matches the backdrop gradient.
+  function applyFog() {
+    if (!threeScene || !THREE_LIB) return;
+    const bg = blockData.bg || 'dark';
+    if (bg === 'page') { threeScene.fog = null; return; }
+    threeScene.fog = new THREE_LIB.Fog(new THREE_LIB.Color(bg === 'studio' ? 0xe2e2e7 : 0x141416), 6, 16);
   }
   let activeSlot = 0;
   let placementMode = false;
@@ -616,9 +633,11 @@ async function initScene3DEditor(container, blockData, onChange) {
             try { gtaoRender(...args); } finally { threeScene.background = bg; ground.visible = true; }
           };
           composer.addPass(gtao);
-          // Threshold >1: in linear HDR only emissive/very hot pixels bloom, not HDRI speculars.
-          composer.addPass(new UnrealBloomPass(new THREE.Vector2(cw, ch), 0.22, 0.4, 1.1));
+          // Bloom tuning lives in applyLightPreset (studio: emissive-only; sun: glowing highlights).
+          bloomPass = new UnrealBloomPass(new THREE.Vector2(cw, ch), 0.22, 0.4, 1.1);
+          composer.addPass(bloomPass);
           composer.addPass(new OutputPass());
+          applyLightPreset();
         } catch (e) { composer = null; /* post optional — direct render still looks good */ }
       }
     } catch (err) {
