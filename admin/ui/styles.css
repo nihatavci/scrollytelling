@@ -217,10 +217,10 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; border-radius: 
 .tb-url::before { content:'·'; margin:0 7px 0 1px; color:var(--pebble); }
 .tb-url:hover { color:var(--graphite); text-decoration:underline; text-underline-offset:2px; }
 .tb-url:empty { display:none; }
-.tb-icon { width:32px; height:32px; padding:0; display:inline-flex; align-items:center; justify-content:center;
-  border-radius:var(--r-control); font-size:14px; line-height:1; background:transparent; border:1px solid transparent;
-  color:var(--graphite); cursor:pointer; transition:background .12s, color .12s; }
-.tb-icon:hover { background:var(--fog); color:var(--ink-black); }
+.tb-icon { width:34px; height:34px; padding:0; display:inline-flex; align-items:center; justify-content:center;
+  border-radius:var(--r-control); font-size:14px; line-height:1; background:var(--fog); border:1px solid transparent;
+  color:#3a3a42; cursor:pointer; transition:background .12s, color .12s; }
+.tb-icon:hover { background:var(--pebble); color:var(--ink-black); }
 .tb-icon svg { width:16px; height:16px; display:block; }
 .tb-icon.active { background:var(--ink-black); color:#fff; }   /* visual-edit ON */
 /* Slimmed ⋮ menu: Log out is neutral (not destructive) — keep red only for Delete */
