@@ -2214,26 +2214,52 @@ main.editor { display: none; }
 .s3d-editor-wrap.s3d-fullscreen .s3d-hint-bar { font-size: 13px; bottom: 56px; }
 .s3d-editor-wrap.s3d-fullscreen .s3d-save-btn { font-size: 14px; padding: 9px 16px; }
 
-/* Fullscreen toggle button (top-right of viewport) */
+/* Viewport control toolbar (Background / Light / Glow).
+   Hidden in the sidebar preview — a clean preview, no clutter — and revealed only in
+   fullscreen, where there's room to adjust without the pills overflowing. */
+.s3d-vpbar {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  z-index: 5;
+  display: none;
+  gap: 6px;
+  flex-wrap: wrap;
+  max-width: calc(100% - 56px);
+}
+.s3d-editor-wrap.s3d-fullscreen .s3d-vpbar { display: flex; }
+/* Each pill sizes to its content and sits in the row (override the global
+   form `select { width:100% }`, which otherwise stacks them one per line). */
+.s3d-vpbar select {
+  width: auto;
+  min-width: 0;
+  flex: 0 0 auto;
+}
+
+/* Fullscreen toggle button (top-right of viewport). Dark glass chip so the expand
+   icon stays visible on any backdrop — including light/sun backgrounds. */
 .s3d-fs-btn {
   position: absolute;
   top: 10px;
   right: 10px;
-  width: 30px;
-  height: 30px;
+  width: 32px;
+  height: 32px;
   padding: 0;
-  border-radius: 8px;
-  background: rgba(255,255,255,.12);
+  border-radius: 9px;
+  background: rgba(15,15,17,.62);
   color: #fff;
-  border: 1px solid rgba(255,255,255,.18);
+  border: 1px solid rgba(255,255,255,.28);
+  box-shadow: 0 2px 10px rgba(0,0,0,.4);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
   font-size: 15px;
   line-height: 1;
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 4;
+  z-index: 6;
 }
-.s3d-fs-btn:hover { background: rgba(255,255,255,.22); }
+.s3d-fs-btn:hover { background: rgba(40,40,44,.82); border-color: rgba(255,255,255,.45); }
 
 /* Loading overlay over the viewport while the model downloads/parses */
 .s3d-load-overlay {
@@ -2259,7 +2285,9 @@ main.editor { display: none; }
   white-space: nowrap;
   pointer-events: none;
   letter-spacing: .03em;
+  display: none;   /* sidebar: clean preview; the hint only matters in fullscreen */
 }
+.s3d-editor-wrap.s3d-fullscreen .s3d-hint-bar { display: block; }
 .s3d-save-btn {
   position: absolute;
   bottom: 10px;

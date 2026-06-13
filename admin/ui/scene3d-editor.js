@@ -113,10 +113,11 @@ async function initScene3DEditor(container, blockData, onChange) {
   hintBar.textContent = 'Drag · orbit   ⛶ fullscreen to zoom';
   viewportEl.appendChild(hintBar);
 
-  // Viewport toolbar — Background + Light presets (stored on the block, used by the
-  // public renderer too).
+  // Viewport toolbar — Background + Light + Glow presets (stored on the block, used by
+  // the public renderer too). Hidden in the cramped sidebar preview (CSS); revealed only
+  // in fullscreen, where there's room to adjust without clutter.
   const vpBar = document.createElement('div');
-  vpBar.style.cssText = 'position:absolute;top:10px;left:10px;z-index:5;display:flex;gap:6px;';
+  vpBar.className = 's3d-vpbar';
   const mkSelect = (label, options, value, onPick) => {
     const sel = document.createElement('select');
     sel.title = label;
@@ -154,7 +155,7 @@ async function initScene3DEditor(container, blockData, onChange) {
   const fsBtn = document.createElement('button');
   fsBtn.type = 'button';
   fsBtn.className = 's3d-fs-btn';
-  fsBtn.title = 'Edit fullscreen';
+  fsBtn.title = 'Expand to edit lighting & camera';
   fsBtn.textContent = '⛶';
   let _fsPlaceholder = null;
   fsBtn.addEventListener('click', () => {
@@ -177,7 +178,7 @@ async function initScene3DEditor(container, blockData, onChange) {
       document.body.style.overflow = '';
     }
     fsBtn.textContent = goingFull ? '✕' : '⛶';
-    fsBtn.title = goingFull ? 'Exit fullscreen' : 'Edit fullscreen';
+    fsBtn.title = goingFull ? 'Exit fullscreen' : 'Expand to edit lighting & camera';
     // Wheel-zoom only in fullscreen. Embedded in the scrollable sidebar, OrbitControls'
     // wheel handler would dolly the camera AND preventDefault the wheel, so scrolling
     // over the canvas zoomed the model instead of scrolling past the block.
