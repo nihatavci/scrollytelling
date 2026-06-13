@@ -20,6 +20,11 @@ Hard rules:
 - Never 3 identical block types in a row — vary rhythm (text → visual → text).
 - Include at least one visual block (ImageGrid / Scrolly / FullscreenImage).
 - Use StatRow only if real numbers exist; Quote only if real quotes exist; Timeline only for 3+ dated events.
+- Map2D: include ONLY if the story is strongly geographic (a journey, route, locations, spread). Then place real places with their well-known coordinates.
+- DataScrolly: include ONLY if the sources contain a real numeric series over time/category (2+ data points). Never fabricate numbers.
+- Scene3D: include ONLY if the story centers on a physical object/artifact/building/product.
+- AudioPlayer: include ONLY if there is real voice/audio material (interview, recording, podcast).
+- Choosing a rich component when the content does not justify it is a failure — prefer Editorial/Quote/StatRow when unsure.
 - 8–18 blocks depending on source depth. Tone: ${tone || 'investigative'}.
 - Each item: { "type", "headline", "narrativeBeat", "rationale", "sourceRefs": [...] }.
 
