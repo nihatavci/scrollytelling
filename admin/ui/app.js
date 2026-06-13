@@ -1879,9 +1879,14 @@ function openCreationCard(type, opts = {}) {
         if (k.startsWith('_')) delete blockData[k];
       }
 
-      // Merge with defaults to fill any schema fields not in the creation card
+      // Merge with defaults to fill any schema fields not in the creation card.
+      // Empty/blank values from the card don't clobber a tasteful mock default — so a
+      // block added without uploading still ships with on-brand placeholder assets.
       const defaults = defaultDataFor(type);
       const merged = { ...defaults, ...blockData };
+      for (const k in defaults) {
+        if ((merged[k] === '' || merged[k] == null) && defaults[k] !== '' && defaults[k] != null) merged[k] = defaults[k];
+      }
 
       const newBlock = { id: uid('b'), type, data: merged };
       if (opts.insertAfter) {
@@ -3612,19 +3617,35 @@ async function addEmptyBlock(type, insertAfterId) {
   refreshPreview();
 }
 
+// On-brand mock assets — every newly-added block ships with tasteful gradient art / a
+// clean 3D object so an empty section looks intentional, never broken. (assets/mock/*)
+const MOCK = {
+  aurora:   '/assets/mock/mesh-aurora.svg',
+  ember:    '/assets/mock/mesh-ember.svg',
+  tide:     '/assets/mock/mesh-tide.svg',
+  before:   '/assets/mock/compare-before.svg',
+  after:    '/assets/mock/compare-after.svg',
+  portrait: '/assets/mock/portrait.svg',
+  object:   '/assets/mock/object.glb',
+};
+
 function defaultDataFor(type) {
   switch (type) {
-    case 'Hero':      return { brand: 'New brand', lines: [], titleHtml: 'Title', subtitle: 'Subtitle', scrollCueText: 'Scroll down' };
-    case 'VizPanel':  return { initialTitle: 'Title', initialSub: 'Subtitle' };
-    case 'Editorial': return { content: [{ kind: 'h2', text: 'New section' }, { kind: 'p', html: 'New paragraph.' }] };
-    case 'Scrolly':   return { scrollyId: 'scrolly-X', stepsId: 'steps-X', imageSize: 'medium', imageHeight: '80vh', imageRadius: '12px', maxWidth: '1400px', steps: [{ stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Label', imageSrc: '', body: 'Step body.' }] };
-    case 'Outro':     return { h2: 'Outro', paragraphs: ['Final paragraph.'], finalLine: '', sourcesHtml: '' };
-    case 'StatRow':   return { title: '', stats: [{value:'',label:'',context:''}, {value:'',label:'',context:''}, {value:'',label:'',context:''}] };
-    case 'Timeline':  return { title: '', events: [{when:'',title:'',body:''}, {when:'',title:'',body:''}, {when:'',title:'',body:''}] };
-    case 'Aside':     return { tone: 'info', title: '', body: '' };
-    case 'ChapterDivider': return { number: '', title: 'Chapter title', subtitle: '' };
-    case 'Quote': return { text: 'Type the quote here.', attribution: 'Name', role: '', portraitSrc: '', sourceUrl: '', sourceLabel: '' };
-    case 'VideoEmbed': return { url: '', caption: '', credit: '' };
+    case 'Hero':      return { brand: 'Scrolli', lines: [], titleHtml: 'The headline that frames everything', subtitle: 'A short standfirst — a line or two that sets up the story and pulls the reader in.', scrollCueText: 'Scroll' };
+    case 'VizPanel':  return { initialTitle: 'A working title', initialSub: 'Supporting context for the panel' };
+    case 'Editorial': return { content: [{ kind: 'h2', text: 'A section that carries the argument' }, { kind: 'p', html: 'Open with a sentence that earns the next one. Replace this with your own prose — the length and rhythm here are a guide for how the body will read.' }] };
+    case 'Scrolly':   return { scrollyId: 'scrolly-X', stepsId: 'steps-X', imageSize: 'medium', imageHeight: '80vh', imageRadius: '12px', maxWidth: '1400px', steps: [{ stepIndex: 0, badgeKind: 'pyramid', badgeLabel: 'Step 1', imageSrc: MOCK.tide, body: 'Walk the reader through the visual, one beat at a time.' }] };
+    case 'Outro':     return { h2: 'In closing', paragraphs: ['The line that lands the piece and tells the reader why it mattered.'], finalLine: '', sourcesHtml: '' };
+    case 'StatRow':   return { title: 'By the numbers', stats: [{value:'73%',label:'Adoption',context:'in the first year'}, {value:'2.4×',label:'Faster',context:'than before'}, {value:'18M',label:'Reached',context:'across channels'}] };
+    case 'Timeline':  return { title: 'How it unfolded', events: [{when:'2021',title:'The beginning',body:'Where the story starts.'}, {when:'2023',title:'The turning point',body:'What changed everything.'}, {when:'Today',title:'Where it stands',body:'The state of things now.'}] };
+    case 'Aside':     return { tone: 'info', title: 'Worth knowing', body: 'A short aside that adds context without breaking the flow of the main story.' };
+    case 'ChapterDivider': return { number: '01', title: 'A new chapter', subtitle: 'A short line of orientation.' };
+    case 'Quote': return { text: 'A sharp, quotable line that captures the heart of the story in a single breath.', attribution: 'Source name', role: 'Title, Organisation', portraitSrc: MOCK.portrait, sourceUrl: '', sourceLabel: '' };
+    case 'VideoEmbed': return { url: '', caption: 'Paste a YouTube or Vimeo URL to embed a video here.', credit: '' };
+    case 'ImageCompare': return { beforeSrc: MOCK.before, afterSrc: MOCK.after, beforeLabel: 'Before', afterLabel: 'After', initialPosition: 50, caption: 'Drag to reveal the change.', credit: '' };
+    case 'ImageHotspot': return { src: MOCK.aurora, alt: 'Labeled image', caption: '', credit: '', hotspots: '' };
+    case 'ImageGrid': return { images: [{ src: MOCK.aurora, alt: '', caption: 'First frame' }, { src: MOCK.ember, alt: '', caption: 'Second frame' }, { src: MOCK.tide, alt: '', caption: 'Third frame' }], layout: '', title: '', caption: '', credit: '' };
+    case 'FullBleed': return { mediaSrc: MOCK.ember, mediaType: 'image', overlayPosition: 'bottom-left', scrimOpacity: '0.4', height: '100vh', title: 'A moment that stops the reader', subtitle: '', body: '' };
     case 'DataScrolly': return {
       title: 'New chart',
       subtitle: '',
@@ -3644,12 +3665,12 @@ function defaultDataFor(type) {
       ],
     };
     case 'Map2D': return { title: '', subtitle: '', source: '', layout: 'behind', tileStyle: 'default', height: '100vh', maxWidth: '100%', initialCenter: [52.52, 13.405], initialZoom: 6, flyDuration: 2, scrollZoom: false, markers: [{ id: 'marker-1', lat: 52.52, lng: 13.405, label: '1', name: 'Berlin', popupHtml: '<strong>Berlin</strong>', color: '#c06830' }], routes: [], areas: [], steps: [{ badgeKind: 'data', badgeLabel: 'Start', body: 'Story begins here.', mapState: { center: [52.52, 13.405], zoom: 13, showMarkers: ['marker-1'], showAreas: [], animateRoute: null } }], caption: '', credit: 'OpenStreetMap' };
-    case 'FullscreenImage': return { imageSrc: '', imageAlt: '', kicker: '', title: 'Title', subtitle: '', body: '', overlayPosition: 'bottom-left', scrimOpacity: 0.45, scrimDirection: 'bottom', kenBurns: true, scrollCue: false, caption: '', credit: '' };
-    case 'AudioPlayer': return { audioSrc: '', title: 'New audio', subtitle: '', description: '', duration: '', waveformColor: '#c06830', accentColor: '#c06830', coverSrc: '', transcript: '', caption: '', credit: '' };
-    case 'Scene3D': return { glbUrl: '', scenes: [], draggable: 'false', textMode: 'cards', flowText: '', flowColumns: '2', flowMargin: 'normal', flowPlate: 'subtle' };
-    case 'WebGLGradient': return { colorsCsv: '', speed: '0.3', height: '100vh', title: '', subtitle: '', overlayPosition: 'center' };
-    case 'WebGLFlowmap': return { imageSrc: '', intensity: '0.18', height: '100vh' };
-    case 'WebGLParticles': return { imageSrc: '', density: 'medium', height: '100vh' };
+    case 'FullscreenImage': return { imageSrc: MOCK.aurora, imageAlt: '', kicker: 'Chapter', title: 'A full-bleed moment', subtitle: 'One line of context over the image.', body: '', overlayPosition: 'bottom-left', scrimOpacity: 0.45, scrimDirection: 'bottom', kenBurns: true, scrollCue: false, caption: '', credit: '' };
+    case 'AudioPlayer': return { audioSrc: '', title: 'Untitled track', subtitle: 'Artist or source', description: 'A short note on what the listener will hear. Upload an audio file to enable playback.', duration: '', waveformColor: '#5b4bf5', accentColor: '#5b4bf5', coverSrc: MOCK.ember, transcript: '', caption: '', credit: '' };
+    case 'Scene3D': return { glbUrl: MOCK.object, scenes: [], draggable: 'false', textMode: 'cards', flowText: '', flowColumns: '2', flowMargin: 'normal', flowPlate: 'subtle' };
+    case 'WebGLGradient': return { colorsCsv: '', speed: '0.3', height: '100vh', title: 'A living gradient', subtitle: '', overlayPosition: 'center' };
+    case 'WebGLFlowmap': return { imageSrc: MOCK.aurora, intensity: '0.18', height: '100vh' };
+    case 'WebGLParticles': return { imageSrc: MOCK.tide, density: 'medium', height: '100vh' };
     default:          return {};
   }
 }

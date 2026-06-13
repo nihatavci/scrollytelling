@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900">
+  <defs>
+    <filter id="b" x="-30%" y="-30%" width="160%" height="160%"><feGaussianBlur stdDeviation="95"/></filter>
+    <filter id="grain"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/><feComponentTransfer><feFuncA type="linear" slope="0.05"/></feComponentTransfer><feComposite operator="over" in2="SourceGraphic"/></filter>
+  </defs>
+  <rect width="1600" height="900" fill="#160c2a"/>
+  <g filter="url(#b)">
+    <ellipse cx="420" cy="280" rx="560" ry="460" fill="#5b4bf5"/>
+    <ellipse cx="1240" cy="220" rx="520" ry="420" fill="#0358f7"/>
+    <ellipse cx="860" cy="800" rx="640" ry="440" fill="#c679c4"/>
+    <ellipse cx="1460" cy="700" rx="420" ry="360" fill="#ffb005"/>
+  </g>
+  <rect width="1600" height="900" filter="url(#grain)" opacity="0.5"/>
+</svg>
