@@ -99,33 +99,37 @@ export async function initScene3D(blockId, data) {
   // Light presets — 'studio' (default): IBL-dominant, neutral; 'sun': warm low key light
   // dominates like late-afternoon outdoor sun, env turned down, longer/darker shadow.
   const sunlight = data.light === 'sun';
+  // PMREM generator + env cache kept alive so the Light preset can swap the reflected
+  // environment in place (no reload) when the block is edited in the admin preview.
+  let envPmrem = null;
+  const _envCache = {};   // 'studio' | 'sky' → PMREM texture
   try {
-    const pmrem = new THREE.PMREMGenerator(renderer);
-    pmrem.compileEquirectangularShader();
-    let envTex = null;
+    envPmrem = new THREE.PMREMGenerator(renderer);
+    envPmrem.compileEquirectangularShader();
+    const key = sunlight ? 'sky' : 'studio';
     try {
       const { RGBELoader } = await import(`${_CDN}/examples/jsm/loaders/RGBELoader.js`);
       // Sun preset reflects a real outdoor sky (sky.hdr); studio reflects the studio HDRI.
       const hdr = await new RGBELoader().loadAsync(sunlight ? '/assets/hdri/sky.hdr' : '/assets/hdri/studio.hdr');
       hdr.mapping = THREE.EquirectangularReflectionMapping;
-      envTex = pmrem.fromEquirectangular(hdr).texture;
+      _envCache[key] = envPmrem.fromEquirectangular(hdr).texture;
       hdr.dispose();
     } catch (hdrErr) {
       const { RoomEnvironment } = await import(`${_CDN}/examples/jsm/environments/RoomEnvironment.js`);
-      envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      _envCache[key] = envPmrem.fromScene(new RoomEnvironment(), 0.04).texture;
     }
-    scene.environment = envTex;
+    scene.environment = _envCache[key];
     // Sketchfab is IBL-dominant: the HDRI does ~90% of the lighting at higher intensity,
     // while analytic lights stay weak (the dir light exists mainly to cast the shadow).
     // Strong ambient/dir lights on top of an env map flatten the model.
     if ('environmentIntensity' in scene) scene.environmentIntensity = 1.3;
-    pmrem.dispose();
   } catch (e) { /* environment optional — fall back to lights only */ }
   // Glow intensity (data.glowIntensity, default 1): scales the key light and opens up
   // bloom, so models without hot emissive/metallic surfaces can still visibly shine.
   const glow = Math.max(0.25, parseFloat(data.glowIntensity) || 1);
   if (sunlight && 'environmentIntensity' in scene) scene.environmentIntensity = 0.55;
-  scene.add(new THREE.AmbientLight(0xffffff, sunlight ? 0.05 : 0.1));
+  const ambient = new THREE.AmbientLight(0xffffff, sunlight ? 0.05 : 0.1);
+  scene.add(ambient);
   // Key light grows gentler than bloom (half-slope) so high glow doesn't nuke metallic models.
   const dir = new THREE.DirectionalLight(sunlight ? 0xffd9a8 : 0xffffff, (sunlight ? 3.2 : 0.8) * (0.5 + 0.5 * glow));
   dir.position.set(...(sunlight ? [6, 8, 4] : [5, 10, 7]));
@@ -234,6 +238,7 @@ export async function initScene3D(blockId, data) {
   // canvas alpha), so the CSS gradient is reproduced in-scene. Skipped on weak/mobile
   // devices and for bg:'page', which requires real canvas transparency.
   let composer = null;
+  let bloom = null;   // hoisted so applyLook() can retune it on live edits
   const _weakDevice = isMobile
     || (window.matchMedia && window.matchMedia('(pointer: coarse)').matches)
     || (navigator.deviceMemory !== undefined && navigator.deviceMemory <= 4)
@@ -278,7 +283,7 @@ export async function initScene3D(blockId, data) {
       // Studio: threshold >1 so only emissive pixels bloom. Sun: lower threshold +
       // more strength so sunlit highlights visibly glow — the "shining" look.
       // glowIntensity scales strength and lowers the threshold so more surfaces bloom.
-      const bloom = new UnrealBloomPass(
+      bloom = new UnrealBloomPass(
         new THREE.Vector2(w, h),
         (sunlight ? 0.5 : 0.22) * glow,
         sunlight ? 0.55 : 0.4,
@@ -299,19 +304,15 @@ export async function initScene3D(blockId, data) {
   // the editor preview the model only moves with scroll, so a drag scrolls the page.
   // touch-action: pan-y keeps vertical swipes scrolling on touch; horizontal drags
   // rotate. Light inertia so a flick keeps spinning briefly.
-  let _dragId = null, _lastX = 0, _lastY = 0, _velY = 0, _spinRaf = 0;
-  const _dragEnabled = data.draggable === true || data.draggable === 'true';
-  if (_dragEnabled) {
-  canvas.style.touchAction = 'pan-y';
-  canvas.style.cursor = 'grab';
-  canvas.addEventListener('pointerdown', (e) => {
+  let _dragId = null, _lastX = 0, _lastY = 0, _velY = 0, _spinRaf = 0, _dragOn = false;
+  function _onDown(e) {
     if (e.button !== 0 && e.pointerType === 'mouse') return;
     _dragId = e.pointerId; _lastX = e.clientX; _lastY = e.clientY; _velY = 0;
     if (_spinRaf) { cancelAnimationFrame(_spinRaf); _spinRaf = 0; }
     canvas.style.cursor = 'grabbing';
     try { canvas.setPointerCapture(e.pointerId); } catch (_) {}
-  });
-  canvas.addEventListener('pointermove', (e) => {
+  }
+  function _onMove(e) {
     if (e.pointerId !== _dragId) return;
     const dx = e.clientX - _lastX, dy = e.clientY - _lastY;
     _lastX = e.clientX; _lastY = e.clientY;
@@ -319,13 +320,12 @@ export async function initScene3D(blockId, data) {
     pivot.rotation.x = Math.max(-0.5, Math.min(0.5, pivot.rotation.x + dy * 0.003));
     _velY = dx * 0.005;
     drawFrame();
-  });
+  }
   function _endDrag(e) {
     if (e.pointerId !== _dragId) return;
     _dragId = null;
     canvas.style.cursor = 'grab';
-    // Inertia: decay the yaw velocity over a few frames.
-    const spin = () => {
+    const spin = () => {   // inertia: decay the yaw velocity over a few frames
       _velY *= 0.92;
       if (Math.abs(_velY) < 0.0004) { _spinRaf = 0; return; }
       pivot.rotation.y += _velY;
@@ -334,9 +334,30 @@ export async function initScene3D(blockId, data) {
     };
     if (Math.abs(_velY) > 0.002) _spinRaf = requestAnimationFrame(spin);
   }
-  canvas.addEventListener('pointerup', _endDrag);
-  canvas.addEventListener('pointercancel', _endDrag);
-  } // end if (_dragEnabled)
+  // Drag-to-rotate — opt-in per block (data.draggable), toggleable live. Off by default:
+  // the model only moves with scroll, so a drag scrolls the page. touch-action:pan-y keeps
+  // vertical swipes scrolling on touch; horizontal drags rotate.
+  function setDraggable(on) {
+    on = !!on;
+    if (on === _dragOn) return;
+    _dragOn = on;
+    if (on) {
+      canvas.style.touchAction = 'pan-y';
+      canvas.style.cursor = 'grab';
+      canvas.addEventListener('pointerdown', _onDown);
+      canvas.addEventListener('pointermove', _onMove);
+      canvas.addEventListener('pointerup', _endDrag);
+      canvas.addEventListener('pointercancel', _endDrag);
+    } else {
+      canvas.style.touchAction = '';
+      canvas.style.cursor = '';
+      canvas.removeEventListener('pointerdown', _onDown);
+      canvas.removeEventListener('pointermove', _onMove);
+      canvas.removeEventListener('pointerup', _endDrag);
+      canvas.removeEventListener('pointercancel', _endDrag);
+    }
+  }
+  setDraggable(data.draggable === true || data.draggable === 'true');
 
   // Show canvas, hide loader. Paint twice across frames so the first frame
   // always lands on the transparent canvas regardless of layout timing.
@@ -525,7 +546,80 @@ export async function initScene3D(blockId, data) {
     _active.delete(blockId);
   }
 
-  _active.set(blockId, { disposeAll });
+  // ── Live look application (re-runnable for admin in-place edits) ──
+  function applyLook() {
+    const sun = data.light === 'sun';
+    const g = Math.max(0.25, parseFloat(data.glowIntensity) || 1);
+    if ('environmentIntensity' in scene) scene.environmentIntensity = sun ? 0.55 : 1.3;
+    ambient.intensity = sun ? 0.05 : 0.1;
+    dir.color.set(sun ? 0xffd9a8 : 0xffffff);
+    dir.intensity = (sun ? 3.2 : 0.8) * (0.5 + 0.5 * g);
+    dir.position.set(...(sun ? [6, 8, 4] : [5, 10, 7]));
+    dir2.intensity = sun ? 0.15 : 0.3;
+    if (_ground) _ground.material.opacity = sun ? 0.45 : 0.32;
+    const bg = data.bg || 'dark';
+    scene.fog = bg === 'page' ? null : new THREE.Fog(new THREE.Color(bg === 'studio' ? 0xe2e2e7 : 0x141416), 6, 16);
+    if (composer) {
+      const old = scene.background;
+      scene.background = bg === 'page' ? null : _gradientBgTexture(THREE, bg);
+      if (old && old.dispose && old !== scene.background) old.dispose();
+    }
+    if (bloom) {
+      bloom.strength = (sun ? 0.5 : 0.22) * g;
+      bloom.radius = sun ? 0.55 : 0.4;
+      bloom.threshold = Math.max(0.45, (sun ? 0.78 : 1.1) - (g - 1) * 0.18);
+    }
+  }
+  async function applyEnv() {
+    if (!envPmrem) return;
+    const key = data.light === 'sun' ? 'sky' : 'studio';
+    if (!_envCache[key]) {
+      try {
+        const { RGBELoader } = await import(`${_CDN}/examples/jsm/loaders/RGBELoader.js`);
+        const hdr = await new RGBELoader().loadAsync(`/assets/hdri/${key}.hdr`);
+        hdr.mapping = THREE.EquirectangularReflectionMapping;
+        _envCache[key] = envPmrem.fromEquirectangular(hdr).texture;
+        hdr.dispose();
+      } catch (e) { return; }
+    }
+    scene.environment = _envCache[key];
+    drawFrame();
+  }
+  // Live in-place update from an admin edit. Returns false when the change is structural
+  // (a full re-render is required): model swap, text-mode, page-bg toggle (composer
+  // presence differs), scene add/remove, or annotation/flow-text edits.
+  function update(newData) {
+    newData = newData || {};
+    if (String(newData.glbUrl || '') !== String(data.glbUrl || '')) return false;
+    if ((newData.textMode || 'cards') !== (data.textMode || 'cards')) return false;
+    if ((newData.bg === 'page') !== (data.bg === 'page')) return false;
+    const newScenes = (newData.scenes || []).filter(Boolean);
+    if (newScenes.length !== scenes.length) return false;
+    if (JSON.stringify(newData.annotations || []) !== JSON.stringify(data.annotations || [])) return false;
+    if ((newData.flowText || '') !== (data.flowText || '') ||
+        String(newData.flowColumns || '') !== String(data.flowColumns || '') ||
+        (newData.flowMargin || '') !== (data.flowMargin || '') ||
+        (newData.flowPlate || '') !== (data.flowPlate || '')) return false;
+    // Non-structural: re-apply look + dragging + refreshed scene viewpoints in place.
+    Object.assign(data, newData);
+    applyLook();
+    applyEnv();
+    setDraggable(data.draggable === true || data.draggable === 'true');
+    for (let i = 0; i < scenes.length; i++) { if (newScenes[i]) Object.assign(scenes[i], newScenes[i]); }
+    if (scenes[currentIdx]) tweenCamera(scenes[currentIdx], 400);
+    drawFrame();
+    return true;
+  }
+
+  _active.set(blockId, { disposeAll, update });
+}
+
+// Live in-place update of a mounted Scene3D block (admin preview). Returns true if the
+// change was applied without a reload, false if the caller must re-render the block.
+export function updateScene3D(blockId, data) {
+  const inst = _active.get(blockId);
+  if (!inst || typeof inst.update !== 'function') return false;
+  try { return !!inst.update(data); } catch (_) { return false; }
 }
 
 export function dispose(blockId) {

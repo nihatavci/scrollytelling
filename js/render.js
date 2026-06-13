@@ -3465,6 +3465,14 @@ window.addEventListener('message', function (evt) {
       }
 
       var reuse = prev && prev.dataset.sig === sig;
+      // Scene3D: try a live in-place update instead of tearing down + reloading the model.
+      // Only non-structural edits (lighting, background, glow, dragging, scene viewpoints)
+      // qualify; structural ones return false and fall through to a normal re-render.
+      if (!reuse && prev && block.type === 'Scene3D' && _scene3dMod && typeof _scene3dMod.updateScene3D === 'function') {
+        try {
+          if (_scene3dMod.updateScene3D(block.id, block.data)) { prev.dataset.sig = sig; reuse = true; }
+        } catch (_) { /* fall through to re-render */ }
+      }
       var want = reuse ? prev : _renderBlockNode(block, sig);
       if (!want) continue;
 
