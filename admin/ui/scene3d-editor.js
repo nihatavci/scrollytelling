@@ -10,6 +10,21 @@ const CDN = 'https://esm.sh/three@0.170.0';
 const _uid = () => 'an-' + Math.random().toString(36).slice(2, 7);
 let _libPromise = null;
 
+// Crisp Lucide-style line icons — one consistent stroke, replacing emoji in the
+// viewport controls (emoji render per-OS and read as amateur next to Figma/Linear).
+const _ICONS = {
+  maximize: '<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>',
+  minimize: '<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 1 2 2v3"/><path d="M16 21v-3a2 2 0 0 1 2-2h3"/>',
+  camera: '<path d="M14.5 4h-5L7 7H4a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2h-3l-2.5-3z"/><circle cx="12" cy="13" r="3"/>',
+  pin: '<path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"/><circle cx="12" cy="10" r="3"/>',
+  x: '<path d="M18 6 6 18"/><path d="M6 6l12 12"/>',
+  plus: '<path d="M5 12h14"/><path d="M12 5v14"/>',
+};
+function _svg(name, size) {
+  const s = size || 16;
+  return `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${_ICONS[name] || ''}</svg>`;
+}
+
 async function loadThree() {
   if (_libPromise) return _libPromise;
   _libPromise = (async () => {
@@ -110,7 +125,7 @@ async function initScene3DEditor(container, blockData, onChange) {
 
   const hintBar = document.createElement('div');
   hintBar.className = 's3d-hint-bar';
-  hintBar.textContent = 'Drag · orbit   ⛶ fullscreen to zoom';
+  hintBar.textContent = 'Drag to orbit · expand to zoom';
   viewportEl.appendChild(hintBar);
 
   // Viewport toolbar — Background + Light + Glow presets (stored on the block, used by
@@ -120,8 +135,8 @@ async function initScene3DEditor(container, blockData, onChange) {
   vpBar.className = 's3d-vpbar';
   const mkSelect = (label, options, value, onPick) => {
     const sel = document.createElement('select');
-    sel.title = label;
-    sel.style.cssText = 'appearance:none;-webkit-appearance:none;background:rgba(20,20,22,.72);color:#fff;border:1px solid rgba(255,255,255,.14);border-radius:99px;font:600 11px/1 var(--font,"DM Sans",sans-serif);padding:6px 12px;cursor:pointer;backdrop-filter:blur(8px);';
+    sel.title = label;                       // styled via .s3d-vpbar select (grouped toolbar + chevron)
+    sel.setAttribute('aria-label', label);
     options.forEach(([v, t]) => {
       const o = document.createElement('option');
       o.value = v; o.textContent = t; o.style.color = '#111';
@@ -157,7 +172,8 @@ async function initScene3DEditor(container, blockData, onChange) {
   fsBtn.type = 'button';
   fsBtn.className = 's3d-fs-btn';
   fsBtn.title = 'Expand to edit lighting & camera';
-  fsBtn.textContent = '⛶';
+  fsBtn.setAttribute('aria-label', 'Expand to edit lighting and camera');
+  fsBtn.innerHTML = _svg('maximize');
   let _fsPlaceholder = null;
   fsBtn.addEventListener('click', () => {
     const goingFull = !editorWrap.classList.contains('s3d-fullscreen');
@@ -178,15 +194,15 @@ async function initScene3DEditor(container, blockData, onChange) {
       _fsPlaceholder = null;
       document.body.style.overflow = '';
     }
-    fsBtn.textContent = goingFull ? '✕' : '⛶';
+    fsBtn.innerHTML = _svg(goingFull ? 'minimize' : 'maximize');
     fsBtn.title = goingFull ? 'Exit fullscreen' : 'Expand to edit lighting & camera';
     // Wheel-zoom only in fullscreen. Embedded in the scrollable sidebar, OrbitControls'
     // wheel handler would dolly the camera AND preventDefault the wheel, so scrolling
     // over the canvas zoomed the model instead of scrolling past the block.
     if (controls) controls.enableZoom = goingFull;
     hintBar.textContent = goingFull
-      ? 'Drag · orbit   Scroll · zoom   Right-drag · pan'
-      : 'Drag · orbit   ⛶ fullscreen to zoom';
+      ? 'Drag to orbit · scroll to zoom · right-drag to pan'
+      : 'Drag to orbit · expand to zoom';
     // force resize so the model fills the new canvas size
     requestAnimationFrame(() => { resize(); renderFrame(); });
     setTimeout(() => { resize(); renderFrame(); }, 60);
@@ -200,7 +216,8 @@ async function initScene3DEditor(container, blockData, onChange) {
 
   const saveBtn = document.createElement('button');
   saveBtn.type = 'button';
-  saveBtn.className = 's3d-save-btn small';
+  saveBtn.className = 's3d-save-btn';
+  saveBtn.innerHTML = _svg('camera', 15) + '<span class="s3d-save-label"></span>';
   viewportEl.appendChild(saveBtn);
 
   const strip = document.createElement('div');
@@ -249,7 +266,9 @@ async function initScene3DEditor(container, blockData, onChange) {
     annoWrap.innerHTML = `<div class="s3d-text-title">Annotations <span>— pinned points on the model, shown in this scene</span></div>`;
     const addBtn = document.createElement('button');
     addBtn.type = 'button'; addBtn.className = 'small';
-    addBtn.textContent = placementMode ? '✕ Cancel — click the model' : '📍 Add annotation';
+    addBtn.innerHTML = placementMode
+      ? _svg('x', 14) + '<span>Cancel — click the model</span>'
+      : _svg('pin', 14) + '<span>Add annotation</span>';
     addBtn.addEventListener('click', () => { setPlacement(!placementMode); renderTextPanel(); });
     annoWrap.appendChild(addBtn);
     list.forEach(({ a, gi }, n) => {
@@ -402,7 +421,8 @@ async function initScene3DEditor(container, blockData, onChange) {
   function updateSaveBtn() {
     const ne = nextEmptySlot();
     const n = (ne === -1 ? blockData.scenes.length : ne) + 1;
-    saveBtn.textContent = `📷 Save as Scene ${n}`;
+    const lbl = saveBtn.querySelector('.s3d-save-label');
+    if (lbl) lbl.textContent = `Save as Scene ${n}`;
   }
   updateSaveBtn();
 
@@ -452,7 +472,7 @@ async function initScene3DEditor(container, blockData, onChange) {
         });
       } else {
         const plus = document.createElement('span');
-        plus.className = 's3d-slot-plus'; plus.textContent = '+';
+        plus.className = 's3d-slot-plus'; plus.innerHTML = _svg('plus', 18);
         slot.appendChild(plus);
         const num = document.createElement('span');
         num.className = 's3d-slot-num'; num.textContent = i + 1;
