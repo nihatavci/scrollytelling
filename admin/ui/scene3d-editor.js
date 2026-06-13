@@ -142,6 +142,7 @@ async function initScene3DEditor(container, blockData, onChange) {
   mkSelect('Light', [['studio', 'Studio light'], ['sun', 'Sun light']], blockData.light || 'studio', (v) => {
     blockData.light = v; onChange();
     applyLightPreset();
+    applyEnvForLight();   // swap the reflected environment (studio HDRI ↔ outdoor sky)
     renderFrame();
   });
   mkSelect('Glow intensity', [['0.5', 'Glow 0.5×'], ['1', 'Glow 1×'], ['1.5', 'Glow 1.5×'], ['2', 'Glow 2×']], blockData.glowIntensity || '1', (v) => {
@@ -279,6 +280,8 @@ async function initScene3DEditor(container, blockData, onChange) {
 
   // ── State ──
   let THREE_LIB, renderer, threeScene, camera, controls, model3d, composer = null, lightRig = null, bloomPass = null;
+  let envPmrem = null;          // kept alive so the env can be re-derived when Light toggles
+  const _envCache = {};         // { studio | sky : PMREM texture } — load each HDRI once
 
   // Light presets — 'studio' (default): IBL-dominant, neutral; 'sun': warm low key
   // light dominates like late-afternoon outdoor sun, env down, longer/darker shadow,
@@ -312,6 +315,28 @@ async function initScene3DEditor(container, blockData, onChange) {
     const bg = blockData.bg || 'dark';
     if (bg === 'page') { threeScene.fog = null; return; }
     threeScene.fog = new THREE_LIB.Fog(new THREE_LIB.Color(bg === 'studio' ? 0xe2e2e7 : 0x141416), 6, 16);
+  }
+
+  // Swap the IBL environment to match the Light preset: Sun reflects a real outdoor sky
+  // (sky.hdr), Studio reflects the studio HDRI. Each HDRI is PMREM-processed once and cached,
+  // so toggling Light is instant after the first load. Matches the public renderer.
+  async function applyEnvForLight() {
+    if (!threeScene || !renderer || !THREE_LIB || !envPmrem) return;
+    const kind = (blockData.light === 'sun') ? 'sky' : 'studio';
+    if (!_envCache[kind]) {
+      try {
+        const { RGBELoader } = await import(`${CDN}/examples/jsm/loaders/RGBELoader.js`);
+        const hdr = await new RGBELoader().loadAsync(`/assets/hdri/${kind}.hdr`);
+        hdr.mapping = THREE_LIB.EquirectangularReflectionMapping;
+        _envCache[kind] = envPmrem.fromEquirectangular(hdr).texture;
+        hdr.dispose();
+      } catch (e) {
+        const { RoomEnvironment } = await import(`${CDN}/examples/jsm/environments/RoomEnvironment.js`);
+        _envCache[kind] = envPmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      }
+    }
+    threeScene.environment = _envCache[kind];
+    renderFrame();
   }
   let activeSlot = 0;
   let placementMode = false;
@@ -525,24 +550,13 @@ async function initScene3DEditor(container, blockData, onChange) {
     // Real studio HDRI for a Sketchfab-like look; fall back to procedural RoomEnvironment, then
     // to lights-only.
     try {
-      const pmrem = new THREE.PMREMGenerator(renderer);
-      pmrem.compileEquirectangularShader();
-      let envTex = null;
-      try {
-        const { RGBELoader } = await import(`${CDN}/examples/jsm/loaders/RGBELoader.js`);
-        const hdr = await new RGBELoader().loadAsync('/assets/hdri/studio.hdr');
-        hdr.mapping = THREE.EquirectangularReflectionMapping;
-        envTex = pmrem.fromEquirectangular(hdr).texture;
-        hdr.dispose();
-      } catch (hdrErr) {
-        const { RoomEnvironment } = await import(`${CDN}/examples/jsm/environments/RoomEnvironment.js`);
-        envTex = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
-      }
-      threeScene.environment = envTex;
-      // Sketchfab is IBL-dominant: the HDRI does the lighting at higher intensity while
-      // analytic lights stay weak (the dir light exists mainly to cast the shadow).
+      // PMREM generator kept alive (applyEnvForLight re-uses it to derive the sky/studio
+      // env on Light toggle). Sketchfab is IBL-dominant: the HDRI does the lighting at
+      // higher intensity while analytic lights stay weak (dir light mainly casts the shadow).
+      envPmrem = new THREE.PMREMGenerator(renderer);
+      envPmrem.compileEquirectangularShader();
+      await applyEnvForLight();
       if ('environmentIntensity' in threeScene) threeScene.environmentIntensity = 1.3;
-      pmrem.dispose();
     } catch (e) { /* environment optional — fall back to lights only */ }
     const ambient = new THREE.AmbientLight(0xffffff, 0.1);
     threeScene.add(ambient);

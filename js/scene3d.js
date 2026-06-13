@@ -96,13 +96,17 @@ export async function initScene3D(blockId, data) {
   // makes a GLB look great instead of flat/dark. A real studio HDRI (warm, directional) reads
   // far closer to Sketchfab than the neutral procedural RoomEnvironment; fall back to it if the
   // HDRI can't load, and to lights-only if even that fails.
+  // Light presets — 'studio' (default): IBL-dominant, neutral; 'sun': warm low key light
+  // dominates like late-afternoon outdoor sun, env turned down, longer/darker shadow.
+  const sunlight = data.light === 'sun';
   try {
     const pmrem = new THREE.PMREMGenerator(renderer);
     pmrem.compileEquirectangularShader();
     let envTex = null;
     try {
       const { RGBELoader } = await import(`${_CDN}/examples/jsm/loaders/RGBELoader.js`);
-      const hdr = await new RGBELoader().loadAsync('/assets/hdri/studio.hdr');
+      // Sun preset reflects a real outdoor sky (sky.hdr); studio reflects the studio HDRI.
+      const hdr = await new RGBELoader().loadAsync(sunlight ? '/assets/hdri/sky.hdr' : '/assets/hdri/studio.hdr');
       hdr.mapping = THREE.EquirectangularReflectionMapping;
       envTex = pmrem.fromEquirectangular(hdr).texture;
       hdr.dispose();
@@ -117,9 +121,6 @@ export async function initScene3D(blockId, data) {
     if ('environmentIntensity' in scene) scene.environmentIntensity = 1.3;
     pmrem.dispose();
   } catch (e) { /* environment optional — fall back to lights only */ }
-  // Light presets — 'studio' (default): IBL-dominant, neutral; 'sun': warm low key light
-  // dominates like late-afternoon outdoor sun, env turned down, longer/darker shadow.
-  const sunlight = data.light === 'sun';
   // Glow intensity (data.glowIntensity, default 1): scales the key light and opens up
   // bloom, so models without hot emissive/metallic surfaces can still visibly shine.
   const glow = Math.max(0.25, parseFloat(data.glowIntensity) || 1);
