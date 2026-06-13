@@ -195,13 +195,31 @@ export async function onRequest(context) {
 }
 
 async function handleAnalyze(env, body) {
-  const { sources, lang, tone } = body;
+  const { sources } = body;
 
   if (!sources || !Array.isArray(sources) || sources.length === 0) {
     return new Response(JSON.stringify({ error: 'No sources provided' }), {
       status: 400, headers: { 'Content-Type': 'application/json' },
     });
   }
+
+  const result = await runAnalyze(env, body);
+
+  if (result.facts.length === 0 && result._allParseError) {
+    return new Response(JSON.stringify({ error: 'AI failed to parse all source chunks. Try shorter or simpler text.' }), {
+      status: 422, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+    });
+  }
+
+  const { _allParseError: _a, ...publicResult } = result;
+  return new Response(JSON.stringify(publicResult), {
+    status: 200,
+    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
+  });
+}
+
+export async function runAnalyze(env, body) {
+  const { sources, lang, tone } = body;
 
   const allText = sources.map((s, i) => `[Source: ${s.label || `Source ${i + 1}`}]\n${s.content}`).join('\n\n');
   let chunks = chunkText(allText);
@@ -237,11 +255,8 @@ async function handleAnalyze(env, body) {
     }
   });
 
-  if (allFacts.length === 0 && summaries.every(s => s.includes('parse error'))) {
-    return new Response(JSON.stringify({ error: 'AI failed to parse all source chunks. Try shorter or simpler text.' }), {
-      status: 422, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-    });
-  }
+  // Signal all-parse-error condition to handleAnalyze without throwing
+  const _allParseError = allFacts.length === 0 && summaries.every(s => s.includes('parse error'));
 
   const factSummaryText = summaries.map((s, i) => `Section ${i + 1}: ${s}`).join('\n') +
     '\n\nKey facts:\n' + allFacts.slice(0, 50).map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n');
@@ -264,21 +279,27 @@ async function handleAnalyze(env, body) {
     warnings.push(`Source material is ${totalWords.toLocaleString()} words — article may need to be selective`);
   }
 
-  return new Response(JSON.stringify({
+  return {
     facts: allFacts,
     plan: planParsed.plan || [],
     throughLine: planParsed.throughLine || '',
     chunks,
     warnings,
-  }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-  });
+    _allParseError,
+  };
 }
 
 async function handleGenerateBlock(env, body) {
-  const { type, planItem, chunks, facts, articleContext, lang } = body;
+  const { type, planItem } = body;
   if (!type || !planItem) return new Response(JSON.stringify({ error: 'Missing type or planItem' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
+
+  const result = await runGenerateBlock(env, body);
+
+  return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+}
+
+export async function runGenerateBlock(env, body) {
+  const { type, planItem, chunks, facts, articleContext, lang } = body;
 
   const query = [planItem.headline, planItem.rationale, ...(planItem.sourceRefs || [])].filter(Boolean).join(' ');
   const relevant = selectRelevantChunks(chunks || [], query, 9000); // bounded context → no overflow
@@ -299,11 +320,11 @@ async function handleGenerateBlock(env, body) {
   const quality = assessBlockQuality(type, data);
   data._confidence = parsed.confidence || 'medium';
 
-  return new Response(JSON.stringify({
+  return {
     data,
     confidence: parsed.confidence || 'medium',
     lead: parsed.lead || '',
     quality,
     sourceRefs: planItem.sourceRefs || [],
-  }), { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
+  };
 }
