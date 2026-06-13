@@ -117,7 +117,7 @@ Relevant source excerpts:
 ${relevantChunks.join('\n\n---\n\n')}
 
 Relevant facts:
-${facts.map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n')}`;
+${facts.slice(0, 40).map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n')}`;
   const raw = await callModel(env, { model: 'deepseek-v4-pro', system, user, maxTokens: 4096, temperature: 0.6 });
   return parseAIResponse(raw);
 }
