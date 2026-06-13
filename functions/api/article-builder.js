@@ -2,9 +2,11 @@
 // AI Full Article Builder — analyze sources + generate blocks
 // Two actions: 'analyze' (fact extraction + structure proposal) and 'generate-block' (per-block generation)
 
-import { callModel, parseAIResponse } from './_shared/blocks.js';
-import { chunkText } from './_shared/retrieval.js';
+import { callModel, parseAIResponse, buildSystemPrompt, validateBlockData } from './_shared/blocks.js';
+import { chunkText, selectRelevantChunks } from './_shared/retrieval.js';
 import { buildPlanPrompt, repairPlanStructure } from './_shared/plan.js';
+import { injectMedia } from './_shared/media.js';
+import { assessBlockQuality } from './_shared/quality.js';
 
 const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
@@ -95,51 +97,29 @@ async function proposePlan(env, factSummaries, lang, tone, factShape) {
   return parsed; // { throughLine, plan, warnings }
 }
 
-async function generateBlock(env, planItem, sourceChunks, facts, articleContext, lang) {
-  const response = await env.AI.run(MODEL, {
-    messages: [
-      { role: 'system', content: `You are the content engine for Scrolli Labs — generating one block of a scrollytelling article.
+async function generateBlock(env, planItem, relevantChunks, facts, ctx, lang) {
+  const schemaPrompt = buildSystemPrompt(planItem.type, 'create', lang, false); // injects schema + example + VOICE_GUIDE
+  const system = `${schemaPrompt || `You are generating a "${planItem.type}" block. Return ONLY valid JSON {"data":{...},"lead":"...","confidence":"..."}.`}
 
-SOURCE GROUNDING RULES (CRITICAL):
-- ONLY use information present in the provided source chunks
-- Do NOT invent names, dates, numbers, or quotes not found in the sources
-- If information is needed but not available in the sources, insert [NEEDS SOURCE] placeholder
-- Every claim must be traceable to the provided source material
+ARTICLE CONTEXT (write this block as part of a larger narrative):
+- Through-line (the article's spine): ${ctx.throughLine || '(none)'}
+- This block's narrative beat: ${planItem.narrativeBeat || 'rising'} (exposition=set up, rising=build, climax=the turn, falling=implications, resolution=land it)
+- Tone: ${ctx.tone}; block ${ctx.blockIndex + 1} of ${ctx.totalBlocks}.
+- Previous section ended with: "${ctx.prevLead || '(this is the opening)'}" — continue from it; do NOT repeat earlier points.
 
-ARTICLE CONTEXT:
-- Title: ${articleContext.title || 'Untitled'}
-- Tone: ${articleContext.tone || 'investigative'}
-- Language: ${lang || 'de'}
-- This is block ${articleContext.blockIndex + 1} of ${articleContext.totalBlocks}
-- Previous blocks: ${articleContext.previousSummaries || 'none (this is the first block)'}
+SOURCE GROUNDING: use only facts present in the provided source excerpts; do not invent names/dates/numbers/quotes. If a needed fact is absent, omit it rather than writing [NEEDS SOURCE]. For any image field, leave it empty and instead write a vivid alt/caption describing the ideal photo.
 
-BLOCK TYPE: ${planItem.type}
-Purpose: ${planItem.rationale || 'part of the article structure'}
+Return ONLY valid JSON: { "data": { ...matches the schema above... }, "lead": "the first ~12 words of this block's main text", "confidence": "high|medium|low" }.`;
+  const user = `Headline to realize: ${planItem.headline || '(none)'}
+Rationale: ${planItem.rationale || ''}
 
-Return JSON with two top-level keys:
-{
-  "data": { ... block data matching the ${planItem.type} schema ... },
-  "confidence": "high" | "medium" | "low"
-}
+Relevant source excerpts:
+${relevantChunks.join('\n\n---\n\n')}
 
-Confidence rules:
-- "high": all content directly traceable to source material
-- "medium": mostly sourced but you performed synthesis or inference
-- "low": you filled gaps, rephrased significantly, or couldn't find source support
-
-Return ONLY valid JSON — no markdown fences, no explanation.` },
-      { role: 'user', content: `Plan item: ${JSON.stringify(planItem)}
-
-Relevant source chunks:
-${sourceChunks.join('\n\n---\n\n')}
-
-Extracted facts:
-${facts.map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n')}` },
-    ],
-    max_tokens: 4096,
-    temperature: 0.6,
-  });
-  return response?.response ?? response;
+Relevant facts:
+${facts.map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n')}`;
+  const raw = await callModel(env, { model: 'deepseek-v4-pro', system, user, maxTokens: 4096, temperature: 0.6 });
+  return parseAIResponse(raw);
 }
 
 // ── Main Handler ──
@@ -293,36 +273,32 @@ async function handleAnalyze(env, body) {
 }
 
 async function handleGenerateBlock(env, body) {
-  const { type, planItem, sourceChunks, facts, articleContext, lang } = body;
+  const { type, planItem, chunks, facts, articleContext, lang } = body;
+  if (!type || !planItem) return new Response(JSON.stringify({ error: 'Missing type or planItem' }), { status: 400, headers: { 'Content-Type': 'application/json' } });
 
-  if (!type || !planItem) {
-    return new Response(JSON.stringify({ error: 'Missing type or planItem' }), {
-      status: 400, headers: { 'Content-Type': 'application/json' },
-    });
+  const query = [planItem.headline, planItem.rationale, ...(planItem.sourceRefs || [])].filter(Boolean).join(' ');
+  const relevant = selectRelevantChunks(chunks || [], query, 9000); // bounded context → no overflow
+
+  let parsed = await generateBlock(env, { ...planItem, type }, relevant, facts || [], articleContext || {}, lang || 'de');
+  let data = parsed.data || parsed;
+
+  // schema validation → one repair retry if invalid (validateBlockData returns an error string, or null when valid)
+  const err = validateBlockData(type, data);
+  if (err) {
+    const retry = await generateBlock(env, { ...planItem, type, rationale: (planItem.rationale || '') + ` (previous output was invalid: ${err}. Match the schema exactly.)` }, relevant, facts || [], articleContext || {}, lang || 'de');
+    const retryData = retry.data || retry;
+    if (!validateBlockData(type, retryData)) { data = retryData; parsed = retry; }
   }
 
-  const raw = await generateBlock(
-    env,
-    { ...planItem, type },
-    sourceChunks || [],
-    facts || [],
-    articleContext || {},
-    lang || 'de'
-  );
-
-  const parsed = parseAIResponse(raw);
-
-  const data = parsed.data || parsed;
-  const confidence = parsed.confidence || 'medium';
-
-  data._confidence = confidence;
+  data = injectMedia(type, data, articleContext?.blockIndex || 0); // never blank media
+  const quality = assessBlockQuality(type, data);
+  data._confidence = parsed.confidence || 'medium';
 
   return new Response(JSON.stringify({
     data,
-    confidence,
+    confidence: parsed.confidence || 'medium',
+    lead: parsed.lead || '',
+    quality,
     sourceRefs: planItem.sourceRefs || [],
-  }), {
-    status: 200,
-    headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' },
-  });
+  }), { status: 200, headers: { 'Content-Type': 'application/json', 'Access-Control-Allow-Origin': '*' } });
 }
