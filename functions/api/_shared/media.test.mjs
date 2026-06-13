@@ -16,3 +16,17 @@ test('non-media block passes through unchanged', () => {
   const data = { content: [{kind:'p', html:'hi'}] };
   assert.deepEqual(injectMedia('Editorial', data, 0), data);
 });
+test('Scene3D with empty glbUrl gets the mock object + scene camera defaults', () => {
+  const out = injectMedia('Scene3D', { glbUrl: '', scenes: [{ heading: 'h', body: 'b' }] }, 0);
+  assert.equal(out.glbUrl, '/assets/mock/object.glb');
+  assert.ok(out.scenes[0].camera && out.scenes[0].target && out.scenes[0].fov);
+});
+test('AudioPlayer with empty coverSrc gets mock art, audioSrc left empty', () => {
+  const out = injectMedia('AudioPlayer', { coverSrc: '', audioSrc: '', title: 't' }, 0);
+  assert.match(out.coverSrc, /\/assets\/mock\//);
+  assert.equal(out.audioSrc, '');
+});
+test('Scene3D preserves real camera values when present', () => {
+  const out = injectMedia('Scene3D', { glbUrl: '', scenes: [{ camera:{x:5,y:5,z:5}, heading:'h', body:'b' }] }, 0);
+  assert.equal(out.scenes[0].camera.x, 5);
+});

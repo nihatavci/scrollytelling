@@ -18,6 +18,18 @@ export function injectMedia(type, data, beatIndex = 0) {
     case 'Scrolly':
       if (Array.isArray(d.steps)) d.steps = d.steps.map((s, i) => empty(s.imageSrc) ? { ...s, imageSrc: pick(beatIndex + i) } : s);
       break;
+    case 'Scene3D':
+      if (empty(d.glbUrl)) d.glbUrl = '/assets/mock/object.glb';
+      if (Array.isArray(d.scenes)) d.scenes = d.scenes.map(s => ({
+        camera: { x: 1.6, y: 1.2, z: 3.2 },
+        target: { x: 0, y: 0, z: 0 },
+        fov: 45,
+        ...s,
+      }));
+      break;
+    case 'AudioPlayer':
+      if (empty(d.coverSrc)) d.coverSrc = pick(beatIndex);
+      break;
   }
   return d;
 }
