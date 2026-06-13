@@ -5206,7 +5206,13 @@ ${veScript}</body></html>`;
 //   otherwise             → in-place soft refresh: post the updated doc into the
 //                           already-loaded iframe and re-render without navigation,
 //                           so the reader's scroll position is preserved (no jump).
+// Live-preview pause: when off, edits don't refresh the preview (a pending dot shows).
+// Resuming, or hitting the manual refresh, syncs. Lets you edit without preview churn.
+let _livePreviewOn = (localStorage.getItem('scrolli_live_preview') !== 'off');
+let _previewPending = false;
+
 function refreshPreview(opts = {}) {
+  if (!_livePreviewOn && !opts.force) { _previewPending = true; updateLivePreviewBtn(); return; }
   const run = () => {
     const iframe = $('#preview-frame');
     const cw = iframe.contentWindow;
@@ -5239,7 +5245,34 @@ $('#btn-refresh-preview').addEventListener('click', () => {
   iframe._blobUrl = url;
   iframe._loadedPageId = state.currentPageId;
   iframe.src = url;
+  _previewPending = false; updateLivePreviewBtn();   // manual refresh syncs even while paused
 });
+
+// ── Live-preview pause toggle ──
+function updateLivePreviewBtn() {
+  const b = document.getElementById('btn-live-preview');
+  if (!b) return;
+  const EYE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z"/><circle cx="12" cy="12" r="3"/></svg>';
+  const PAUSE = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="6" y="5" width="4" height="14" rx="1"/><rect x="14" y="5" width="4" height="14" rx="1"/></svg>';
+  b.innerHTML = (_livePreviewOn ? EYE : PAUSE) + '<span class="lp-dot"></span>';
+  b.classList.toggle('is-paused', !_livePreviewOn);
+  b.classList.toggle('has-pending', !_livePreviewOn && _previewPending);
+  b.title = _livePreviewOn
+    ? 'Live preview is on — click to pause auto-refresh'
+    : (_previewPending ? 'Live preview paused — pending changes. Click to resume & sync' : 'Live preview paused — click to resume');
+}
+(function initLivePreviewToggle() {
+  const b = document.getElementById('btn-live-preview');
+  if (!b) return;
+  updateLivePreviewBtn();
+  b.addEventListener('click', () => {
+    _livePreviewOn = !_livePreviewOn;
+    localStorage.setItem('scrolli_live_preview', _livePreviewOn ? 'on' : 'off');
+    const hadPending = _previewPending;
+    updateLivePreviewBtn();
+    if (_livePreviewOn && hadPending) { _previewPending = false; refreshPreview({ immediate: true }); updateLivePreviewBtn(); }
+  });
+})();
 $('#btn-visual-edit').addEventListener('click', () => {
   state.visualEditMode = !state.visualEditMode;
   const b = $('#btn-visual-edit');
