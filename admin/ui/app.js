@@ -5940,7 +5940,8 @@ window.addEventListener('scrollycms:auth-expired', () => {
   const tabs = document.getElementById('side-tabs');
   const ind = document.getElementById('side-ind');
   if (!tabs || !ind) return;
-  function place(btn){ ind.style.width = btn.offsetWidth + 'px'; ind.style.transform = 'translateX(' + (btn.offsetLeft - 4) + 'px)'; }
+  function place(btn){ if (!btn || !btn.offsetWidth) return; ind.style.width = btn.offsetWidth + 'px'; ind.style.transform = 'translateX(' + (btn.offsetLeft - 4) + 'px)'; tabs.classList.add('ind-ready'); }
+  function placeActive(){ place(tabs.querySelector('.side-tab.on')); }
   function show(name, btn){
     tabs.querySelectorAll('.side-tab').forEach(b => b.classList.toggle('on', b===btn));
     place(btn);
@@ -5949,7 +5950,13 @@ window.addEventListener('scrollycms:auth-expired', () => {
     if (name === 'assets' && typeof renderAssetsPane === 'function') renderAssetsPane();
   }
   tabs.querySelectorAll('.side-tab').forEach(btn => btn.addEventListener('click', () => show(btn.getAttribute('data-pane'), btn)));
-  requestAnimationFrame(() => place(tabs.querySelector('.side-tab.on')));
+  // Place the pill robustly: the first rAF can run before the sidebar is laid out or the
+  // web font has swapped (→ 0/wrong width, pill never lands). Re-place on font load,
+  // on the tabs gaining size (ResizeObserver), and on resize.
+  requestAnimationFrame(placeActive);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(placeActive);
+  try { new ResizeObserver(placeActive).observe(tabs); } catch (_) {}
+  window.addEventListener('resize', placeActive);
 })();
 document.getElementById('side-new-page')?.addEventListener('click', () => document.getElementById('btn-new-page')?.click());
 document.getElementById('side-upload')?.addEventListener('click', () => {
