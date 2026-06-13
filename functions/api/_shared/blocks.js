@@ -546,6 +546,24 @@ Fields:
 WRITING RULES: Title should be evocative, not generic. Subtitle is uppercase series/context. Description hooks the listener in 1-2 sentences.`,
   },
 
+  Scene3D: {
+    description: `3D model scrollytelling — a sticky 3D object the reader scrolls through; the camera moves between saved viewpoints ("scenes"), each with a heading + body card.
+
+CRITICAL RULES:
+- "glbUrl" MUST be left as an empty string "" — the platform supplies the 3D model asset. Never invent a URL.
+- "scenes" is an array of 2-4 viewpoints. Each scene: { camera:{x,y,z}, target:{x,y,z}, fov, heading, body }. The heading + body are NARRATIVE (what this view reveals), not "Scene 1".
+- Use sensible camera values (distance 2-4 from origin); the platform re-frames automatically, so approximate is fine.
+- bg: "dark" | "studio" | "page". light: "studio" | "sun". glowIntensity: "1" | "1.5" | "2".`,
+    example: {
+      glbUrl: '',
+      bg: 'dark', light: 'studio', glowIntensity: '1.5', draggable: 'false', textMode: 'cards',
+      scenes: [
+        { camera: { x: 1.6, y: 1.2, z: 3.2 }, target: { x: 0, y: 0, z: 0 }, fov: 45, heading: 'The whole form', body: 'Seen head-on, the object reads as a single sculpted mass — the starting point of the story.' },
+        { camera: { x: -2.4, y: 0.6, z: 2.2 }, target: { x: 0, y: 0, z: 0 }, fov: 40, heading: 'A hidden seam', body: 'Rotate to the flank and the construction reveals itself — where two surfaces meet, the detail that changes everything.' },
+      ],
+    },
+  },
+
   FullBleed: {
     example: {
       mediaSrc: '/images/redaktion-1924.jpg',
