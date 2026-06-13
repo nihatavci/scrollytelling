@@ -795,6 +795,19 @@ export function validateBlockData(type, data) {
     }
   }
 
+  if (type === 'Map2D') {
+    const markers = Array.isArray(data.markers) ? data.markers : [];
+    const inRange = markers.filter(m => Number.isFinite(+m.lat) && Number.isFinite(+m.lng) && Math.abs(+m.lat) <= 90 && Math.abs(+m.lng) <= 180);
+    if (inRange.length < 1) return 'Map2D needs at least one marker with valid lat/lng coordinates';
+  }
+  if (type === 'DataScrolly') {
+    const cs = data.chartSpec || {};
+    const yf = cs.yField;
+    const pts = Array.isArray(cs.data) ? cs.data : [];
+    const numeric = pts.filter(p => p && yf && Number.isFinite(+p[yf]));
+    if (numeric.length < 2) return 'DataScrolly needs chartSpec.data with at least 2 numeric points';
+  }
+
   return null; // valid
 }
 

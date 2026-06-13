@@ -287,7 +287,8 @@ async function handleGenerateBlock(env, body) {
   let data = parsed.data || parsed;
 
   // schema validation → one repair retry if invalid (validateBlockData returns an error string, or null when valid)
-  const err = validateBlockData(type, data);
+  let err = validateBlockData(type, data);
+  if (err && type === 'AudioPlayer' && /audioSrc/i.test(err)) err = null; // cover-only mock state is acceptable for AI-generated audio blocks
   if (err) {
     const retry = await generateBlock(env, { ...planItem, type, rationale: (planItem.rationale || '') + ` (previous output was invalid: ${err}. Match the schema exactly.)` }, relevant, facts || [], articleContext || {}, lang || 'de');
     const retryData = retry.data || retry;

@@ -26,3 +26,20 @@ test('Scene3D schema exists with scenes that carry heading + body', () => {
   assert.ok(Array.isArray(ex.scenes) && ex.scenes.length >= 1);
   assert.ok(ex.scenes.every(s => 'heading' in s && 'body' in s));
 });
+
+test('validateBlockData rejects Map2D with out-of-range coordinates', () => {
+  const bad = { steps: [{ body: 'x' }], markers: [{ lat: 999, lng: 0 }] };
+  assert.ok(validateBlockData('Map2D', bad)); // truthy error string
+});
+test('validateBlockData accepts Map2D with in-range markers', () => {
+  const ok = { steps: [{ body: 'x', mapState: {} }], markers: [{ id:'a', lat: 52.5, lng: 13.4, label:'1', name:'Berlin' }] };
+  assert.equal(validateBlockData('Map2D', ok), null);
+});
+test('validateBlockData rejects DataScrolly with <2 numeric points', () => {
+  const bad = { steps: [{ body:'x' }], chartSpec: { yField: 'v', data: [{ year:'2000', v: 5 }] } };
+  assert.ok(validateBlockData('DataScrolly', bad));
+});
+test('validateBlockData accepts DataScrolly with >=2 numeric points', () => {
+  const ok = { steps: [{ body:'x' }], chartSpec: { yField: 'v', data: [{ year:'2000', v: 5 }, { year:'2010', v: 9 }] } };
+  assert.equal(validateBlockData('DataScrolly', ok), null);
+});
