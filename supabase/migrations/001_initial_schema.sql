@@ -1,4 +1,4 @@
--- ScrollyCMS multi-tenant schema
+-- Scrolli Labs multi-tenant schema
 -- Apply via Supabase Dashboard > SQL Editor or MCP apply_migration
 
 -- ══════════════════════════════════════

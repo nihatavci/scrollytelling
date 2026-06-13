@@ -107,7 +107,7 @@ export async function onRequest(context) {
       image: ogImageRaw,
       datePublished: page.published_at || '',
       dateModified: page.updated_at || '',
-      publisher: { '@type': 'Organization', name: 'ScrollyCMS' },
+      publisher: { '@type': 'Organization', name: 'Scrolli Labs' },
     };
 
     // 3. Build full HTML — same structure as index.rendered.html
@@ -151,7 +151,7 @@ render().then(() => {
 </script>
 <script src="/js/motion-fx.js"></script>
 <footer style="max-width:720px;margin:3rem auto;padding:2rem;text-align:center;font-size:12px;color:var(--graphite);">
-  Published by ${escapeHtml(authorName)} &middot; Powered by <a href="/admin/" style="color:var(--signal-blue);text-decoration:none;">ScrollyCMS</a>
+  Published by ${escapeHtml(authorName)} &middot; Powered by <a href="/admin/" style="color:var(--signal-blue);text-decoration:none;">Scrolli Labs</a>
 </footer>
 </body>
 </html>`;
@@ -183,7 +183,7 @@ function notFoundPage(slug) {
     <style>body{font-family:'DM Sans',sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;background:#f8f8f8;color:#000;}
     .box{text-align:center;} h1{font-weight:300;font-size:3rem;margin-bottom:1rem;} p{color:#636363;}</style></head>
     <body><div class="box"><h1>404</h1><p>"${escapeHtml(slug)}" was not found.</p>
-    <a href="/admin/" style="color:#0358f7;font-size:14px;margin-top:1rem;display:inline-block;">Go to ScrollyCMS &rarr;</a></div></body></html>`,
+    <a href="/admin/" style="color:#0358f7;font-size:14px;margin-top:1rem;display:inline-block;">Go to Scrolli Labs &rarr;</a></div></body></html>`,
     { status: 404, headers: { 'Content-Type': 'text/html; charset=utf-8' } }
   );
 }

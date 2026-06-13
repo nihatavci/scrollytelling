@@ -724,7 +724,7 @@ function buildSystemPrompt(type, mode, lang, direct) {
 
   // ── Direct mode: structure text as-is, NO rewriting ──
   if (direct) {
-    return `You are a content STRUCTURING engine for ScrollyCMS. Your job is to take raw text and place it into the correct JSON fields for a "${type}" block.
+    return `You are a content STRUCTURING engine for Scrolli Labs. Your job is to take raw text and place it into the correct JSON fields for a "${type}" block.
 
 ABSOLUTELY CRITICAL — DIRECT MODE RULES:
 1. DO NOT rewrite, rephrase, enhance, expand, or modify any text. Use the EXACT words the user provided.
@@ -749,7 +749,7 @@ ${mode === 'improve' ? 'You are updating an existing block. The current data is 
   }
 
   // ── AI Enhanced mode (original behavior) ──
-  return `You are the content engine for ScrollyCMS — a platform for creating premium scrollytelling stories with interactive visualizations and rich narrative.
+  return `You are the content engine for Scrolli Labs — a platform for creating premium scrollytelling stories with interactive visualizations and rich narrative.
 
 ${VOICE_GUIDE}
 ${langHint}

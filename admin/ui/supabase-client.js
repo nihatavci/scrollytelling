@@ -345,7 +345,7 @@
       return withRetry(async () => {
         const user = await getUser();
         const slug = content.id || 'welcome';
-        const title = content.meta?.title || 'Welcome to ScrollyCMS';
+        const title = content.meta?.title || 'Welcome to Scrolli Labs';
         const { data, error } = await client
           .from('pages')
           .insert({

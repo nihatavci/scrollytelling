@@ -2245,11 +2245,11 @@ function buildDemoContent() {
     version: 1,
     lang: 'de',
     theme: 'claude',
-    meta: { title: 'Welcome to ScrollyCMS' },
+    meta: { title: 'Welcome to Scrolli Labs' },
     blocks: [
       mk('Hero', {
         brand: 'GETTING STARTED',
-        titleHtml: 'Welcome to <span>ScrollyCMS</span>',
+        titleHtml: 'Welcome to <span>Scrolli Labs</span>',
         subtitle: 'This is a demo page we made for you. Open the blocks on the left, edit them, add new ones with "+ Add", then hit Publish. Delete this page whenever you like.',
         scrollCueText: 'Scroll to explore',
       }),

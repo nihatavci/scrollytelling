@@ -21,7 +21,7 @@
   function showWelcome() {
     const back = el('div', 'position:fixed;inset:0;background:rgba(20,20,30,.55);z-index:4000;display:flex;align-items:center;justify-content:center;');
     const card = el('div', 'background:#fff;border-radius:16px;max-width:440px;width:90%;padding:28px;box-shadow:0 20px 60px rgba(0,0,0,.3);font-family:inherit;');
-    card.appendChild(el('div', 'font:600 20px/1.2 inherit;color:#1a1a2e;margin-bottom:10px;', 'Welcome to ScrollyCMS 👋'));
+    card.appendChild(el('div', 'font:600 20px/1.2 inherit;color:#1a1a2e;margin-bottom:10px;', 'Welcome to Scrolli Labs 👋'));
     card.appendChild(el('p', 'color:#57606a;font-size:14px;line-height:1.6;margin:0 0 20px;',
       "Build scrollytelling stories that come alive as readers scroll. We've created a demo page so you can see how it works — take a quick tour and you'll be publishing in minutes."));
     const row = el('div', 'display:flex;gap:8px;justify-content:flex-end;');

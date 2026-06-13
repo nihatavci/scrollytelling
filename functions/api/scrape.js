@@ -54,7 +54,7 @@ export async function onRequest(context) {
   try {
     const res = await fetch(url, {
       headers: {
-        'User-Agent': 'ScrollyCMS/1.0 (Article Builder)',
+        'User-Agent': 'Scrolli Labs/1.0 (Article Builder)',
         'Accept': 'text/html,application/xhtml+xml',
       },
       redirect: 'follow',

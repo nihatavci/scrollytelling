@@ -142,5 +142,5 @@ function serveFile(filePath, res) {
 }
 
 server.listen(PORT, () => {
-  console.log(`\n  ScrollyCMS dev server\n  http://localhost:${PORT}/admin/\n`);
+  console.log(`\n  Scrolli Labs dev server\n  http://localhost:${PORT}/admin/\n`);
 });

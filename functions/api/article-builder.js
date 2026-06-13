@@ -142,7 +142,7 @@ Return ONLY valid JSON — no markdown fences, no explanation.` },
 async function generateBlock(env, planItem, sourceChunks, facts, articleContext, lang) {
   const response = await env.AI.run(MODEL, {
     messages: [
-      { role: 'system', content: `You are the content engine for ScrollyCMS — generating one block of a scrollytelling article.
+      { role: 'system', content: `You are the content engine for Scrolli Labs — generating one block of a scrollytelling article.
 
 SOURCE GROUNDING RULES (CRITICAL):
 - ONLY use information present in the provided source chunks
