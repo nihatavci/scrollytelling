@@ -1,0 +1,10 @@
+<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><style>body{margin:0}</style></head>
+<body><div id="page-root"></div>
+<script type="module">
+  // Recursive-test render harness. Inject a doc via sessionStorage.storyDoc (set with
+  // preview_eval) or window.__DOC__, then render it through the real public renderer.
+  const stored = sessionStorage.getItem('storyDoc');
+  window.__PAGE_DATA__ = window.__DOC__ || (stored ? JSON.parse(stored) : { id:'t', version:1, lang:'en', meta:{title:'empty'}, blocks: [] });
+  if (!window.__PAGE_DATA__.id) window.__PAGE_DATA__.id = 't';
+  import('./js/render.js?v=' + Date.now()).then(({ render }) => render().then(() => { window.__DONE__ = true; })).catch(e => { window.__ERR__ = String(e); });
+</script></body></html>
