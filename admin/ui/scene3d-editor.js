@@ -134,18 +134,20 @@ async function initScene3DEditor(container, blockData, onChange) {
   const vpBar = document.createElement('div');
   vpBar.className = 's3d-vpbar';
   const mkSelect = (label, options, value, onPick) => {
-    const sel = document.createElement('select');
-    sel.title = label;                       // styled via .s3d-vpbar select (grouped toolbar + chevron)
-    sel.setAttribute('aria-label', label);
-    options.forEach(([v, t]) => {
-      const o = document.createElement('option');
-      o.value = v; o.textContent = t; o.style.color = '#111';
-      sel.appendChild(o);
-    });
-    sel.value = value;
-    sel.addEventListener('change', () => onPick(sel.value));
-    vpBar.appendChild(sel);
-    return sel;
+    // Branded dropdown (no native OS popup); falls back to a native select if the
+    // shared component isn't available.
+    let el;
+    if (typeof window.brandSelect === 'function') {
+      el = window.brandSelect(options, value, onPick, { ariaLabel: label, variant: 'toolbar' });
+    } else {
+      el = document.createElement('select');
+      el.setAttribute('aria-label', label);
+      options.forEach(([v, t]) => { const o = document.createElement('option'); o.value = v; o.textContent = t; el.appendChild(o); });
+      el.value = value;
+      el.addEventListener('change', () => onPick(el.value));
+    }
+    vpBar.appendChild(el);
+    return el;
   };
   mkSelect('Background', [['dark', 'Dark'], ['studio', 'Light'], ['page', 'Page']], blockData.bg || 'dark', (v) => {
     blockData.bg = v; onChange();

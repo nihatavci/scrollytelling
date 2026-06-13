@@ -71,6 +71,79 @@ input:focus, textarea:focus, select:focus {
 }
 textarea { resize: vertical; min-height: 60px; line-height: 1.5; border-radius: 16px; }
 
+/* ── Branded dropdown (.bsel) — replaces native <select>; no OS popup ─────────── */
+.bsel { position: relative; display: inline-block; width: 100%; }
+.field-row > .bsel { flex: 1; }
+.bsel-trigger {
+  display: inline-flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%;
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  color: var(--ink-black);
+  background: var(--snow);
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 12px;
+  padding: 8px 12px;
+  cursor: pointer;
+  text-align: left;
+  transition: border-color .15s, box-shadow .15s;
+}
+.bsel-trigger:hover { border-color: rgba(0,0,0,.2); }
+.bsel-trigger:focus-visible,
+.bsel-trigger[aria-expanded="true"] {
+  outline: none;
+  border-color: var(--ink-black);
+  box-shadow: rgba(0,0,0,.08) 0 0 0 3px;
+}
+.bsel-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bsel-chev { flex: 0 0 auto; color: var(--graphite); transition: transform .15s; }
+.bsel-trigger[aria-expanded="true"] .bsel-chev { transform: rotate(180deg); }
+
+/* Menu — portaled to <body>, fixed-positioned (set inline), above modals/fullscreen. */
+.bsel-menu {
+  z-index: 100000;
+  min-width: 160px; max-width: 320px;
+  max-height: min(50vh, 320px); overflow-y: auto;
+  padding: 5px;
+  background: var(--snow);
+  border: 1px solid rgba(0,0,0,.08);
+  border-radius: 12px;
+  box-shadow: var(--shadow-lg);
+  animation: bselIn .14s cubic-bezier(.2,.8,.2,1);
+}
+@keyframes bselIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+.bsel-opt {
+  display: flex; align-items: center; gap: 8px;
+  width: 100%;
+  font-family: var(--font); font-size: 13px; font-weight: 500;
+  color: var(--ink-black);
+  background: none; border: 0; border-radius: 8px;
+  padding: 8px 10px;
+  cursor: pointer; text-align: left;
+}
+.bsel-opt:hover, .bsel-opt:focus-visible { background: var(--fog); outline: none; }
+.bsel-opt.is-selected { color: var(--scrolli-indigo); }
+.bsel-check { flex: 0 0 14px; width: 14px; height: 14px; display: inline-flex; align-items: center; color: var(--scrolli-indigo); }
+.bsel-opt-label { flex: 1; }
+
+/* Toolbar variant — borderless white segment for the dark 3D viewport bar. */
+.bsel--toolbar { width: auto; }
+.bsel--toolbar .bsel-trigger {
+  width: auto;
+  background: transparent;
+  color: #fff;
+  border: 0; border-radius: 8px;
+  font-weight: 600; font-size: 12px;
+  padding: 7px 10px;
+}
+.bsel--toolbar .bsel-trigger:hover { background: rgba(255,255,255,.1); }
+.bsel--toolbar .bsel-trigger[aria-expanded="true"] { background: rgba(255,255,255,.16); box-shadow: none; }
+.bsel--toolbar .bsel-chev { color: rgba(255,255,255,.75); }
+
+@media (prefers-reduced-motion: reduce) {
+  .bsel-menu { animation: none; }
+  .bsel-chev { transition: none; }
+}
+
 /* ── Login ── */
 .login {
   display: flex; align-items: center; justify-content: center;
@@ -113,18 +186,18 @@ textarea { resize: vertical; min-height: 60px; line-height: 1.5; border-radius: 
   flex-shrink: 0;
   position: relative; z-index: 30;   /* above the sidebar (z-index:20) so the page-switcher dropdown shows */
 }
-/* Brand lockup: Scrolli logo + "Labs" sub-wordmark (topbar). "Labs" picks up the
-   logo mark's indigo so the two read as one mark, not bolted-on text. */
-.brand { display: inline-flex; align-items: center; gap: 6px; }
+/* Brand lockup: Scrolli logo + a small black "Labs" sub-wordmark sitting on the
+   wordmark's baseline (bottom-aligned), understated. */
+.brand { display: inline-flex; align-items: flex-end; gap: 5px; }
 .brand-logo { display: block; width: auto; }
 .brand .brand-logo { height: 19px; }
 .brand-labs {
   font-weight: 600;
-  color: var(--scrolli-indigo);
-  letter-spacing: -.02em;
+  color: var(--ink-black);
+  letter-spacing: -.01em;
   line-height: 1;
 }
-.brand .brand-labs { font-size: 15px; }
+.brand .brand-labs { font-size: 12px; margin-bottom: 2px; }
 .topbar-page { display: flex; align-items: center; gap: 8px; flex: 1; }
 .topbar-page label { font-size: 12px; color: var(--graphite); }
 .topbar-page select { width: auto; min-width: 200px; }
@@ -1045,13 +1118,13 @@ main.editor { display: none; }
 }
 .auth-brand {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: center;
-  gap: 8px;
+  gap: 6px;
   margin-bottom: 28px;
 }
 .auth-brand .brand-logo { height: 30px; }
-.auth-brand .brand-labs { font-size: 22px; }
+.auth-brand .brand-labs { font-size: 16px; margin-bottom: 3px; }
 .auth-tabs {
   display: flex; gap: 0;
   border-radius: var(--radius-pill);
@@ -2256,26 +2329,9 @@ main.editor { display: none; }
   -webkit-backdrop-filter: blur(10px);
   backdrop-filter: blur(10px);
 }
-/* Each segment: a borderless dropdown with a chevron so it reads as a select, not a
-   button. (Also overrides the global form `select { width:100% }` that stacked them.) */
-.s3d-vpbar select {
-  width: auto; min-width: 0; flex: 0 0 auto;
-  margin: 0;
-  appearance: none; -webkit-appearance: none;
-  background-color: transparent;
-  color: #fff;
-  border: 0;
-  border-radius: 8px;
-  font: 600 12px/1 var(--font);
-  padding: 7px 26px 7px 11px;
-  cursor: pointer;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%23ffffff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 8px center;
-  transition: background-color .12s ease;
-}
-.s3d-vpbar select:hover { background-color: rgba(255,255,255,.1); }
-.s3d-vpbar select option { color: #111; background: #fff; }
+/* Segments inside the toolbar are branded dropdowns (.bsel--toolbar) — see the
+   .bsel component block below. */
+.s3d-vpbar .bsel { flex: 0 0 auto; }
 
 /* Expand/collapse button (top-right). Solid dark control — minimal blur, not decorative
    glass — so the icon stays legible on any backdrop (light/sun included). Shares its

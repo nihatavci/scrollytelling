@@ -4050,21 +4050,17 @@ function renderField(field, data, onChange) {
       break;
     }
     case 'select': {
-      const sel = document.createElement('select');
-      (field.options || []).forEach(opt => {
-        const o = document.createElement('option');
-        o.value = opt;
-        o.textContent = opt;
-        if (String(val) === String(opt)) o.selected = true;
-        sel.appendChild(o);
-      });
-      sel.addEventListener('change', () => {
-        let v = sel.value;
-        if (v === 'true') v = true;
-        else if (v === 'false') v = false;
-        data[field.key] = v;
+      // Branded custom dropdown (no native OS popup). Boolean-ish options keep their
+      // true/false coercion. Pretty labels for the common on/off + bg/text cases.
+      const PRETTY = { 'true': 'On', 'false': 'Off' };
+      const opts = (field.options || []).map(o => [String(o), PRETTY[String(o)] || String(o)]);
+      const sel = brandSelect(opts, val == null ? (field.options || [])[0] : val, (v) => {
+        let out = v;
+        if (v === 'true') out = true;
+        else if (v === 'false') out = false;
+        data[field.key] = out;
         onChange();
-      });
+      }, { ariaLabel: field.label });
       wrap.appendChild(sel);
       break;
     }
@@ -4848,6 +4844,110 @@ function imageField(initial, onChange) {
 }
 
 // Generic file picker (images, audio, video)
+// Branded custom dropdown — replaces native <select> so clicking never shows the OS
+// popup. options: array of strings OR [value, label] pairs. The menu is portaled to
+// <body> with fixed positioning so it escapes the sidebar's overflow clipping.
+// opts: { ariaLabel, variant: 'toolbar' }. Returns the root element (with ._set(v)).
+function brandSelect(options, value, onPick, opts) {
+  opts = opts || {};
+  const norm = (options || []).map(o => Array.isArray(o)
+    ? { value: String(o[0]), label: String(o[1]) }
+    : { value: String(o), label: String(o) });
+
+  const root = document.createElement('div');
+  root.className = 'bsel' + (opts.variant === 'toolbar' ? ' bsel--toolbar' : '');
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'bsel-trigger';
+  trigger.setAttribute('aria-haspopup', 'listbox');
+  trigger.setAttribute('aria-expanded', 'false');
+  if (opts.ariaLabel) trigger.setAttribute('aria-label', opts.ariaLabel);
+  const labelEl = document.createElement('span');
+  labelEl.className = 'bsel-label';
+  trigger.appendChild(labelEl);
+  trigger.insertAdjacentHTML('beforeend',
+    '<svg class="bsel-chev" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 9 6 6 6-6"/></svg>');
+  root.appendChild(trigger);
+
+  let cur = String(value);
+  function setVal(v, fire) {
+    cur = String(v);
+    const found = norm.find(n => n.value === cur);
+    labelEl.textContent = found ? found.label : cur;
+    if (fire) onPick(cur);
+  }
+  setVal(value, false);
+
+  let menu = null;
+  function close() {
+    if (!menu) return;
+    menu.remove(); menu = null;
+    trigger.setAttribute('aria-expanded', 'false');
+    document.removeEventListener('pointerdown', onDocDown, true);
+    document.removeEventListener('keydown', onKey, true);
+    window.removeEventListener('resize', close);
+    window.removeEventListener('scroll', close, true);
+  }
+  function onDocDown(e) {
+    if (menu && !menu.contains(e.target) && !trigger.contains(e.target)) close();
+  }
+  function onKey(e) {
+    if (!menu) return;
+    const items = Array.prototype.slice.call(menu.querySelectorAll('.bsel-opt'));
+    let idx = items.indexOf(document.activeElement);
+    if (e.key === 'Escape') { e.preventDefault(); close(); trigger.focus(); }
+    else if (e.key === 'ArrowDown') { e.preventDefault(); idx = Math.min(items.length - 1, idx + 1); (items[idx] || items[0]).focus(); }
+    else if (e.key === 'ArrowUp') { e.preventDefault(); idx = Math.max(0, idx - 1); (items[idx] || items[items.length - 1]).focus(); }
+    else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      const a = document.activeElement;
+      if (a && a.classList.contains('bsel-opt')) a.click();
+    }
+  }
+  const CHECK = '<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>';
+  function open() {
+    if (menu) { close(); return; }
+    menu = document.createElement('div');
+    menu.className = 'bsel-menu';
+    menu.setAttribute('role', 'listbox');
+    norm.forEach(n => {
+      const o = document.createElement('button');
+      o.type = 'button';
+      o.className = 'bsel-opt' + (n.value === cur ? ' is-selected' : '');
+      o.setAttribute('role', 'option');
+      o.setAttribute('aria-selected', n.value === cur ? 'true' : 'false');
+      o.tabIndex = -1;
+      o.innerHTML = '<span class="bsel-check" aria-hidden="true">' + (n.value === cur ? CHECK : '') + '</span><span class="bsel-opt-label"></span>';
+      o.querySelector('.bsel-opt-label').textContent = n.label;
+      o.addEventListener('click', () => { setVal(n.value, true); close(); trigger.focus(); });
+      menu.appendChild(o);
+    });
+    document.body.appendChild(menu);
+    const r = trigger.getBoundingClientRect();
+    menu.style.position = 'fixed';
+    menu.style.minWidth = r.width + 'px';
+    menu.style.left = Math.round(r.left) + 'px';
+    const mh = menu.offsetHeight;
+    const below = window.innerHeight - r.bottom;
+    if (below < mh + 8 && r.top > mh + 8) menu.style.top = Math.round(r.top - mh - 6) + 'px';
+    else menu.style.top = Math.round(r.bottom + 6) + 'px';
+    trigger.setAttribute('aria-expanded', 'true');
+    document.addEventListener('pointerdown', onDocDown, true);
+    document.addEventListener('keydown', onKey, true);
+    window.addEventListener('resize', close);
+    window.addEventListener('scroll', close, true);
+    const sel = menu.querySelector('.bsel-opt.is-selected') || menu.querySelector('.bsel-opt');
+    if (sel) sel.focus();
+  }
+  trigger.addEventListener('click', (e) => { e.preventDefault(); e.stopPropagation(); open(); });
+
+  root._set = (v) => setVal(v, false);
+  root._get = () => cur;
+  return root;
+}
+window.brandSelect = brandSelect;
+
 function openFilePicker(filter, onSelect) {
   if (filter === 'image') {
     // Use existing image picker
