@@ -98,6 +98,8 @@ function resetState() {
     facts: [],
     plan: [],
     warnings: [],
+    throughLine: '',
+    chunks: [],
     generated: [],
     modal: null,
   };
@@ -293,6 +295,8 @@ function renderPhase1() {
       builderState.facts = result.facts || [];
       builderState.plan = result.plan || [];
       builderState.warnings = result.warnings || [];
+      builderState.throughLine = result.throughLine || '';
+      builderState.chunks = result.chunks || builderState.sources.map(s => s.content);
       builderState.phase = 2;
       renderPhase2();
     } catch (err) {
@@ -456,15 +460,17 @@ function renderPhase3() {
           action: 'generate-block',
           type: planItem.type,
           planItem,
-          sourceChunks: builderState.sources.map(s => s.content),
+          chunks: builderState.chunks,
           facts: builderState.facts,
           articleContext: {
             title: builderState.plan[0]?.headline || 'Article',
             tone: builderState.tone,
             lang: builderState.lang,
+            throughLine: builderState.throughLine,
+            narrativeBeat: planItem.narrativeBeat,
             blockIndex: i,
             totalBlocks: total,
-            previousSummaries: previousSummaries.join('; '),
+            prevLead: previousSummaries[previousSummaries.length - 1] || '',
           },
           lang: builderState.lang,
         });
@@ -474,10 +480,11 @@ function renderPhase3() {
           data: result.data,
           confidence: result.confidence || 'medium',
           sourceRefs: result.sourceRefs || [],
+          quality: result.quality,
           status: 'done',
         });
 
-        previousSummaries.push(`Block ${i + 1} (${planItem.type}): ${planItem.headline || 'content'}`);
+        previousSummaries.push(result.lead || planItem.headline || '');
 
         row.className = `ab-gen-row done conf-${result.confidence || 'medium'}`;
         row.querySelector('.ab-gen-status').textContent = result.confidence === 'high' ? '✅' : result.confidence === 'low' ? '🔴' : '🟡';
@@ -542,6 +549,9 @@ function renderPhase4() {
       <span class="ab-review-type">${escText(g.type)}</span>
       <span class="ab-review-preview">${escText(getBlockPreview(g))}</span>
     `;
+    if (g.quality && !g.quality.ok) {
+      row.appendChild(el('div', { className: 'ab-review-issues', textContent: '⚠ ' + g.quality.issues.join(' · ') }));
+    }
     blockList.appendChild(row);
   });
   body.appendChild(blockList);
