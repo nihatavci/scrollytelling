@@ -2,6 +2,10 @@
 // AI Full Article Builder — analyze sources + generate blocks
 // Two actions: 'analyze' (fact extraction + structure proposal) and 'generate-block' (per-block generation)
 
+import { callModel, parseAIResponse } from './_shared/blocks.js';
+import { chunkText } from './_shared/retrieval.js';
+import { buildPlanPrompt, repairPlanStructure } from './_shared/plan.js';
+
 const MODEL = '@cf/meta/llama-3.3-70b-instruct-fp8-fast';
 
 // ── Rate Limiting (separate from /api/generate) ──
@@ -34,26 +38,6 @@ function checkRateLimit(ip, action) {
     return Math.ceil((entry.resetAt - now) / 1000);
   }
   return null;
-}
-
-// ── Chunking ──
-const CHUNK_SIZE = 8000;
-const CHUNK_OVERLAP = 200;
-
-function chunkText(text) {
-  if (text.length <= CHUNK_SIZE) return [text];
-  const chunks = [];
-  let start = 0;
-  while (start < text.length) {
-    let end = start + CHUNK_SIZE;
-    if (end < text.length) {
-      const lastPeriod = text.lastIndexOf('. ', end);
-      if (lastPeriod > start + CHUNK_SIZE * 0.7) end = lastPeriod + 2;
-    }
-    chunks.push(text.slice(start, end));
-    start = end - CHUNK_OVERLAP;
-  }
-  return chunks;
 }
 
 // ── Block types available for article plans ──
@@ -98,45 +82,17 @@ Return ONLY valid JSON — no markdown fences, no explanation.` },
   return response?.response ?? response;
 }
 
-async function proposePlan(env, factSummaries, lang, tone) {
+async function proposePlan(env, factSummaries, lang, tone, factShape) {
   const blockList = AVAILABLE_BLOCK_TYPES.map(b => `- ${b.type}: ${b.use}`).join('\n');
-
-  const response = await env.AI.run(MODEL, {
-    messages: [
-      { role: 'system', content: `You are a senior editorial architect for a scrollytelling platform. Given extracted facts and summaries from source material, propose an article structure as an ordered list of blocks.
-
-Available block types:
-${blockList}
-
-Rules:
-- Start with a Hero block
-- End with an Outro block
-- Use ChapterDividers to break the article into 2-4 major acts
-- Prefer Editorial blocks for narrative sections
-- Use StatRow when you have 2-4 concrete numbers
-- Use Quote for impactful direct quotes from the sources
-- Use Aside for background context that would disrupt the narrative flow
-- Use Timeline when there are 3+ chronological events
-- Article tone: ${tone || 'investigative'}
-- Total blocks: 8-20 depending on source material length
-- Every block must reference which source material feeds it
-
-Return JSON only:
-{
-  "plan": [
-    { "type": "Hero", "headline": "proposed headline", "rationale": "why this block here", "sourceRefs": ["which source section"] }
-  ],
-  "warnings": ["any concerns about the source material"]
-}
-
-Language: respond in ${lang || 'the same language as the source text'}.
-Return ONLY valid JSON — no markdown fences, no explanation.` },
-      { role: 'user', content: `Extracted facts and summaries:\n\n${factSummaries}` },
-    ],
-    max_tokens: 3000,
-    temperature: 0.5,
+  const raw = await callModel(env, {
+    model: 'deepseek-v4-pro',
+    system: buildPlanPrompt(blockList, tone, lang),
+    user: `Extracted facts and summaries:\n\n${factSummaries}`,
+    maxTokens: 3000, temperature: 0.5,
   });
-  return response?.response ?? response;
+  let parsed; try { parsed = parseAIResponse(raw); } catch { parsed = {}; }
+  parsed.plan = repairPlanStructure(parsed.plan, factShape);
+  return parsed; // { throughLine, plan, warnings }
 }
 
 async function generateBlock(env, planItem, sourceChunks, facts, articleContext, lang) {
@@ -184,110 +140,6 @@ ${facts.map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n')}` },
     temperature: 0.6,
   });
   return response?.response ?? response;
-}
-
-// ── JSON Parsing (robust repair for LLM output) ──
-
-function parseAIResponse(raw) {
-  if (typeof raw === 'object' && raw !== null && !Array.isArray(raw)) return raw;
-
-  let text = typeof raw === 'string' ? raw : JSON.stringify(raw);
-  let jsonStr = text.trim();
-
-  // Strip markdown fences
-  if (jsonStr.startsWith('```')) {
-    jsonStr = jsonStr.replace(/^```(?:json)?\s*\n?/, '').replace(/\n?\s*```\s*$/, '');
-  }
-
-  // Strip any text before the first { or after the last }
-  const firstBrace = jsonStr.indexOf('{');
-  const lastBrace = jsonStr.lastIndexOf('}');
-  if (firstBrace !== -1 && lastBrace > firstBrace) {
-    jsonStr = jsonStr.slice(firstBrace, lastBrace + 1);
-  }
-
-  // Attempt 1: parse as-is
-  try { return JSON.parse(jsonStr); } catch {}
-
-  // Attempt 2: basic fixes
-  let fixed = jsonStr
-    .replace(/\t/g, '  ')                        // tabs → spaces
-    .replace(/,\s*([}\]])/g, '$1')               // trailing commas
-    .replace(/([}\]])\s*([{\[])/g, '$1,$2')      // missing commas between structures
-    .replace(/['']/g, "'")              // smart single quotes
-    .replace(/[""]/g, '"');             // smart double quotes
-  try { return JSON.parse(fixed); } catch {}
-
-  // Attempt 3: fix unescaped newlines/tabs inside string values
-  // Walk char-by-char to properly handle strings
-  fixed = repairJsonStrings(fixed);
-  try { return JSON.parse(fixed); } catch {}
-
-  // Attempt 4: try to fix truncated JSON (close open brackets/braces)
-  let repaired = fixed;
-  let openBraces = 0, openBrackets = 0;
-  let inString = false, escaped = false;
-  for (const ch of repaired) {
-    if (escaped) { escaped = false; continue; }
-    if (ch === '\\') { escaped = true; continue; }
-    if (ch === '"') { inString = !inString; continue; }
-    if (inString) continue;
-    if (ch === '{') openBraces++;
-    if (ch === '}') openBraces--;
-    if (ch === '[') openBrackets++;
-    if (ch === ']') openBrackets--;
-  }
-  // Remove trailing comma before closing
-  repaired = repaired.replace(/,\s*$/, '');
-  while (openBrackets > 0) { repaired += ']'; openBrackets--; }
-  while (openBraces > 0) { repaired += '}'; openBraces--; }
-  try { return JSON.parse(repaired); } catch {}
-
-  // Attempt 5: nuclear — strip control chars, re-escape strings
-  const nuclear = repaired
-    .replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g, ' ')   // strip control chars
-    .replace(/\n/g, '\\n')                              // escape all newlines
-    .replace(/\r/g, '\\r')
-    .replace(/\\n\\n/g, '\\n');                          // collapse double
-  try { return JSON.parse(nuclear); } catch (e) {
-    throw new Error(e.message);
-  }
-}
-
-// Walk JSON string and properly escape unescaped chars inside "..." values
-function repairJsonStrings(json) {
-  const result = [];
-  let i = 0;
-  while (i < json.length) {
-    if (json[i] === '"') {
-      // Start of a string — find the real end
-      result.push('"');
-      i++;
-      while (i < json.length) {
-        const ch = json[i];
-        if (ch === '\\' && i + 1 < json.length) {
-          result.push(ch, json[i + 1]);
-          i += 2;
-          continue;
-        }
-        if (ch === '"') {
-          result.push('"');
-          i++;
-          break;
-        }
-        // Escape control characters inside strings
-        if (ch === '\n') { result.push('\\n'); i++; continue; }
-        if (ch === '\r') { result.push('\\r'); i++; continue; }
-        if (ch === '\t') { result.push('\\t'); i++; continue; }
-        result.push(ch);
-        i++;
-      }
-    } else {
-      result.push(json[i]);
-      i++;
-    }
-  }
-  return result.join('');
 }
 
 // ── Main Handler ──
@@ -411,22 +263,13 @@ async function handleAnalyze(env, body) {
   const factSummaryText = summaries.map((s, i) => `Section ${i + 1}: ${s}`).join('\n') +
     '\n\nKey facts:\n' + allFacts.slice(0, 50).map(f => `- ${f.claim}${f.flag ? ` [${f.flag}]` : ''}`).join('\n');
 
-  let planParsed;
-  try {
-    const planRaw = await proposePlan(env, factSummaryText, lang, tone);
-    planParsed = parseAIResponse(planRaw);
-  } catch (planErr) {
-    console.error('Plan parse failed:', planErr.message);
-    // Fallback: generate a basic plan from the facts we have
-    planParsed = {
-      plan: [
-        { type: 'Hero', headline: 'Article', rationale: 'Auto-generated opening' },
-        { type: 'Editorial', headline: 'Main Content', rationale: 'Auto-generated from sources' },
-        { type: 'Outro', headline: 'Conclusion', rationale: 'Auto-generated closing' },
-      ],
-      warnings: ['AI plan generation failed — using basic structure. You can edit the plan before generating.'],
-    };
-  }
+  const factShape = {
+    hasNumbers: allFacts.some(f => f.flag === 'statistic' || f.flag === 'extreme_number'),
+    hasQuotes:  allFacts.some(f => f.flag === 'direct_quote'),
+    hasDates:   allFacts.some(f => f.flag === 'historical_date'),
+  };
+
+  const planParsed = await proposePlan(env, factSummaryText, lang, tone, factShape);
 
   const warnings = planParsed.warnings || [];
   if (chunksTruncated) {
@@ -440,6 +283,8 @@ async function handleAnalyze(env, body) {
   return new Response(JSON.stringify({
     facts: allFacts,
     plan: planParsed.plan || [],
+    throughLine: planParsed.throughLine || '',
+    chunks,
     warnings,
   }), {
     status: 200,
