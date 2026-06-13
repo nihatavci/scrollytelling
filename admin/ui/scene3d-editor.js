@@ -600,8 +600,21 @@ async function initScene3DEditor(container, blockData, onChange) {
       }
       threeScene.add(model);
       model3d = model;
-      // Soft contact shadow + grounding (the depth Sketchfab has).
-      model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+      // Soft contact shadow + grounding (the depth Sketchfab has). Also tune materials for
+      // richer reflections (envMapIntensity) + crisp textures (anisotropy) — see public renderer.
+      const _maxAniso = renderer.capabilities.getMaxAnisotropy();
+      model.traverse((o) => {
+        if (!o.isMesh) return;
+        o.castShadow = true; o.receiveShadow = true;
+        const mats = Array.isArray(o.material) ? o.material : [o.material];
+        mats.forEach((m) => {
+          if (!m) return;
+          if ('envMapIntensity' in m) m.envMapIntensity = 1.25;
+          ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap'].forEach((k) => {
+            if (m[k]) { m[k].anisotropy = _maxAniso; m[k].needsUpdate = true; }
+          });
+        });
+      });
       const gb = new THREE.Box3().setFromObject(model);
       const ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: 0.32 }));
       ground.rotation.x = -Math.PI / 2;

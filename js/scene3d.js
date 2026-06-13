@@ -197,7 +197,23 @@ export async function initScene3D(blockId, data) {
   pivot.add(model);
   scene.add(pivot);
   // Soft contact shadow + grounding (matches the admin editor; the depth Sketchfab has).
-  model.traverse((o) => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+  // Also tune every material for richer reflections + crisper textures (asset-agnostic):
+  //  · envMapIntensity scales how much the HDRI reflects off the surface — pop without
+  //    altering the artist's authored metalness/roughness (so nothing looks "wrong").
+  //  · max anisotropy keeps textures sharp at grazing angles.
+  const _maxAniso = renderer.capabilities.getMaxAnisotropy();
+  model.traverse((o) => {
+    if (!o.isMesh) return;
+    o.castShadow = true; o.receiveShadow = true;
+    const mats = Array.isArray(o.material) ? o.material : [o.material];
+    mats.forEach((m) => {
+      if (!m) return;
+      if ('envMapIntensity' in m) m.envMapIntensity = 1.25;
+      ['map', 'normalMap', 'roughnessMap', 'metalnessMap', 'emissiveMap', 'aoMap'].forEach((k) => {
+        if (m[k]) { m[k].anisotropy = _maxAniso; m[k].needsUpdate = true; }
+      });
+    });
+  });
   const _gb = new THREE.Box3().setFromObject(model);
   const _ground = new THREE.Mesh(new THREE.PlaneGeometry(60, 60), new THREE.ShadowMaterial({ opacity: sunlight ? 0.45 : 0.32 }));
   _ground.rotation.x = -Math.PI / 2;
