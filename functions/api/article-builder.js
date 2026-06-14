@@ -67,12 +67,12 @@ const AVAILABLE_BLOCK_TYPES = [
 async function summarizeChunk(env, chunk, chunkIndex, lang) {
   const response = await env.AI.run(MODEL, {
     messages: [
-      { role: 'system', content: `You are a research analyst. Extract key facts, claims, quotes, statistics, and data points from the provided text. For each fact, note if it's an extreme number (>80%, large dollar amounts), a historical date, a direct quote, a statistic from a table/chart, or a location/place.
+      { role: 'system', content: `You are a research analyst. Extract key facts, claims, quotes, statistics, and data points from the provided text. For each fact, note if it's an extreme number (>80%, large dollar amounts), a historical date, a direct quote, a statistic from a table/chart, a location/place, a physical object/artifact/building/device central to the story, or audio/voice material (an interview, recording, podcast).
 
 Return JSON only:
 {
   "facts": [
-    { "claim": "exact claim text", "section": "brief location description", "flag": null | "extreme_number" | "historical_date" | "direct_quote" | "statistic" | "location" }
+    { "claim": "exact claim text", "section": "brief location description", "flag": null | "extreme_number" | "historical_date" | "direct_quote" | "statistic" | "location" | "physical_object" | "audio" }
   ],
   "summary": "2-3 sentence summary of this section's key points"
 }
@@ -266,6 +266,8 @@ export async function runAnalyze(env, body) {
     hasQuotes:  allFacts.some(f => f.flag === 'direct_quote'),
     hasDates:   allFacts.some(f => f.flag === 'historical_date'),
     hasPlaces:  allFacts.some(f => f.flag === 'location'),
+    hasObject:  allFacts.some(f => f.flag === 'physical_object'),
+    hasAudio:   allFacts.some(f => f.flag === 'audio'),
   };
 
   const planParsed = await proposePlan(env, factSummaryText, lang, tone, factShape);
