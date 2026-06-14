@@ -20,7 +20,7 @@ export async function onRequest(context) {
   try {
     if (body.phase === 'analyze') {
       const a = await runAnalyze(env, { sources: body.sources, lang, tone: body.tone || 'feature' });
-      return json({ plan: a.plan, planTypes: (a.plan || []).map(p => p.type), chunks: a.chunks, facts: a.facts, throughLine: a.throughLine, warnings: a.warnings, ms: Date.now() - t0 }, 200);
+      return json({ plan: a.plan, planTypes: (a.plan || []).map(p => p.type), chunks: a.chunks, facts: a.facts, throughLine: a.throughLine, warnings: a.warnings, _debug: a._debug, ms: Date.now() - t0 }, 200);
     }
     if (body.phase === 'block') {
       const r = await runGenerateBlock(env, {

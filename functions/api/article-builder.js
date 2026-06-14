@@ -96,8 +96,11 @@ async function proposePlan(env, factSummaries, lang, tone, factShape) {
     maxTokens: 3000, temperature: 0.5,
   });
   let parsed; try { parsed = parseAIResponse(raw); } catch { parsed = {}; }
+  const _rawPlanLen = Array.isArray(parsed.plan) ? parsed.plan.length : -1; // -1 = parse produced no array
+  const _rawLen = typeof raw === 'string' ? raw.length : -1;
   parsed.plan = repairPlanStructure(parsed.plan, factShape);
-  return parsed; // { throughLine, plan, warnings }
+  parsed._rawPlanLen = _rawPlanLen; parsed._rawLen = _rawLen;
+  return parsed; // { throughLine, plan, warnings, _rawPlanLen, _rawLen }
 }
 
 async function generateBlock(env, planItem, relevantChunks, facts, ctx, lang) {
@@ -288,6 +291,7 @@ export async function runAnalyze(env, body) {
     chunks,
     warnings,
     _allParseError,
+    _debug: { factShape, rawPlanLen: planParsed._rawPlanLen, rawLen: planParsed._rawLen },
   };
 }
 
