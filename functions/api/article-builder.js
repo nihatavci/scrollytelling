@@ -91,7 +91,7 @@ async function proposePlan(env, factSummaries, lang, tone, factShape) {
   const blockList = AVAILABLE_BLOCK_TYPES.map(b => `- ${b.type}: ${b.use}`).join('\n');
   const raw = await callModel(env, {
     model: 'deepseek-v4-pro',
-    system: buildPlanPrompt(blockList, tone, lang),
+    system: buildPlanPrompt(blockList, tone, lang, factShape),
     user: `Extracted facts and summaries:\n\n${factSummaries}`,
     maxTokens: 3000, temperature: 0.5,
   });

@@ -1,11 +1,25 @@
 export const BEATS = ['exposition', 'rising', 'climax', 'falling', 'resolution'];
 
+// Positive directives derived from what the sources actually contain — turns the permissive
+// "include ONLY if…" gating into an active "you MUST/SHOULD use X" when the signal is present,
+// so the planner doesn't substitute a generic ImageGrid for a real data series or a route.
+function dataSignals(factShape) {
+  if (!factShape) return '';
+  const lines = [];
+  if (factShape.hasNumbers) lines.push('- DATA SIGNAL: the sources contain a real numeric series (values across years/categories). You MUST include exactly one DataScrolly block built from those exact numbers, at the rising or climax beat. Do NOT substitute ImageGrid/StatRow for the chart.');
+  if (factShape.hasPlaces) lines.push('- GEO SIGNAL: the sources name multiple real places / a route. Strongly prefer a Map2D block (with each place\'s real coordinates) over a generic image.');
+  if (factShape.hasQuotes) lines.push('- QUOTE SIGNAL: the sources contain direct quotes. Include at least one Quote block at a high-impact beat.');
+  if (!lines.length) return '';
+  return `\nCONTENT SIGNALS (act on these — they reflect what the sources actually contain):\n${lines.join('\n')}\n`;
+}
+
 // Planner prompt: forces a dramatic arc (Freytag), not a flat list. Used by handleAnalyze.
-export function buildPlanPrompt(blockList, tone, lang) {
+export function buildPlanPrompt(blockList, tone, lang, factShape) {
   return `You are a senior editorial architect for a scrollytelling platform. Design an article as a DRAMATIC ARC (Freytag), not a flat list.
 
 Available block types:
 ${blockList}
+${dataSignals(factShape)}
 
 Shape the arc across these beats and tag each block with "narrativeBeat":
 - exposition: a Hero hook + just enough context to set stakes.
