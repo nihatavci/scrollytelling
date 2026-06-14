@@ -56,20 +56,39 @@ export function validatePlanStructure(plan) {
   if (plan[0]?.type !== 'Hero') problems.push('must start with a Hero');
   if (plan[plan.length - 1]?.type !== 'Outro') problems.push('must end with an Outro');
   if (!plan.some(b => b.type === 'ChapterDivider')) problems.push('needs at least one ChapterDivider');
-  if (!plan.some(b => ['ImageGrid','Scrolly','FullscreenImage'].includes(b.type))) problems.push('needs a visual block');
+  if (!plan.some(b => ['ImageGrid','Scrolly','FullscreenImage','Map2D','DataScrolly','Scene3D'].includes(b.type))) problems.push('needs a visual block');
   for (let i = 2; i < plan.length; i++) {
     if (plan[i].type === plan[i-1].type && plan[i].type === plan[i-2].type) { problems.push('3 identical block types repeat'); break; }
   }
   return { valid: problems.length === 0, problems };
 }
 
+// When the model returns nothing usable, build a content-aware arc from the fact signals so
+// the rich components the sources call for still appear (deepseek occasionally returns an
+// empty/unparseable plan; without this it would collapse to a bare Hero/ImageGrid/Outro).
+function skeletonFromFacts(f = {}) {
+  const arc = [{ type: 'Hero' }, { type: 'Editorial' }, { type: 'ChapterDivider' }];
+  if (f.hasNumbers) arc.push({ type: 'DataScrolly' });
+  if (f.hasPlaces) arc.push({ type: 'Map2D' });
+  if (f.hasObject) arc.push({ type: 'Scene3D' });
+  if (f.hasAudio) arc.push({ type: 'AudioPlayer' });
+  if (f.hasDates) arc.push({ type: 'Timeline' });
+  if (f.hasQuotes) arc.push({ type: 'Quote' });
+  if (!arc.some(b => ['DataScrolly', 'Map2D', 'Scene3D', 'ImageGrid'].includes(b.type))) arc.push({ type: 'ImageGrid' });
+  arc.push({ type: 'Editorial' });
+  arc.push({ type: 'Outro' });
+  return arc;
+}
+
 // Deterministic safety net when the model returns a weak plan. Normalizes to a valid arc.
 export function repairPlanStructure(plan, facts = {}) {
   let p = Array.isArray(plan) ? plan.filter(b => b && b.type) : [];
+  // Model plan empty or too thin to be a real article → rebuild from the content signals.
+  if (p.length < 4) p = skeletonFromFacts(facts);
   if (p[0]?.type !== 'Hero') p.unshift({ type: 'Hero', headline: p[0]?.headline || 'Untitled' });
   if (p[p.length - 1]?.type !== 'Outro') p.push({ type: 'Outro', headline: 'Conclusion' });
   if (!p.some(b => b.type === 'ChapterDivider') && p.length > 3) p.splice(2, 0, { type: 'ChapterDivider', headline: '' });
-  if (!p.some(b => ['ImageGrid','Scrolly','FullscreenImage'].includes(b.type))) p.splice(Math.floor(p.length/2), 0, { type: 'ImageGrid', headline: '' });
+  if (!p.some(b => ['ImageGrid','Scrolly','FullscreenImage','Map2D','DataScrolly','Scene3D'].includes(b.type))) p.splice(Math.floor(p.length/2), 0, { type: 'ImageGrid', headline: '' });
   for (let i = 2; i < p.length; i++) {
     if (p[i].type === p[i-1].type && p[i].type === p[i-2].type) { p.splice(i, 0, { type: 'Aside', headline: '' }); i++; }
   }
